@@ -151,7 +151,7 @@ export default function Trade() {
         .action-btn:active { opacity: 0.85; transform: scale(0.98); }
         .action-buy { background-color: var(--color-green); color: #070c18; text-transform: uppercase; }
         .action-sell { background-color: var(--color-red); color: #fff; text-transform: uppercase; }
-        .action-connect { background-color: #ffb800; color: #000; text-transform: uppercase; font-size: 13px !important; padding: 12px !important; border-radius: var(--radius-md) !important; }
+        .action-connect { background-color: #ffb800; color: #000; text-transform: uppercase; font-size: 13px !important; padding: 12px !important; border-radius: var(--radius-md) !important; width: 100% !important; margin: 0 !important; box-sizing: border-box !important; text-align: center !important; display: flex !important; justify-content: center !important; align-items: center !important; }
         
         .trade-below-chart {
           display: flex;
@@ -278,10 +278,13 @@ export default function Trade() {
             box-sizing: border-box;
             background-color: var(--color-bg0);
             border-top: 1px solid var(--color-border);
-            padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
-            gap: 8px;
+            padding: 12px;
+            padding-bottom: 24px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            gap: 10px;
             z-index: 90;
-            overflow: hidden;
+            justify-content: center;
+            align-items: center;
           }
           .trade-mobile-modal-backdrop {
             display: flex;
