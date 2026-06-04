@@ -76,7 +76,7 @@ export default function Topbar() {
         </div>
 
         {/* Right — Wallet & Settings */}
-        <div className="topbar-right">
+        <div className="topbar-right desktop-only">
           <div className="topbar-gas desktop-only">
             <span className="gas-dot" />
             <span className="font-mono" style={{ fontSize: '12px' }}>Gas: USDC · ~0.001</span>
@@ -177,7 +177,34 @@ export default function Topbar() {
               ))}
             </nav>
             <div className="mobile-menu-footer">
-               <div style={{ fontSize: 11, color: 'var(--color-text3)' }}>Language: English</div>
+              {!isConnected ? (
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '12px' }}
+                  onClick={() => { setWalletModalOpen(true); setIsMobileMenuOpen(false); }}
+                >
+                  Connect Wallet
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="topbar-avatar" />
+                      <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{truncatedAddress}</span>
+                    </div>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--color-red)' }}
+                      onClick={() => { disconnect(); setIsMobileMenuOpen(false); }}
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                  <div className="font-mono" style={{ fontSize: '16px', color: 'var(--color-green)' }}>
+                    {balance.toFixed(2)} USDC
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

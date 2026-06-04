@@ -1,7 +1,7 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
 
 @theme {
-  /* ═══ Colors — Hyperliquid Terminal ═══ */
   --color-bg0: #0b1016; /* Deep dark bg */
   --color-bg1: #0b1016;
   --color-bg2: #141b24;
@@ -47,9 +47,6 @@
   --shadow-modal: rgba(0, 0, 0, 0.6) 0px 16px 64px 16px, rgba(0, 0, 0, 0.8) 0px 0px 0px 0.5px, rgba(255, 255, 255, 0.08) 0px 1px 0px 0px inset;
   --shadow-button: rgba(0, 0, 0, 0.25) 0px 1px 2px 0px, rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset;
 }
-
-/* ═══ Google Fonts ═══ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
 
 /* ═══ Base Styles ═══ */
 *, *::before, *::after {

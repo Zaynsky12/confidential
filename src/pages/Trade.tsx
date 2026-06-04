@@ -82,7 +82,7 @@ export default function Trade() {
           .trade-sidebar {
             border-right: none;
             border-bottom: 1px solid var(--color-border);
-            max-height: 250px;
+            height: auto;
           }
           .trade-center {
             height: auto;
