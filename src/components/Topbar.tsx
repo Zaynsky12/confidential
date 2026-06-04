@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
-import MarketSidebar from './MarketSidebar'
 
 const NAV_LINKS = [
   { to: '/', label: 'Trade' },
@@ -13,11 +12,12 @@ const NAV_LINKS = [
 
 export default function Topbar() {
   const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
-  const { setWalletModalOpen, markets, activeMarketId } = useTradeStore()
+  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false)
+  const [marketSearch, setMarketSearch] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,6 +29,17 @@ export default function Topbar() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  const filteredMarkets = markets.filter((m) =>
+    m.pair.toLowerCase().includes(marketSearch.toLowerCase())
+  )
+
+  const formatPrice = (price: number) => {
+    if (price >= 10000) return price.toFixed(1)
+    if (price >= 100) return price.toFixed(2)
+    if (price >= 1) return price.toFixed(3)
+    return price.toFixed(4)
+  }
 
   return (
     <header className="topbar">
@@ -74,22 +85,35 @@ export default function Topbar() {
         </div>
 
         {/* Center — Active Market (Mobile Only) */}
-        <div className="topbar-center mobile-only">
+        <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 2 }}>
           <button 
             onClick={() => setIsMarketSelectorOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
           >
-            <span className="font-mono" style={{ fontWeight: 600, fontSize: 15 }}>
+            {activeMarket && activeMarket.pair.includes('BTC') ? (
+              <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="16" fill="#F7931A"/>
+                <path d="M21.9 14.1c.3-2.1-1.3-3.2-3.5-4l.7-2.9-1.8-.4-.7 2.8c-.5-.1-.9-.2-1.4-.4l.7-2.8-1.8-.4-.7 2.9c-1.6-.3-3.1-.7-4.3-1.6l-1 2.2s.8.6 1.8 1.1c-.2.7-1 4.2-1.2 4.9-1.4.3-2.5 0-2.5 0l-1.1 2.4c1.1.5 2.1.8 3.2.8l-.7 3 1.8.5.7-3c.5.1.9.3 1.4.4l-.7 3 1.8.4.7-3c2.4.5 4.5.4 5.9-1.7 1.1-1.7.7-3 .2-3.8 1.2-.2 2.1-.9 2.5-2.5zm-3.5 5.5c-.5 1.9-3.7.9-4.8.6l.8-3.4c1.1.3 4.6 1 4 2.8zm.5-5c-.4 1.7-2.9.8-3.7.6l.7-3c.8.2 3.3.6 3 2.4z" fill="#fff"/>
+              </svg>
+            ) : (
+              <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#627EEA' }} />
+            )}
+            <span className="font-mono" style={{ fontWeight: 600, fontSize: 16 }}>
               {activeMarket ? activeMarket.pair : 'Trade'}
             </span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+          {activeMarket && (
+            <span className="font-mono" style={{ fontSize: 13, color: 'var(--color-text2)', fontWeight: 500 }}>
+              ${formatPrice(activeMarket.price)}
+            </span>
+          )}
         </div>
 
         {/* Right — Wallet & Settings */}
-        <div className="topbar-right desktop-only">
+        <div className="topbar-right">
           <div className="topbar-gas desktop-only">
             <span className="gas-dot" />
             <span className="font-mono" style={{ fontSize: '12px' }}>Gas: USDC · ~0.001</span>
@@ -150,6 +174,12 @@ export default function Topbar() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          
+          <button className="favorite-btn mobile-only" style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: '4px' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
           </button>
         </div>
@@ -223,19 +253,80 @@ export default function Topbar() {
         </div>
       )}
 
-      {/* Mobile Market Selector Modal */}
+      {/* Mobile Market Selector — Slide-in Panel from Right */}
       {isMarketSelectorOpen && (
-        <div className="mobile-market-modal animate-fade-in-up mobile-only">
-          <div className="mobile-market-modal-header">
-            <span style={{ fontSize: 16, fontWeight: 600 }}>Markets</span>
-            <button className="mobile-close-btn" onClick={() => setIsMarketSelectorOpen(false)}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
-          </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <MarketSidebar onClose={() => setIsMarketSelectorOpen(false)} />
+        <div
+          className="market-selector-backdrop mobile-only"
+          onClick={() => setIsMarketSelectorOpen(false)}
+        >
+          <div
+            className="market-selector-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Panel Header */}
+            <div className="msp-header">
+              <span className="msp-title">Markets</span>
+              <button
+                className="mobile-close-btn"
+                onClick={() => setIsMarketSelectorOpen(false)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="msp-search-wrapper">
+              <div className="msp-search">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, color: 'var(--color-text3)' }}>
+                  <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.3"/>
+                  <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+                <input
+                  className="msp-search-input"
+                  placeholder="Search markets..."
+                  type="text"
+                  value={marketSearch}
+                  onChange={(e) => setMarketSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="msp-table-wrapper">
+              <table className="msp-table">
+                <thead className="msp-thead">
+                  <tr>
+                    <th className="msp-th">Pair</th>
+                    <th className="msp-th msp-th-right">Price</th>
+                    <th className="msp-th msp-th-right">24h</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMarkets.map((m) => {
+                    const isActive = m.id === activeMarketId
+                    return (
+                      <tr
+                        key={m.id}
+                        className={`msp-row ${isActive ? 'msp-row-active' : ''}`}
+                        onClick={() => {
+                          setActiveMarket(m.id)
+                          setIsMarketSelectorOpen(false)
+                          setMarketSearch('')
+                        }}
+                      >
+                        <td className="msp-td msp-td-pair">{m.pair}</td>
+                        <td className="msp-td msp-td-price font-mono">{formatPrice(m.price)}</td>
+                        <td className={`msp-td msp-td-change font-mono ${m.change24h >= 0 ? 'text-green' : 'text-red'}`}>
+                          {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -447,30 +538,168 @@ export default function Topbar() {
           border-top: 1px solid var(--color-border);
         }
 
-        .mobile-market-modal {
+        /* ═══ Mobile Market Selector — Slide-in Panel ═══ */
+        .market-selector-backdrop {
           position: fixed;
           inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
           z-index: 1000;
+          display: flex;
+          justify-content: flex-end;
+          animation: fadeIn 200ms ease;
+        }
+        .market-selector-panel {
+          width: 85%;
+          max-width: 360px;
+          height: 100%;
           background-color: var(--color-bg0);
           display: flex;
           flex-direction: column;
+          border-left: 1px solid var(--color-border);
+          animation: slideInRight 250ms cubic-bezier(0.23, 1, 0.32, 1);
+          box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
         }
-        .mobile-market-modal-header {
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+
+        /* Panel Header */
+        .msp-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 20px;
+          padding: 16px;
           border-bottom: 1px solid var(--color-border);
+        }
+        .msp-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--color-text1);
+        }
+
+        /* Search */
+        .msp-search-wrapper {
+          padding: 12px 12px 0;
+        }
+        .msp-search {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          background-color: var(--color-bg2);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+        }
+        .msp-search-input {
+          width: 100%;
+          font-size: 13px;
+          color: var(--color-text1);
+          background: transparent;
+          border: none;
+          outline: none;
+          font-family: var(--font-ui);
+        }
+        .msp-search-input::placeholder {
+          color: var(--color-text3);
+        }
+
+        /* Table */
+        .msp-table-wrapper {
+          flex: 1;
+          overflow-y: auto;
+          padding-top: 8px;
+        }
+        .msp-table {
+          width: 100%;
+          text-align: left;
+          border-collapse: collapse;
+        }
+        .msp-thead {
+          position: sticky;
+          top: 0;
+          background-color: var(--color-bg0);
+          z-index: 10;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .msp-th {
+          font-size: 10px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          color: var(--color-text3);
+          padding: 6px 12px;
+        }
+        .msp-th-right {
+          text-align: right;
+        }
+        .msp-row {
+          cursor: pointer;
+          transition: background-color 150ms;
+          border-left: 2px solid transparent;
+        }
+        .msp-row:hover {
+          background-color: var(--color-bg2);
+        }
+        .msp-row-active {
+          background-color: var(--color-bg2);
+          border-left-color: var(--color-accent);
+        }
+        .msp-td {
+          padding: 12px;
+          font-size: 13px;
+        }
+        .msp-td-pair {
+          font-weight: 500;
+          color: var(--color-text1);
+        }
+        .msp-td-price {
+          text-align: right;
+          color: var(--color-text1);
+          font-size: 13px;
+        }
+        .msp-td-change {
+          text-align: right;
+          font-size: 13px;
+        }
+
+        /* ═══ Tablet Responsiveness (769px — 1024px) ═══ */
+        @media (max-width: 1024px) and (min-width: 769px) {
+          .topbar-nav {
+            gap: 10px;
+          }
+          .topbar-nav-link {
+            font-size: 13px;
+          }
+          .mobile-menu-btn {
+            display: block;
+          }
+          .mobile-only {
+            display: flex;
+          }
+          .topbar-logo {
+            display: none;
+          }
+          .topbar-left {
+            flex: 0;
+            gap: 12px;
+          }
         }
 
         /* ═══ Mobile Responsiveness ═══ */
         @media (max-width: 768px) {
           .topbar {
-            height: 52px;
+            height: 60px;
+            padding-top: 4px;
           }
           .topbar-left {
             gap: 12px;
             flex: 1;
+          }
+          .topbar-right {
+            flex: 1;
+            justify-content: flex-end;
           }
           .mobile-menu-btn {
             display: block;
@@ -485,8 +714,10 @@ export default function Topbar() {
             display: flex;
           }
           .btn-connect {
-            padding: 4px 12px;
-            font-size: 12px;
+            display: none !important;
+          }
+          .topbar-account {
+            display: none !important;
           }
         }
       `}</style>

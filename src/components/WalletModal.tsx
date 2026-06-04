@@ -162,8 +162,10 @@ export default function WalletModal() {
 
         @media (max-width: 480px) {
           .wallet-modal-content {
-            width: 90%;
+            width: calc(100% - 24px);
+            max-width: 420px;
             border-radius: 12px;
+            max-height: 85vh;
           }
         }
       `}</style>

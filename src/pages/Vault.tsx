@@ -97,7 +97,7 @@ export default function Vault() {
         ) : (
           <div style={{ maxHeight:300,overflowY:'auto' }}>
             {vaultDeposits.map(d=>(
-              <div key={d.id} style={{ display:'grid',gridTemplateColumns:'1fr 0.8fr 1fr 1.5fr',padding:'10px 20px',borderBottom:'1px solid var(--color-border)',fontSize:12,alignItems:'center' }}>
+              <div key={d.id} className="vault-activity-row" style={{ display:'grid',gridTemplateColumns:'1fr 0.8fr 1fr 1.5fr',padding:'10px 20px',borderBottom:'1px solid var(--color-border)',fontSize:12,alignItems:'center' }}>
                 <span style={{ color:'var(--color-text3)' }}>{formatTime(d.timestamp)}</span>
                 <span className={d.action==='deposit'?'badge badge-green':'badge badge-red'} style={{ fontSize:10,padding:'1px 8px',justifySelf:'start' }}>
                   {d.action.toUpperCase()}
@@ -131,13 +131,21 @@ export default function Vault() {
 
         @media (max-width: 768px) {
           .vault-container {
-            padding: 24px 16px;
+            padding: 20px 14px;
+          }
+          .vault-container h1 {
+            font-size: 22px !important;
           }
           .vault-cards {
             grid-template-columns: 1fr;
           }
           .vault-stats {
             grid-template-columns: repeat(2, 1fr);
+          }
+          .vault-activity-row {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 6px;
+            padding: 10px 14px !important;
           }
         }
       `}</style>

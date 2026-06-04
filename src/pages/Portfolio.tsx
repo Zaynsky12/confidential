@@ -158,7 +158,10 @@ export default function Portfolio() {
 
         @media (max-width: 768px) {
           .portfolio-container {
-            padding: 24px 16px;
+            padding: 20px 14px;
+          }
+          .portfolio-container h1 {
+            font-size: 22px !important;
           }
           .portfolio-header {
             flex-direction: column;

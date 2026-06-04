@@ -258,6 +258,15 @@ export default function OrderBook() {
             font-size: 11px;
             padding: 10px 4px;
           }
+          .ob-spread {
+            padding: 5px 8px;
+          }
+          .ob-spread span:first-child {
+            font-size: 13px !important;
+          }
+          .ob-spread span:last-child {
+            font-size: 10px !important;
+          }
         }
       `}</style>
     </div>

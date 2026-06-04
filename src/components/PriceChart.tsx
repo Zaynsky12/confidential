@@ -148,49 +148,82 @@ export default function PriceChart() {
           <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600 }}>40x</span>
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ color: 'var(--color-text3)', fontSize: 11, marginBottom: 2 }}>Mark</span>
-          <span className="font-mono" style={{ color: 'var(--color-accent)', fontWeight: 500 }}>{fp(activeMarket.price)}</span>
+        <div className="chart-stat-item desktop-only">
+          <span className="chart-stat-label">Mark</span>
+          <span className="font-mono chart-stat-value" style={{ color: 'var(--color-accent)' }}>{fp(activeMarket.price)}</span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ color: 'var(--color-text3)', fontSize: 11, marginBottom: 2 }}>Oracle</span>
-          <span className="font-mono" style={{ fontWeight: 500 }}>{fp(activeMarket.price * 1.0001)}</span>
+        <div className="chart-stat-item desktop-only">
+          <span className="chart-stat-label">Oracle</span>
+          <span className="font-mono chart-stat-value">{fp(activeMarket.price * 1.0001)}</span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ color: 'var(--color-text3)', fontSize: 11, marginBottom: 2 }}>24h Change</span>
-          <span className={`font-mono ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
+        <div className="chart-stat-item desktop-only">
+          <span className="chart-stat-label">24h Change</span>
+          <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
             {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
           </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ color: 'var(--color-text3)', fontSize: 11, marginBottom: 2 }}>24h Volume</span>
-          <span className="font-mono" style={{ fontWeight: 500 }}>{fv(activeMarket.volume24h)}</span>
+        <div className="chart-stat-item chart-stat-mobile-col">
+          <span className="chart-stat-label">24h Volume</span>
+          <span className="font-mono chart-stat-value">{fv(activeMarket.volume24h)}</span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ color: 'var(--color-text3)', fontSize: 11, marginBottom: 2 }}>Open Interest</span>
-          <span className="font-mono" style={{ fontWeight: 500 }}>{fv(activeMarket.openInterest)}</span>
+        <div className="chart-stat-item chart-stat-mobile-col">
+          <span className="chart-stat-label">Open Interest</span>
+          <span className="font-mono chart-stat-value">{fv(activeMarket.openInterest)}</span>
+        </div>
+
+        <div className="chart-stat-item chart-stat-mobile-col mobile-only">
+          <span className="chart-stat-label">Funding / Countdown</span>
+          <span className="font-mono chart-stat-value">
+            <span style={{ color: 'var(--color-green)' }}>0.0011%</span> <span style={{ color: 'var(--color-text1)' }}>00:48:11</span>
+          </span>
         </div>
       </div>
 
       {/* HL-style Timeframes & Indicators Bar */}
       <div className="chart-timeframes">
-        <div style={{ display: 'flex', gap: 12 }}>
-          {TIMEFRAMES.map((tf) => (
-            <button key={tf} onClick={() => setSelectedTimeframe(tf)}
-              style={{ fontSize: 13, fontWeight: selectedTimeframe === tf ? 600 : 500, cursor: 'pointer', transition: 'color 150ms', border: 'none', background: 'none', padding: 0,
-                color: selectedTimeframe === tf ? 'var(--color-text1)' : 'var(--color-text3)' }}>
-              {tf}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          {/* Main Timeframes */}
+          <div style={{ display: 'flex', gap: 12 }}>
+            {TIMEFRAMES.map((tf) => (
+              <button key={tf} onClick={() => setSelectedTimeframe(tf)}
+                style={{ fontSize: 13, fontWeight: selectedTimeframe === tf ? 600 : 500, cursor: 'pointer', transition: 'color 150ms', border: 'none', background: 'none', padding: 0,
+                  color: selectedTimeframe === tf ? '#e29931' : 'var(--color-text2)' }}>
+                {tf}
+              </button>
+            ))}
+          </div>
+          
+          <button style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
         </div>
-        <div style={{ width: 1, height: 14, background: 'var(--color-border)' }} />
-        <button style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'var(--color-text3)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
-          Indicators
+
+        <div style={{ width: 1, height: 16, background: 'var(--color-border)', margin: '0 8px' }} />
+
+        <div className="chart-tools">
+          <button className="tool-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="5" width="6" height="14" rx="1"/><path d="M12 2v3"/><path d="M12 19v3"/></svg>
+          </button>
+          
+          <div style={{ width: 1, height: 16, background: 'var(--color-border)', margin: '0 8px' }} />
+          
+          <button className="tool-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
+          </button>
+          
+          <button className="tool-btn text-btn" style={{ marginLeft: 4 }}>
+            Show Outliers
+          </button>
+        </div>
+
+        <div style={{ flex: 1 }} />
+        
+        <button className="tool-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         </button>
       </div>
 
@@ -206,16 +239,51 @@ export default function PriceChart() {
           flex-wrap: wrap;
           gap: 24px;
           font-size: 13px;
+          flex-shrink: 0;
+        }
+        .chart-stat-item {
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+        }
+        .chart-stat-label {
+          color: var(--color-text3);
+          font-size: 11px;
+          margin-bottom: 2px;
+          white-space: nowrap;
+        }
+        .chart-stat-value {
+          font-weight: 500;
+          font-size: 13px;
+          white-space: nowrap;
         }
         .chart-timeframes {
           display: flex;
           align-items: center;
           padding: 6px 16px;
           border-bottom: 1px solid var(--color-border);
-          gap: 16px;
+          flex-shrink: 0;
+        }
+        .chart-tools {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .tool-btn {
+          display: flex;
+          align-items: center;
+          background: none;
+          border: none;
+          color: var(--color-text3);
+          cursor: pointer;
+          padding: 2px;
+        }
+        .tool-btn.text-btn {
+          color: #a4b3d1;
+          font-size: 13px;
         }
 
-        /* ═══ Mobile Responsiveness ═══ */
+        /* ═══ Tablet Responsiveness ═══ */
         @media (max-width: 1024px) {
           .desktop-only { display: none !important; }
           .chart-header-stats {
@@ -223,7 +291,7 @@ export default function PriceChart() {
             overflow-x: auto;
             -ms-overflow-style: none;
             scrollbar-width: none;
-            padding: 12px;
+            padding: 10px 12px;
             gap: 16px;
           }
           .chart-header-stats::-webkit-scrollbar {
@@ -236,6 +304,34 @@ export default function PriceChart() {
           }
           .chart-timeframes::-webkit-scrollbar {
             display: none;
+          }
+        }
+
+        /* ═══ Mobile Responsiveness ═══ */
+        @media (max-width: 768px) {
+          .chart-header-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            padding: 12px 16px;
+            gap: 16px;
+          }
+          .chart-stat-item {
+            align-items: flex-start;
+          }
+          .chart-stat-label {
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: var(--color-text3);
+          }
+          .chart-stat-value {
+            font-size: 14px;
+            color: var(--color-text1);
+          }
+          .chart-timeframes {
+            padding: 8px 16px;
+          }
+          .chart-timeframes button {
+            font-size: 13px !important;
           }
         }
       `}</style>

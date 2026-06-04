@@ -144,7 +144,10 @@ export default function Bridge() {
 
         @media (max-width: 768px) {
           .bridge-container {
-            padding: 24px 16px;
+            padding: 20px 14px;
+          }
+          .bridge-container h1 {
+            font-size: 22px !important;
           }
           .bridge-chains {
             grid-template-columns: repeat(2, 1fr);
@@ -152,6 +155,7 @@ export default function Bridge() {
           .bridge-history-row {
             grid-template-columns: 1fr 1fr;
             gap: 8px;
+            padding: 10px 14px;
           }
           .bridge-history-row > span:nth-child(3),
           .bridge-history-row > span:nth-child(4) {

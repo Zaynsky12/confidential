@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import Topbar from './components/Topbar'
+import MobileTabs from './components/MobileTabs'
 import WalletModal from './components/WalletModal'
 import Trade from './pages/Trade'
 import Vault from './pages/Vault'
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <>
       <Topbar />
+      <MobileTabs />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Routes>
           <Route path="/" element={<Trade />} />
