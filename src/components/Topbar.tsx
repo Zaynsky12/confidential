@@ -14,6 +14,7 @@ export default function Topbar() {
   const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
   const { setWalletModalOpen } = useTradeStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,8 +33,18 @@ export default function Topbar() {
       <div className="topbar-glow" />
 
       <div className="topbar-inner">
-        {/* Left — Logo */}
+        {/* Left — Logo & Desktop Nav */}
         <div className="topbar-left">
+          {/* Mobile Hamburger */}
+          <button 
+            className="mobile-menu-btn"
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+
           <div className="topbar-logo">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0052FF"/>
@@ -42,41 +53,39 @@ export default function Topbar() {
             </svg>
             <span className="topbar-brand">ArcTrade</span>
           </div>
-          <span className="badge badge-accent" style={{ fontSize: '9px', padding: '1px 6px' }}>
-            TESTNET
-          </span>
+
+          <nav className="topbar-nav desktop-only">
+            {NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.to === '/'}
+                className={({ isActive }) =>
+                  `topbar-nav-link ${isActive ? 'active' : ''}`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
-        {/* Center — Nav */}
-        <nav className="topbar-nav">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.to === '/'}
-              className={({ isActive }) =>
-                `topbar-nav-link ${isActive ? 'active' : ''}`
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
-        </nav>
+        {/* Center — Active Market (Mobile Only) */}
+        <div className="topbar-center mobile-only">
+          <span className="font-mono" style={{ fontWeight: 600, fontSize: 15 }}>Trade</span>
+        </div>
 
-        {/* Right — Wallet */}
+        {/* Right — Wallet & Settings */}
         <div className="topbar-right">
-          {/* Gas indicator */}
-          <div className="topbar-gas">
+          <div className="topbar-gas desktop-only">
             <span className="gas-dot" />
             <span className="font-mono" style={{ fontSize: '12px' }}>Gas: USDC · ~0.001</span>
           </div>
 
           {!isConnected ? (
             <button
-              className="btn btn-primary"
-              style={{ padding: '6px 16px', fontSize: '13px' }}
+              className="btn btn-primary btn-connect"
               onClick={() => setWalletModalOpen(true)}
-              id="connect-wallet-btn"
             >
               Connect Wallet
             </button>
@@ -87,13 +96,10 @@ export default function Topbar() {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
                 <div className="topbar-avatar" />
-                <span className="font-mono" style={{ fontSize: '13px' }}>
+                <span className="font-mono desktop-only" style={{ fontSize: '13px' }}>
                   {truncatedAddress}
                 </span>
-                <span className="font-mono" style={{ fontSize: '13px', color: 'var(--color-green)' }}>
-                  {balance.toFixed(2)} USDC
-                </span>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: dropdownOpen ? 'rotate(180deg)' : '', transition: 'transform 200ms' }}>
+                <svg className="desktop-only" width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: dropdownOpen ? 'rotate(180deg)' : '', transition: 'transform 200ms' }}>
                   <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
               </button>
@@ -126,7 +132,56 @@ export default function Topbar() {
               )}
             </div>
           )}
+          
+          <button className="settings-btn desktop-only" style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: '4px' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
+      </div>
+
+      {/* Mobile Menu Drawer */}
+      {isMobileMenuOpen && (
+        <div className="mobile-menu-backdrop" onClick={() => setIsMobileMenuOpen(false)}>
+          <div className="mobile-menu-drawer" onClick={e => e.stopPropagation()}>
+            <div className="mobile-menu-header">
+              <div className="topbar-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0052FF"/>
+                  <path d="M2 17l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.5"/>
+                  <path d="M2 12l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.75"/>
+                </svg>
+                <span className="topbar-brand">ArcTrade</span>
+              </div>
+              <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+            <nav className="mobile-menu-nav">
+              {NAV_LINKS.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.to === '/'}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `mobile-nav-link ${isActive ? 'active' : ''}`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="mobile-menu-footer">
+               <div style={{ fontSize: 11, color: 'var(--color-text3)' }}>Language: English</div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
       <style>{`
@@ -162,8 +217,16 @@ export default function Topbar() {
         .topbar-left {
           display: flex;
           align-items: center;
-          gap: 10px;
-          flex-shrink: 0;
+          gap: 24px; /* Space between logo and nav */
+          flex: 1;
+        }
+        .mobile-menu-btn {
+          display: none;
+          background: none;
+          border: none;
+          color: var(--color-text1);
+          cursor: pointer;
+          padding: 4px;
         }
         .topbar-logo {
           display: flex;
@@ -176,34 +239,44 @@ export default function Topbar() {
           letter-spacing: -0.02em;
           color: var(--color-text1);
         }
+        .topbar-center {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: 1;
+        }
+        .mobile-only {
+          display: none;
+        }
         .topbar-nav {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 16px;
         }
         .topbar-nav-link {
-          padding: 6px 14px;
+          padding: 8px 0;
           font-size: 14px;
-          font-weight: 400;
-          color: var(--color-text2);
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.6);
           text-decoration: none;
-          border-radius: var(--radius-md);
-          transition: all 200ms ease;
+          transition: color 200ms ease;
         }
         .topbar-nav-link:hover {
-          color: var(--color-text1);
-          background-color: var(--color-bg2);
+          color: rgba(255, 255, 255, 0.8);
         }
         .topbar-nav-link.active {
-          color: var(--color-text1);
-          background-color: var(--color-bg2);
-          font-weight: 500;
+          color: #ffffff;
         }
         .topbar-right {
           display: flex;
           align-items: center;
+          justify-content: flex-end;
           gap: 16px;
-          flex-shrink: 0;
+          flex: 1;
+        }
+        .btn-connect {
+          padding: 6px 16px;
+          font-size: 13px;
         }
         .topbar-gas {
           display: flex;
@@ -223,8 +296,8 @@ export default function Topbar() {
         .topbar-account-btn {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 4px 12px 4px 4px;
+          gap: 8px;
+          padding: 4px;
           border-radius: var(--radius-lg);
           cursor: pointer;
           transition: background-color 200ms;
@@ -234,7 +307,7 @@ export default function Topbar() {
           background-color: var(--color-bg2);
         }
         .topbar-avatar {
-          width: 28px; height: 28px;
+          width: 24px; height: 24px;
           border-radius: 50%;
           background: linear-gradient(135deg, #0052FF, #00d4aa, #0052FF);
           background-size: 200% 200%;
@@ -256,36 +329,92 @@ export default function Topbar() {
           overflow: hidden;
         }
 
+        /* Mobile Drawer */
+        .mobile-menu-backdrop {
+          position: fixed;
+          inset: 0;
+          background-color: rgba(0,0,0,0.6);
+          backdrop-filter: blur(4px);
+          z-index: 999;
+          display: flex;
+          justify-content: flex-start;
+          animation: fadeIn 200ms ease;
+        }
+        .mobile-menu-drawer {
+          width: 80%;
+          max-width: 320px;
+          background-color: var(--color-bg0);
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid var(--color-border);
+          animation: slideInLeft 200ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes slideInLeft {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        .mobile-menu-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .mobile-close-btn {
+          background: none;
+          border: none;
+          color: var(--color-text2);
+          cursor: pointer;
+        }
+        .mobile-menu-nav {
+          display: flex;
+          flex-direction: column;
+          padding: 16px;
+          gap: 8px;
+          flex: 1;
+        }
+        .mobile-nav-link {
+          padding: 12px 16px;
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--color-text2);
+          text-decoration: none;
+          border-radius: var(--radius-lg);
+        }
+        .mobile-nav-link.active {
+          color: #fff;
+          background-color: var(--color-bg2);
+        }
+        .mobile-menu-footer {
+          padding: 20px;
+          border-top: 1px solid var(--color-border);
+        }
+
         /* ═══ Mobile Responsiveness ═══ */
         @media (max-width: 768px) {
           .topbar {
-            height: auto;
-            min-height: 52px;
-            padding: 8px 0;
+            height: 52px;
           }
-          .topbar-inner {
-            flex-wrap: wrap;
+          .topbar-left {
+            gap: 12px;
+            flex: 1;
           }
-          .topbar-nav {
-            order: 3;
-            width: 100%;
-            overflow-x: auto;
-            margin-top: 8px;
-            padding-bottom: 4px;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+          .mobile-menu-btn {
+            display: block;
           }
-          .topbar-nav::-webkit-scrollbar {
-            display: none;
+          .topbar-logo {
+            display: none; /* Hidden on mobile header, shown in drawer */
           }
-          .topbar-gas {
-            display: none;
+          .desktop-only {
+            display: none !important;
           }
-          .topbar-brand {
-            display: none;
+          .mobile-only {
+            display: flex;
           }
-          .badge {
-            display: none;
+          .btn-connect {
+            padding: 4px 12px;
+            font-size: 12px;
           }
         }
       `}</style>
