@@ -1,10 +1,11 @@
-import { useAccount, useBalance } from 'wagmi'
+import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { formatUnits } from 'viem'
 import { arcTestnet } from '../config/chain'
 import { useTradeStore } from '../store/useTradeStore'
 
 export function useArcWallet() {
   const { address, isConnected, chainId } = useAccount()
+  const { disconnect: wagmiDisconnect } = useDisconnect()
   const { mockBalance, setWalletModalOpen } = useTradeStore()
 
   // Balance from chain
@@ -27,7 +28,7 @@ export function useArcWallet() {
   }
 
   const disconnect = async () => {
-    // Wagmi disconnect handled by connector
+    wagmiDisconnect()
   }
 
   return {
