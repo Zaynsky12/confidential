@@ -1,17 +1,26 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import type { OrderSide, OrderType } from '../types'
 
 const LEVERAGES = [1, 2, 5, 10, 20]
 
-export default function OrderForm() {
+interface OrderFormProps {
+  initialSide?: OrderSide
+  onClose?: () => void
+}
+
+export default function OrderForm({ initialSide = 'long', onClose }: OrderFormProps) {
   const { markets, activeMarketId, placeOrder, setWalletModalOpen } = useTradeStore()
   const { isConnected, balance } = useArcWallet()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
 
   const [orderType, setOrderType] = useState<OrderType>('market')
-  const [side, setSide] = useState<OrderSide>('long')
+  const [side, setSide] = useState<OrderSide>(initialSide)
+
+  useEffect(() => {
+    setSide(initialSide)
+  }, [initialSide])
   const [price, setPrice] = useState('')
   const [size, setSize] = useState('')
   const [leverage, setLeverage] = useState(5)
@@ -45,6 +54,18 @@ export default function OrderForm() {
 
   return (
     <div style={{ display:'flex',flexDirection:'column',gap:12,padding:12,background:'var(--color-bg1)',height:'100%',overflowY:'auto' }}>
+      {/* Mobile Modal Header */}
+      {onClose && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{activeMarket.pair}</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: 4 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Type tabs */}
       <div style={{ display:'flex',gap:2,background:'var(--color-bg2)',borderRadius:6,padding:2 }}>
         {(['market','limit','stop'] as OrderType[]).map(t=>(
