@@ -142,8 +142,8 @@ export default function PriceChart() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg1)' }}>
       {/* HL-style Header */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: 24, fontSize: 13 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="chart-header-stats">
+        <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 18, fontWeight: 600 }}>{activeMarket.pair.replace('/', '-')}</span>
           <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600 }}>40x</span>
         </div>
@@ -177,7 +177,7 @@ export default function PriceChart() {
       </div>
 
       {/* HL-style Timeframes & Indicators Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '6px 16px', borderBottom: '1px solid var(--color-border)', gap: 16 }}>
+      <div className="chart-timeframes">
         <div style={{ display: 'flex', gap: 12 }}>
           {TIMEFRAMES.map((tf) => (
             <button key={tf} onClick={() => setSelectedTimeframe(tf)}
@@ -196,6 +196,49 @@ export default function PriceChart() {
 
       {/* Chart */}
       <div ref={chartContainerRef} style={{ flex: 1, minHeight: 300 }} />
+
+      <style>{`
+        .chart-header-stats {
+          display: flex;
+          align-items: center;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--color-border);
+          flex-wrap: wrap;
+          gap: 24px;
+          font-size: 13px;
+        }
+        .chart-timeframes {
+          display: flex;
+          align-items: center;
+          padding: 6px 16px;
+          border-bottom: 1px solid var(--color-border);
+          gap: 16px;
+        }
+
+        /* ═══ Mobile Responsiveness ═══ */
+        @media (max-width: 1024px) {
+          .desktop-only { display: none !important; }
+          .chart-header-stats {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            padding: 12px;
+            gap: 16px;
+          }
+          .chart-header-stats::-webkit-scrollbar {
+            display: none;
+          }
+          .chart-timeframes {
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .chart-timeframes::-webkit-scrollbar {
+            display: none;
+          }
+        }
+      `}</style>
     </div>
   )
 }
