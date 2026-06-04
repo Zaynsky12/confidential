@@ -43,7 +43,6 @@ export default function Bridge() {
       <div className="panel" style={{ padding:24,marginBottom:24 }}>
         {/* From */}
         <div style={{ marginBottom:20 }}>
-        <div style={{ marginBottom:20 }}>
           <label className="label" style={{ marginBottom:8,display:'block' }}>From</label>
           <div className="bridge-chains">
             {CHAINS.map(c=>(
