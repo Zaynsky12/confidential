@@ -182,7 +182,6 @@ export default function Topbar() {
           </div>
         </div>
       )}
-      </div>
 
       <style>{`
         .topbar {
