@@ -333,6 +333,11 @@ export default function Trade() {
             flex: 1;
             min-width: 0;
           }
+          .action-connect {
+            padding: 10px 12px;
+            font-size: 13px;
+            border-radius: var(--radius-md);
+          }
         }
       `}</style>
     </div>
