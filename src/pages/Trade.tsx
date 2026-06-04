@@ -70,6 +70,38 @@ export default function Trade() {
           flex: 1;
           overflow: hidden;
         }
+
+        /* ═══ Mobile Responsiveness ═══ */
+        @media (max-width: 1024px) {
+          .trade-layout {
+            display: flex;
+            flex-direction: column;
+            height: auto;
+            overflow: visible;
+          }
+          .trade-sidebar {
+            border-right: none;
+            border-bottom: 1px solid var(--color-border);
+            max-height: 250px;
+          }
+          .trade-center {
+            height: auto;
+          }
+          .trade-chart {
+            min-height: 400px;
+            flex: none;
+          }
+          .trade-right {
+            border-left: none;
+            border-top: 1px solid var(--color-border);
+          }
+          .trade-order-form {
+            border-bottom: 1px solid var(--color-border);
+          }
+          .trade-orderbook {
+            min-height: 300px;
+          }
+        }
       `}</style>
     </div>
   )

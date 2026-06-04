@@ -18,7 +18,7 @@ export default function Positions() {
         <span className="label">Open Positions</span>
       </div>
       {openPositions.map((p) => (
-        <div key={p.id} style={{ display:'grid',gridTemplateColumns:'1fr 0.6fr 0.8fr 0.8fr 0.8fr auto',alignItems:'center',padding:'6px 12px',fontSize:12,borderBottom:'1px solid var(--color-border)',gap:4 }}>
+        <div key={p.id} style={{ display:'grid',gridTemplateColumns:'1fr 0.6fr 0.8fr 0.8fr 0.8fr auto',alignItems:'center',padding:'6px 12px',fontSize:12,borderBottom:'1px solid var(--color-border)',gap:4, minWidth: '400px' }}>
           <span style={{ fontWeight:500 }}>{p.pair}</span>
           <span className={p.side==='long'?'badge badge-green':'badge badge-red'} style={{ fontSize:9,padding:'1px 6px',justifySelf:'start' }}>
             {p.side.toUpperCase()}

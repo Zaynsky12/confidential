@@ -255,6 +255,39 @@ export default function Topbar() {
           box-shadow: var(--shadow-modal);
           overflow: hidden;
         }
+
+        /* ═══ Mobile Responsiveness ═══ */
+        @media (max-width: 768px) {
+          .topbar {
+            height: auto;
+            min-height: 52px;
+            padding: 8px 0;
+          }
+          .topbar-inner {
+            flex-wrap: wrap;
+          }
+          .topbar-nav {
+            order: 3;
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 8px;
+            padding-bottom: 4px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .topbar-nav::-webkit-scrollbar {
+            display: none;
+          }
+          .topbar-gas {
+            display: none;
+          }
+          .topbar-brand {
+            display: none;
+          }
+          .badge {
+            display: none;
+          }
+        }
       `}</style>
     </header>
   )
