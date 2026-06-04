@@ -58,8 +58,8 @@ export default function Portfolio() {
   const healthPct = usedCollateral+availableCollateral>0 ? (usedCollateral/(usedCollateral+availableCollateral))*100 : 0
 
   return (
-    <div style={{ maxWidth:1000,margin:'0 auto',padding:'40px 24px' }}>
-      <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:32 }}>
+    <div className="portfolio-container">
+      <div className="portfolio-header">
         <div>
           <h1 style={{ fontSize:28,fontWeight:600,letterSpacing:'-0.02em',marginBottom:4 }}>Portfolio</h1>
           {isConnected && <span className="font-mono" style={{ fontSize:13,color:'var(--color-text3)' }}>{truncatedAddress}</span>}
@@ -77,7 +77,7 @@ export default function Portfolio() {
       </div>
 
       {/* Stats */}
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:24 }}>
+      <div className="portfolio-stats">
         {[
           ['Total PnL',`${totalPnl>=0?'+':''}${totalPnl.toFixed(2)} USDC`,totalPnl>=0],
           ['Win Rate',`${winRate}%`,true],
@@ -136,6 +136,43 @@ export default function Portfolio() {
           </div>
         )}
       </div>
+
+      <style>{`
+        .portfolio-container {
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 40px 24px;
+        }
+        .portfolio-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 32px;
+        }
+        .portfolio-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+          .portfolio-container {
+            padding: 24px 16px;
+          }
+          .portfolio-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+          .portfolio-header > div:last-child {
+            text-align: left;
+          }
+          .portfolio-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      `}</style>
     </div>
   )
 }

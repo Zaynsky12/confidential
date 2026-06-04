@@ -26,7 +26,7 @@ export default function Vault() {
   const formatTime = (ts: number) => new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
   return (
-    <div style={{ maxWidth:960,margin:'0 auto',padding:'40px 24px' }}>
+    <div className="vault-container">
       {/* Header */}
       <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:32 }}>
         <h1 style={{ fontSize:28,fontWeight:600,letterSpacing:'-0.02em' }}>USDC Yield Vault</h1>
@@ -34,7 +34,7 @@ export default function Vault() {
       </div>
 
       {/* Deposit / Withdraw cards */}
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:32 }}>
+      <div className="vault-cards">
         {/* Deposit */}
         <div className="panel" style={{ padding:24 }}>
           <h3 style={{ fontSize:15,fontWeight:600,marginBottom:16 }}>Deposit USDC</h3>
@@ -75,7 +75,7 @@ export default function Vault() {
       </div>
 
       {/* Stats */}
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:32 }}>
+      <div className="vault-stats">
         {[
           ['TVL',`$${(vaultTVL/1e6).toFixed(2)}M`],
           ['APY (7-day)',`${vaultAPY}%`],
@@ -109,6 +109,38 @@ export default function Vault() {
           </div>
         )}
       </div>
+
+      <style>{`
+        .vault-container {
+          max-width: 960px;
+          margin: 0 auto;
+          padding: 40px 24px;
+        }
+        .vault-cards {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 32px;
+        }
+        .vault-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 32px;
+        }
+
+        @media (max-width: 768px) {
+          .vault-container {
+            padding: 24px 16px;
+          }
+          .vault-cards {
+            grid-template-columns: 1fr;
+          }
+          .vault-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      `}</style>
     </div>
   )
 }

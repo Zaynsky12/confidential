@@ -55,8 +55,7 @@ export default function WalletModal() {
   return (
     <div onClick={()=>setWalletModalOpen(false)}
       style={{ position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 150ms ease' }}>
-      <div onClick={e=>e.stopPropagation()} className="animate-fade-in-up"
-        style={{ width:420,maxHeight:'90vh',background:'var(--color-bg1)',border:'1px solid var(--color-border-strong)',borderRadius:14,boxShadow:'var(--shadow-modal)',overflow:'hidden',display:'flex',flexDirection:'column' }}>
+      <div onClick={e=>e.stopPropagation()} className="wallet-modal-content animate-fade-in-up">
         {/* Header */}
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 24px 0' }}>
           <h2 style={{ fontSize:18,fontWeight:600 }}>Connect to ArcTrade</h2>
@@ -147,7 +146,27 @@ export default function WalletModal() {
         </div>
       </div>
 
-      <style>{`@keyframes spin { to { transform:rotate(360deg) } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform:rotate(360deg) } }
+        .wallet-modal-content {
+          width: 420px;
+          max-height: 90vh;
+          background: var(--color-bg1);
+          border: 1px solid var(--color-border-strong);
+          border-radius: 14px;
+          box-shadow: var(--shadow-modal);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+
+        @media (max-width: 480px) {
+          .wallet-modal-content {
+            width: 90%;
+            border-radius: 12px;
+          }
+        }
+      `}</style>
     </div>
   )
 }

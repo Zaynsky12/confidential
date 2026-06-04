@@ -34,7 +34,7 @@ export default function Bridge() {
   }
 
   return (
-    <div style={{ maxWidth:600,margin:'0 auto',padding:'60px 24px' }}>
+    <div className="bridge-container">
       <h1 style={{ fontSize:28,fontWeight:600,letterSpacing:'-0.02em',marginBottom:8 }}>Bridge USDC to Arc</h1>
       <p style={{ fontSize:14,color:'var(--color-text2)',marginBottom:32 }}>
         Transfer USDC via Circle's Cross-Chain Transfer Protocol (CCTP)
@@ -43,8 +43,9 @@ export default function Bridge() {
       <div className="panel" style={{ padding:24,marginBottom:24 }}>
         {/* From */}
         <div style={{ marginBottom:20 }}>
+        <div style={{ marginBottom:20 }}>
           <label className="label" style={{ marginBottom:8,display:'block' }}>From</label>
-          <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8 }}>
+          <div className="bridge-chains">
             {CHAINS.map(c=>(
               <button key={c.id} onClick={()=>setFromChain(c.id)}
                 style={{ padding:'12px 8px',borderRadius:8,cursor:'pointer',textAlign:'center',transition:'all 200ms',
@@ -107,7 +108,7 @@ export default function Bridge() {
         <div className="panel" style={{ overflow:'hidden',marginBottom:24 }}>
           <div style={{ padding:'14px 20px',borderBottom:'1px solid var(--color-border)',fontWeight:600,fontSize:14 }}>Recent Bridges</div>
           {bridges.map(b=>(
-            <div key={b.id} style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',padding:'10px 20px',borderBottom:'1px solid var(--color-border)',fontSize:12,alignItems:'center' }}>
+            <div key={b.id} className="bridge-history-row">
               <span style={{ color:'var(--color-text3)' }}>{new Date(b.time).toLocaleTimeString()}</span>
               <span>{b.from} → Arc</span>
               <span className="font-mono">{b.amount.toFixed(2)} USDC</span>
@@ -121,6 +122,45 @@ export default function Bridge() {
         style={{ fontSize:13,color:'var(--color-accent)',textDecoration:'none',display:'flex',alignItems:'center',gap:6 }}>
         Learn more about Circle CCTP →
       </a>
+
+      <style>{`
+        .bridge-container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 60px 24px;
+        }
+        .bridge-chains {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+        .bridge-history-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          padding: 10px 20px;
+          border-bottom: 1px solid var(--color-border);
+          font-size: 12px;
+          align-items: center;
+        }
+
+        @media (max-width: 768px) {
+          .bridge-container {
+            padding: 24px 16px;
+          }
+          .bridge-chains {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .bridge-history-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .bridge-history-row > span:nth-child(3),
+          .bridge-history-row > span:nth-child(4) {
+            text-align: left;
+            justify-self: start;
+          }
+        }
+      `}</style>
     </div>
   )
 }

@@ -245,6 +245,20 @@ export default function OrderBook() {
           flex: 1;
           overflow-y: auto;
         }
+
+        @media (max-width: 768px) {
+          .ob-header, .ob-row {
+            font-size: 11px;
+            padding: 3px 8px;
+          }
+          .trade-row {
+            font-size: 10px;
+          }
+          .ob-tab {
+            font-size: 11px;
+            padding: 10px 4px;
+          }
+        }
       `}</style>
     </div>
   )

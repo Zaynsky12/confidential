@@ -182,6 +182,19 @@ export default function MarketSidebar() {
         .market-change {
           font-size: 11px;
         }
+
+        @media (max-width: 768px) {
+          .market-item {
+            padding: 12px; /* larger touch target */
+          }
+          .market-pair {
+            font-size: 14px;
+          }
+          .sidebar-search {
+            margin: 12px;
+            padding: 10px 14px;
+          }
+        }
       `}</style>
     </aside>
   )
