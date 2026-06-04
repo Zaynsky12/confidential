@@ -139,9 +139,7 @@ export default function Trade() {
             padding-bottom: 72px; /* make room for sticky bottom bar */
           }
           .trade-sidebar {
-            border-right: none;
-            border-bottom: 1px solid var(--color-border);
-            height: auto;
+            display: none;
           }
           .trade-center {
             height: auto;

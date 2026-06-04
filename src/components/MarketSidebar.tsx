@@ -1,7 +1,11 @@
 import { useState, useMemo } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 
-export default function MarketSidebar() {
+interface MarketSidebarProps {
+  onClose?: () => void
+}
+
+export default function MarketSidebar({ onClose }: MarketSidebarProps = {}) {
   const { markets, activeMarketId, setActiveMarket } = useTradeStore()
   const [search, setSearch] = useState('')
 
@@ -56,7 +60,7 @@ export default function MarketSidebar() {
             <button
               key={m.id}
               className={`market-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveMarket(m.id)}
+              onClick={() => { setActiveMarket(m.id); onClose?.(); }}
             >
               <div className="market-item-left">
                 <span className="market-pair">{m.pair}</span>
@@ -85,7 +89,7 @@ export default function MarketSidebar() {
             <button
               key={m.id}
               className={`market-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveMarket(m.id)}
+              onClick={() => { setActiveMarket(m.id); onClose?.(); }}
             >
               <div className="market-item-left">
                 <span className="market-pair">{m.pair}</span>
@@ -184,46 +188,15 @@ export default function MarketSidebar() {
         }
 
         @media (max-width: 768px) {
-          .market-sidebar {
-            flex-direction: row;
-            align-items: center;
-            overflow-x: auto;
-            overflow-y: hidden;
-            height: 60px;
-            min-height: 60px;
-            border-right: none;
-            border-bottom: 1px solid var(--color-border);
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-          .market-sidebar::-webkit-scrollbar {
-            display: none;
-          }
-          .sidebar-section {
-            flex-direction: row;
-            align-items: center;
-          }
-          .sidebar-section .label {
-            display: none; /* Hide section headers on mobile slider */
-          }
-          .sidebar-search {
-            display: none; /* Hide search bar on mobile slider */
-          }
           .market-item {
-            width: auto;
-            min-width: 140px;
-            height: 60px;
-            padding: 0 16px;
-            border-left: none;
-            border-bottom: 2px solid transparent;
-          }
-          .market-item.active {
-            background-color: transparent;
-            border-left-color: transparent;
-            border-bottom-color: var(--color-accent);
+            padding: 12px; /* larger touch target */
           }
           .market-pair {
             font-size: 14px;
+          }
+          .sidebar-search {
+            margin: 12px;
+            padding: 10px 14px;
           }
         }
       `}</style>

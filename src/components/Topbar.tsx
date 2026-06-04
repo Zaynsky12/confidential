@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
+import MarketSidebar from './MarketSidebar'
 
 const NAV_LINKS = [
   { to: '/', label: 'Trade' },
@@ -12,9 +13,11 @@ const NAV_LINKS = [
 
 export default function Topbar() {
   const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
-  const { setWalletModalOpen } = useTradeStore()
+  const { setWalletModalOpen, markets, activeMarketId } = useTradeStore()
+  const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -72,7 +75,17 @@ export default function Topbar() {
 
         {/* Center — Active Market (Mobile Only) */}
         <div className="topbar-center mobile-only">
-          <span className="font-mono" style={{ fontWeight: 600, fontSize: 15 }}>Trade</span>
+          <button 
+            onClick={() => setIsMarketSelectorOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
+          >
+            <span className="font-mono" style={{ fontWeight: 600, fontSize: 15 }}>
+              {activeMarket ? activeMarket.pair : 'Trade'}
+            </span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         {/* Right — Wallet & Settings */}
@@ -209,6 +222,24 @@ export default function Topbar() {
           </div>
         </div>
       )}
+
+      {/* Mobile Market Selector Modal */}
+      {isMarketSelectorOpen && (
+        <div className="mobile-market-modal animate-fade-in-up mobile-only">
+          <div className="mobile-market-modal-header">
+            <span style={{ fontSize: 16, fontWeight: 600 }}>Markets</span>
+            <button className="mobile-close-btn" onClick={() => setIsMarketSelectorOpen(false)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <MarketSidebar onClose={() => setIsMarketSelectorOpen(false)} />
+          </div>
+        </div>
+      )}
+      </div>
 
       <style>{`
         .topbar {
@@ -415,6 +446,22 @@ export default function Topbar() {
         .mobile-menu-footer {
           padding: 20px;
           border-top: 1px solid var(--color-border);
+        }
+
+        .mobile-market-modal {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          background-color: var(--color-bg0);
+          display: flex;
+          flex-direction: column;
+        }
+        .mobile-market-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          border-bottom: 1px solid var(--color-border);
         }
 
         /* ═══ Mobile Responsiveness ═══ */
