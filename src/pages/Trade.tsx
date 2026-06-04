@@ -253,11 +253,17 @@ export default function Trade() {
             display: flex;
             position: fixed;
             bottom: 0; left: 0; right: 0;
+            width: 100%;
+            box-sizing: border-box;
             background-color: var(--color-bg0);
             border-top: 1px solid var(--color-border);
-            padding: 10px 16px;
+            padding: 12px;
+            padding-bottom: 24px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
             gap: 12px;
-            z-index: 90; /* Below mobile menu (z:999) */
+            z-index: 90;
+            justify-content: center;
+            align-items: center;
           }
           .trade-mobile-modal-backdrop {
             display: flex;
