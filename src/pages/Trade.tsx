@@ -125,11 +125,6 @@ export default function Trade() {
         </div>
       )}
 
-      {mobileNav === 'vaults' && (
-        <div className="mobile-only trade-mobile-tab-view">
-          <Vault />
-        </div>
-      )}
 
       {/* Mobile Bottom Action Bar */}
       <div className="trade-mobile-action-bar">
@@ -157,12 +152,7 @@ export default function Trade() {
               </svg>
               <span>Trade</span>
             </button>
-            <button className={`mobile-nav-btn ${mobileNav === 'vaults' ? 'active' : ''}`} onClick={() => setMobileNav('vaults')}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>Vaults</span>
-            </button>
+
             <button className={`mobile-nav-btn ${mobileNav === 'account' ? 'active' : ''}`} onClick={() => setMobileNav('account')}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"/>
