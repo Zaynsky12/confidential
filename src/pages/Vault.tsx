@@ -1,151 +1,595 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
+import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
+import { Link } from 'react-router-dom'
 
 export default function Vault() {
   const { vaultBalance, vaultTVL, vaultAPY, vaultDeposits, depositToVault, withdrawFromVault, setWalletModalOpen } = useTradeStore()
   const { isConnected, balance } = useArcWallet()
-  const [depositAmt, setDepositAmt] = useState('')
-  const [withdrawAmt, setWithdrawAmt] = useState('')
+  const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
+  const [amt, setAmt] = useState('')
+  const [activeTab, setActiveTab] = useState('Activity')
+  
+  const chartRef = useRef<HTMLDivElement>(null)
+  const chartApiRef = useRef<IChartApi | null>(null)
+  const [chartTimeframe, setChartTimeframe] = useState('30d')
 
+  const tabs = ['Activity', 'Positions', 'Trade History', 'Funding History']
 
-  const earnings = vaultBalance * 0.0042 // mock earnings
-
-  const handleDeposit = () => {
+  const handleAction = () => {
     if (!isConnected) { setWalletModalOpen(true); return }
-    const amt = Number(depositAmt)
-    if (amt > 0 && amt <= balance) { depositToVault(amt); setDepositAmt('') }
-  }
-
-  const handleWithdraw = () => {
-    if (!isConnected) { setWalletModalOpen(true); return }
-    const amt = Number(withdrawAmt)
-    if (amt > 0 && amt <= vaultBalance) { withdrawFromVault(amt); setWithdrawAmt('') }
+    const amount = Number(amt)
+    if (activeAction === 'Deposit' && amount > 0 && amount <= balance) {
+      depositToVault(amount)
+      setAmt('')
+    } else if (activeAction === 'Withdraw' && amount > 0 && amount <= vaultBalance) {
+      withdrawFromVault(amount)
+      setAmt('')
+    }
   }
 
   const formatTime = (ts: number) => new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
+  // Mock 30-day Vault TVL data
+  const tvlData = useMemo(()=>{
+    const data = []
+    const now = Math.floor(Date.now()/1000)
+    let currentTVL = vaultTVL * 0.8 // start lower
+    for(let i=29;i>=0;i--){
+      currentTVL += (Math.random()-0.3)*100000 // generally goes up
+      data.push({ time: (now - i*86400) as Time, value: +currentTVL.toFixed(2) })
+    }
+    // ensure last is current
+    data[data.length-1].value = vaultTVL
+    return data
+  },[vaultTVL])
+
+  useEffect(()=>{
+    if(!chartRef.current) return
+    const chart = createChart(chartRef.current,{
+      layout:{ background:{type:ColorType.Solid,color:'transparent'}, textColor:'#848e9c', fontFamily:"'Inter', sans-serif", fontSize:11 },
+      grid:{ vertLines:{color:'rgba(255,255,255,0.03)'}, horzLines:{color:'rgba(255,255,255,0.03)'} },
+      rightPriceScale:{ borderColor:'rgba(255,255,255,0.06)' },
+      timeScale:{ borderColor:'rgba(255,255,255,0.06)' },
+      width: chartRef.current.clientWidth, height:320,
+    })
+    const series = chart.addSeries(AreaSeries, {
+      topColor:'rgba(255,255,255,0.15)', bottomColor:'rgba(255,255,255,0.0)', lineColor:'#ffffff', lineWidth:2,
+    })
+    series.setData(tvlData)
+    chart.timeScale().fitContent()
+    chartApiRef.current = chart
+    const ro = new ResizeObserver(entries=>{
+      for(const e of entries) chart.applyOptions({width:e.contentRect.width})
+    })
+    ro.observe(chartRef.current)
+    return ()=>{ ro.disconnect(); chart.remove() }
+  },[tvlData])
+
   return (
     <div className="vault-container">
-      {/* Header */}
-      <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:32 }}>
-        <h1 style={{ fontSize:28,fontWeight:600,letterSpacing:'-0.02em' }}>USDC Yield Vault</h1>
-        <span className="badge badge-green" style={{ fontSize:13,padding:'4px 12px' }}>{vaultAPY}% APY</span>
+      {/* Breadcrumbs */}
+      <div className="vault-breadcrumbs">
+        <Link to="/vault" style={{ color:'var(--color-text3)', textDecoration:'none' }}>Vaults</Link>
+        <span style={{ margin:'0 8px', color:'var(--color-text3)' }}>/</span>
+        <span style={{ color:'var(--color-text1)' }}>USDC Yield Vault</span>
       </div>
 
-      {/* Deposit / Withdraw cards */}
-      <div className="vault-cards">
-        {/* Deposit */}
-        <div className="panel" style={{ padding:24 }}>
-          <h3 style={{ fontSize:15,fontWeight:600,marginBottom:16 }}>Deposit USDC</h3>
-          <div style={{ display:'flex',alignItems:'center',background:'var(--color-bg2)',border:'1px solid var(--color-border)',borderRadius:6,padding:'0 12px',marginBottom:8 }}>
-            <input type="number" placeholder="0.00" value={depositAmt} onChange={e=>setDepositAmt(e.target.value)}
-              className="font-mono" style={{ flex:1,padding:'10px 0',fontSize:16,background:'transparent',color:'var(--color-text1)' }} />
-            <span style={{ fontSize:12,color:'var(--color-text3)',fontWeight:500 }}>USDC</span>
+      <div className="vault-header">
+        <h1 style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>USDC Yield Vault</h1>
+        <div style={{ display:'flex', gap:12, marginTop:12 }}>
+          <span className="badge badge-green" style={{ fontSize:13,padding:'4px 12px' }}>{vaultAPY}% APY</span>
+          <span className="badge" style={{ fontSize:13,padding:'4px 12px' }}>Protocol Vault</span>
+        </div>
+        
+        {/* Mobile Key Stats Card */}
+        <div className="mobile-only" style={{ marginTop: 24, padding: '16px', background: 'var(--color-bg1)', borderRadius: '8px', border: '1px solid var(--color-border)', justifyContent: 'space-between' }}>
+           <div>
+             <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Vault TVL</div>
+             <div className="font-mono" style={{ fontSize: 20, fontWeight: 600 }}>US${(vaultTVL / 1e6).toFixed(2)}M</div>
+           </div>
+           <div style={{ textAlign: 'right' }}>
+             <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Lockup Period</div>
+             <div className="font-mono" style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text1)' }}>3 Days</div>
+           </div>
+        </div>
+      </div>
+
+      {/* Main Grid */}
+      <div className="vault-main-grid">
+        
+        {/* LEFT COLUMN */}
+        <div className="vault-left desktop-only">
+          {/* Chart Panel */}
+          <div className="chart-panel">
+            <div className="chart-header">
+              <div>
+                <div style={{ color:'var(--color-text2)', fontSize:13, marginBottom:4 }}>Vault TVL</div>
+                <div className="font-mono" style={{ fontSize:24, fontWeight:600 }}>US${(vaultTVL).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+              </div>
+              <div className="chart-controls">
+                <div className="control-group">
+                  {['24h','7d','30d','90d','All'].map(tf => (
+                    <button key={tf} className={`control-btn ${chartTimeframe===tf?'active':''}`} onClick={()=>setChartTimeframe(tf)}>{tf}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div ref={chartRef} className="chart-container" />
           </div>
-          <div style={{ fontSize:12,color:'var(--color-text3)',marginBottom:16 }}>
-            Wallet balance: <span className="font-mono" style={{ color:'var(--color-text2)' }}>{isConnected?balance.toFixed(2):'—'} USDC</span>
+
+          {/* Overview Panel */}
+          <div className="overview-panel" style={{ marginTop: 24 }}>
+            <div className="panel-header">Performance Metrics</div>
+            <div className="overview-list-grid">
+              {[
+                ['TVL', `US$${(vaultTVL/1e6).toFixed(2)}M`, 'var(--color-text1)'],
+                ['APR (7-day)', `${vaultAPY}%`, 'var(--color-green)'],
+                ['All Time Return', '+14.2%', 'var(--color-green)'],
+                ['Max Drawdown', '-2.14%', 'var(--color-text1)'],
+                ['Sharpe Ratio', '2.84', 'var(--color-text1)'],
+                ['Weekly Win Rate', '88.5%', 'var(--color-text1)'],
+                ['Management Fee', '0.00%', 'var(--color-text1)'],
+                ['Performance Fee', '10.00%', 'var(--color-text1)'],
+                ['Lockup Period', '3 Days', 'var(--color-text1)'],
+                ['Your Deposit', `US$${vaultBalance.toFixed(2)}`, 'var(--color-accent)'],
+              ].map(([label, value, color]) => (
+                <div key={label} className="overview-item">
+                  <span className="overview-label">{label}</span>
+                  <span className="overview-value font-mono" style={{ color }}>{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <button className="btn btn-primary" style={{ width:'100%',padding:10 }} onClick={handleDeposit}>
-            {isConnected ? 'Deposit' : 'Connect Wallet'}
-          </button>
-          {Number(depositAmt) > 0 && (
-            <div style={{ fontSize:12,color:'var(--color-text3)',marginTop:12,textAlign:'center' }}>
-              Est. daily yield: <span className="font-mono text-green">{(Number(depositAmt)*(vaultAPY/100)/365).toFixed(4)} USDC</span>
+        </div>
+
+        {/* RIGHT COLUMN (ACTION CARD) */}
+        <div className="vault-right">
+          <div className="action-card sticky-card">
+            <div className="action-tabs">
+              <button className={`action-tab ${activeAction==='Deposit'?'active':''}`} onClick={()=>{setActiveAction('Deposit'); setAmt('')}}>Deposit</button>
+              <button className={`action-tab ${activeAction==='Withdraw'?'active':''}`} onClick={()=>{setActiveAction('Withdraw'); setAmt('')}}>Withdraw</button>
+            </div>
+            
+            <div className="action-body">
+              {activeAction === 'Deposit' && (
+                <div className="warning-banner">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                  <span>Funds are locked for 3 days after deposit to prevent front-running.</span>
+                </div>
+              )}
+
+              <div className="input-group">
+                <div className="input-header">
+                  <span style={{ color:'var(--color-text2)', fontSize:13 }}>Amount</span>
+                  <span style={{ color:'var(--color-text3)', fontSize:13 }}>
+                    {activeAction === 'Deposit' ? 'Wallet:' : 'Vault:'} <span className="font-mono text-white">{activeAction==='Deposit'?balance.toFixed(2):vaultBalance.toFixed(2)} USDC</span>
+                  </span>
+                </div>
+                <div className="input-box">
+                  <input type="number" placeholder="0.00" value={amt} onChange={e=>setAmt(e.target.value)} className="font-mono" />
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <button className="max-btn" onClick={()=>setAmt(activeAction==='Deposit'?String(balance):String(vaultBalance))}>MAX</button>
+                    <span style={{ fontWeight:600, fontSize:14 }}>USDC</span>
+                  </div>
+                </div>
+              </div>
+
+              {activeAction === 'Deposit' && Number(amt) > 0 && (
+                <div className="est-yield">
+                  <span>Est. Annual Yield</span>
+                  <span className="font-mono text-green">+US${(Number(amt)*(vaultAPY/100)).toFixed(2)}</span>
+                </div>
+              )}
+
+              <button className="submit-btn" onClick={handleAction}>
+                {!isConnected ? 'Connect Wallet' : activeAction}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BOTTOM TABS */}
+      <div className="vault-bottom">
+        <div className="tab-scroll-container">
+          <div className="tabs-row">
+            {tabs.map(tab => (
+              <button key={tab} className={`pt-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="tab-content">
+          {activeTab === 'Activity' ? (
+            <div style={{ overflowX:'auto' }}>
+              <table className="portfolio-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Action</th>
+                    <th>Amount</th>
+                    <th>Tx Hash</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vaultDeposits.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No activity yet</td></tr>
+                  ) : vaultDeposits.map(d=>(
+                    <tr key={d.id}>
+                      <td style={{ color:'var(--color-text2)' }}>{formatTime(d.timestamp)}</td>
+                      <td><span className={d.action==='deposit'?'badge badge-green':'badge badge-red'} style={{ fontSize:10,padding:'2px 8px' }}>{d.action.toUpperCase()}</span></td>
+                      <td className="font-mono">{d.amount.toFixed(2)} USDC</td>
+                      <td className="font-mono text-accent">{d.txHash.slice(0,8)}...{d.txHash.slice(-6)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div style={{ color: 'var(--color-text3)', fontSize:14 }}>No data yet</div>
             </div>
           )}
         </div>
-
-        {/* Withdraw */}
-        <div className="panel" style={{ padding:24 }}>
-          <h3 style={{ fontSize:15,fontWeight:600,marginBottom:16 }}>Withdraw</h3>
-          <div style={{ display:'flex',alignItems:'center',background:'var(--color-bg2)',border:'1px solid var(--color-border)',borderRadius:6,padding:'0 12px',marginBottom:8 }}>
-            <input type="number" placeholder="0.00" value={withdrawAmt} onChange={e=>setWithdrawAmt(e.target.value)}
-              className="font-mono" style={{ flex:1,padding:'10px 0',fontSize:16,background:'transparent',color:'var(--color-text1)' }} />
-            <button onClick={()=>setWithdrawAmt(String(vaultBalance))}
-              style={{ fontSize:11,color:'var(--color-accent)',cursor:'pointer',fontWeight:500,background:'none',border:'none' }}>Max</button>
-          </div>
-          <div style={{ fontSize:12,color:'var(--color-text3)',marginBottom:16 }}>
-            Vault share: <span className="font-mono" style={{ color:'var(--color-text2)' }}>{vaultBalance.toFixed(2)} USDC</span>
-          </div>
-          <button className="btn btn-outline" style={{ width:'100%',padding:10 }} onClick={handleWithdraw}>
-            {isConnected ? 'Withdraw' : 'Connect Wallet'}
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="vault-stats">
-        {[
-          ['TVL',`$${(vaultTVL/1e6).toFixed(2)}M`],
-          ['APY (7-day)',`${vaultAPY}%`],
-          ['Your Deposit',`${vaultBalance.toFixed(2)} USDC`],
-          ['Your Earnings',`${earnings.toFixed(4)} USDC`],
-        ].map(([label,value])=>(
-          <div key={label as string} className="panel" style={{ padding:16,textAlign:'center' }}>
-            <div className="label" style={{ marginBottom:8 }}>{label}</div>
-            <div className="font-mono" style={{ fontSize:18,fontWeight:600 }}>{value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Activity */}
-      <div className="panel" style={{ overflow:'hidden' }}>
-        <div style={{ padding:'14px 20px',borderBottom:'1px solid var(--color-border)',fontWeight:600,fontSize:14 }}>Vault Activity</div>
-        {vaultDeposits.length===0 ? (
-          <div style={{ padding:40,textAlign:'center',color:'var(--color-text3)',fontSize:13 }}>No activity yet</div>
-        ) : (
-          <div style={{ maxHeight:300,overflowY:'auto' }}>
-            {vaultDeposits.map(d=>(
-              <div key={d.id} className="vault-activity-row" style={{ display:'grid',gridTemplateColumns:'1fr 0.8fr 1fr 1.5fr',padding:'10px 20px',borderBottom:'1px solid var(--color-border)',fontSize:12,alignItems:'center' }}>
-                <span style={{ color:'var(--color-text3)' }}>{formatTime(d.timestamp)}</span>
-                <span className={d.action==='deposit'?'badge badge-green':'badge badge-red'} style={{ fontSize:10,padding:'1px 8px',justifySelf:'start' }}>
-                  {d.action.toUpperCase()}
-                </span>
-                <span className="font-mono">{d.amount.toFixed(2)} USDC</span>
-                <span className="font-mono" style={{ color:'var(--color-text3)',fontSize:11 }}>{d.txHash.slice(0,10)}...{d.txHash.slice(-6)}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <style>{`
         .vault-container {
-          max-width: 960px;
+          width: 100%;
+          max-width: 1200px;
           margin: 0 auto;
           padding: 40px 24px;
+          min-height: calc(100vh - 60px);
+          background: var(--color-bg0);
+          color: var(--color-text1);
+          box-sizing: border-box;
+          min-width: 0;
         }
-        .vault-cards {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 32px;
+        .vault-breadcrumbs {
+          font-size: 13px;
+          margin-bottom: 24px;
         }
-        .vault-stats {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          margin-bottom: 32px;
+        .vault-header {
+          margin-bottom: 40px;
         }
 
-        @media (max-width: 768px) {
-          .vault-container {
-            padding: 20px 14px;
-          }
-          .vault-container h1 {
-            font-size: 22px !important;
-          }
-          .vault-cards {
+        /* Main Grid */
+        .vault-main-grid {
+          display: grid;
+          grid-template-columns: 1fr 380px;
+          gap: 24px;
+          margin-bottom: 32px;
+          align-items: start;
+        }
+
+        .mobile-only {
+          display: none !important;
+        }
+
+        /* Chart Panel */
+        .chart-panel {
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          min-width: 0;
+        }
+        .chart-header {
+          padding: 20px 24px;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .chart-controls {
+          display: flex;
+        }
+        .control-group {
+          display: flex;
+          background: var(--color-bg0);
+          border-radius: 6px;
+          padding: 2px;
+          border: 1px solid var(--color-border);
+        }
+        .control-btn {
+          background: transparent;
+          border: none;
+          color: var(--color-text3);
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.2s;
+        }
+        .control-btn.active {
+          background: var(--color-bg2);
+          color: var(--color-text1);
+        }
+        .chart-container {
+          flex: 1;
+          height: 320px;
+          padding-top: 16px;
+        }
+
+        /* Overview Panel */
+        .overview-panel {
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+          display: flex;
+          flex-direction: column;
+        }
+        .panel-header {
+          padding: 16px 24px;
+          font-size: 16px;
+          font-weight: 600;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .overview-list-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px 32px;
+          padding: 20px 24px;
+        }
+        .overview-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 14px;
+        }
+        .overview-label {
+          color: var(--color-text2);
+          border-bottom: 1px dashed rgba(255,255,255,0.2);
+          padding-bottom: 2px;
+        }
+
+        /* Right Column Action Card */
+        .sticky-card {
+          position: sticky;
+          top: 84px; /* 60px topbar + 24px padding */
+        }
+        .action-card {
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+          overflow: hidden;
+        }
+        .action-tabs {
+          display: flex;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .action-tab {
+          flex: 1;
+          background: var(--color-bg0);
+          border: none;
+          color: var(--color-text3);
+          padding: 16px 0;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .action-tab.active {
+          background: var(--color-bg1);
+          color: var(--color-text1);
+          box-shadow: inset 0 2px 0 0 #ffffff;
+        }
+        .action-body {
+          padding: 24px;
+        }
+        .warning-banner {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          background: rgba(240, 185, 11, 0.1);
+          border: 1px solid rgba(240, 185, 11, 0.2);
+          color: #f0b90b;
+          padding: 12px 16px;
+          border-radius: 6px;
+          font-size: 13px;
+          line-height: 1.4;
+          margin-bottom: 24px;
+        }
+        .warning-banner svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        .input-group {
+          margin-bottom: 24px;
+        }
+        .input-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        .input-box {
+          display: flex;
+          align-items: center;
+          background: var(--color-bg0);
+          border: 1px solid var(--color-border);
+          border-radius: 6px;
+          padding: 12px 16px;
+          transition: border-color 0.2s;
+        }
+        .input-box:focus-within {
+          border-color: var(--color-text2);
+        }
+        .input-box input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          color: var(--color-text1);
+          font-size: 20px;
+          outline: none;
+        }
+        .max-btn {
+          background: var(--color-bg2);
+          border: none;
+          color: var(--color-accent);
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .est-yield {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          color: var(--color-text2);
+          margin-bottom: 24px;
+          padding-top: 16px;
+          border-top: 1px dashed var(--color-border);
+        }
+        .submit-btn {
+          width: 100%;
+          background: var(--color-text1);
+          color: var(--color-bg0);
+          border: none;
+          border-radius: 6px;
+          padding: 16px 0;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        .submit-btn:hover {
+          opacity: 0.9;
+        }
+
+        /* Bottom Section */
+        .vault-bottom {
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+          overflow: hidden;
+        }
+        .tab-scroll-container {
+          overflow-x: auto;
+          scrollbar-width: none;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .tab-scroll-container::-webkit-scrollbar {
+          display: none;
+        }
+        .tabs-row {
+          display: flex;
+          padding: 0 16px;
+          gap: 24px;
+        }
+        .pt-tab {
+          background: transparent;
+          border: none;
+          color: var(--color-text3);
+          font-size: 14px;
+          font-weight: 500;
+          padding: 16px 0;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+        .pt-tab:hover {
+          color: var(--color-text2);
+        }
+        .pt-tab.active {
+          color: var(--color-text1);
+          border-bottom-color: #ffffff;
+        }
+        .tab-content {
+          min-height: 200px;
+        }
+        .empty-state {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 200px;
+        }
+        .portfolio-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 13px;
+        }
+        .portfolio-table th {
+          text-align: left;
+          padding: 14px 24px;
+          color: var(--color-text3);
+          font-weight: 500;
+          border-bottom: 1px solid var(--color-border);
+          white-space: nowrap;
+        }
+        .portfolio-table td {
+          padding: 14px 24px;
+          border-bottom: 1px solid var(--color-border);
+          white-space: nowrap;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .vault-main-grid {
             grid-template-columns: 1fr;
           }
-          .vault-stats {
-            grid-template-columns: repeat(2, 1fr);
+          .sticky-card {
+            position: static;
           }
-          .vault-activity-row {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 6px;
-            padding: 10px 14px !important;
+        }
+        @media (max-width: 768px) {
+          .vault-main-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+          }
+          .action-card {
+            width: 100%;
+            border-left: none;
+            border-right: none;
+            border-radius: 0;
+          }
+          .action-body {
+            padding: 16px;
+          }
+          .desktop-only {
+            display: none !important;
+          }
+          .mobile-only {
+            display: flex !important;
+          }
+          .vault-container {
+            padding: 16px;
+            overflow-x: hidden;
+            padding-bottom: 100px;
+          }
+          .vault-header h1 {
+            font-size: 24px !important;
+          }
+          .chart-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+          }
+          .chart-controls {
+            width: 100%;
+          }
+          .control-group {
+            width: 100%;
+            overflow-x: auto;
+          }
+          .control-btn {
+            flex: 1;
+            white-space: nowrap;
+            text-align: center;
+          }
+          .overview-list-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

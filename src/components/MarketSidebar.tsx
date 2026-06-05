@@ -52,7 +52,7 @@ export default function MarketSidebar({ onClose }: MarketSidebarProps = {}) {
 
       {/* Crypto Perps */}
       <div className="sidebar-section">
-        <div className="label" style={{ padding: '8px 12px 6px' }}>Crypto Perps</div>
+        <div className="label" style={{ padding: '8px 16px 6px' }}>Crypto Perps</div>
         {cryptoMarkets.map((m) => {
           const isActive = m.id === activeMarketId
           const priceDirection = m.price > m.prevPrice ? 'up' : m.price < m.prevPrice ? 'down' : ''
@@ -81,7 +81,7 @@ export default function MarketSidebar({ onClose }: MarketSidebarProps = {}) {
 
       {/* RWA Perps */}
       <div className="sidebar-section">
-        <div className="label" style={{ padding: '12px 12px 6px' }}>RWA Perps</div>
+        <div className="label" style={{ padding: '12px 16px 6px' }}>RWA Perps</div>
         {rwaMarkets.map((m) => {
           const isActive = m.id === activeMarketId
           const priceDirection = m.price > m.prevPrice ? 'up' : m.price < m.prevPrice ? 'down' : ''
@@ -123,7 +123,7 @@ export default function MarketSidebar({ onClose }: MarketSidebarProps = {}) {
           align-items: center;
           gap: 8px;
           padding: 8px 12px;
-          margin: 8px;
+          margin: 12px 16px;
           background-color: var(--color-bg2);
           border: 1px solid var(--color-border);
           border-radius: var(--radius-md);
@@ -145,7 +145,7 @@ export default function MarketSidebar({ onClose }: MarketSidebarProps = {}) {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 8px 12px;
+          padding: 8px 16px;
           cursor: pointer;
           transition: background-color 150ms;
           border-left: 2px solid transparent;

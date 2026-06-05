@@ -101,6 +101,8 @@ interface TradeStore {
   setWalletModalOpen: (open: boolean) => void
   selectedTimeframe: string
   setSelectedTimeframe: (tf: string) => void
+  mobileNav: 'markets' | 'trade' | 'vaults' | 'account'
+  setMobileNav: (nav: 'markets' | 'trade' | 'vaults' | 'account') => void
 
   // Mock wallet balance
   mockBalance: number
@@ -268,6 +270,8 @@ export const useTradeStore = create<TradeStore>()(
   setWalletModalOpen: (open) => set({ isWalletModalOpen: open }),
   selectedTimeframe: '1h',
   setSelectedTimeframe: (tf) => set({ selectedTimeframe: tf }),
+  mobileNav: 'markets',
+  setMobileNav: (nav) => set({ mobileNav: nav }),
 
   // Mock wallet balance
   mockBalance: 1200,

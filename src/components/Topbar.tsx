@@ -5,14 +5,16 @@ import { useTradeStore } from '../store/useTradeStore'
 
 const NAV_LINKS = [
   { to: '/', label: 'Trade' },
-  { to: '/vault', label: 'Vault' },
   { to: '/portfolio', label: 'Portfolio' },
-  { to: '/bridge', label: 'Bridge' },
+  { to: '/vault', label: 'Vaults' },
+  { to: '/referrals', label: 'Referrals' },
+  { to: '/points', label: 'Points' },
+  { to: '/leaderboard', label: 'Leaderboard' },
 ]
 
 export default function Topbar() {
   const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
-  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket } = useTradeStore()
+  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket, mobileNav } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -59,13 +61,15 @@ export default function Topbar() {
             </svg>
           </button>
 
-          <div className="topbar-logo">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0052FF"/>
-              <path d="M2 17l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.5"/>
-              <path d="M2 12l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.75"/>
-            </svg>
-            <span className="topbar-brand">ArcTrade</span>
+          <div className="topbar-logo-wrapper desktop-only">
+            <div className="topbar-logo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0052FF"/>
+                <path d="M2 17l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.5"/>
+                <path d="M2 12l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.75"/>
+              </svg>
+              <span className="topbar-brand">ArcTrade</span>
+            </div>
           </div>
 
           <nav className="topbar-nav desktop-only">
@@ -86,29 +90,37 @@ export default function Topbar() {
 
         {/* Center — Active Market (Mobile Only) */}
         <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 2 }}>
-          <button 
-            onClick={() => setIsMarketSelectorOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
-          >
-            {activeMarket && activeMarket.pair.includes('BTC') ? (
-              <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-                <circle cx="16" cy="16" r="16" fill="#F7931A"/>
-                <path d="M21.9 14.1c.3-2.1-1.3-3.2-3.5-4l.7-2.9-1.8-.4-.7 2.8c-.5-.1-.9-.2-1.4-.4l.7-2.8-1.8-.4-.7 2.9c-1.6-.3-3.1-.7-4.3-1.6l-1 2.2s.8.6 1.8 1.1c-.2.7-1 4.2-1.2 4.9-1.4.3-2.5 0-2.5 0l-1.1 2.4c1.1.5 2.1.8 3.2.8l-.7 3 1.8.5.7-3c.5.1.9.3 1.4.4l-.7 3 1.8.4.7-3c2.4.5 4.5.4 5.9-1.7 1.1-1.7.7-3 .2-3.8 1.2-.2 2.1-.9 2.5-2.5zm-3.5 5.5c-.5 1.9-3.7.9-4.8.6l.8-3.4c1.1.3 4.6 1 4 2.8zm.5-5c-.4 1.7-2.9.8-3.7.6l.7-3c.8.2 3.3.6 3 2.4z" fill="#fff"/>
-              </svg>
-            ) : (
-              <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#627EEA' }} />
-            )}
-            <span className="font-mono" style={{ fontWeight: 600, fontSize: 16 }}>
-              {activeMarket ? activeMarket.pair : 'Trade'}
-            </span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          {activeMarket && (
-            <span className="font-mono" style={{ fontSize: 13, color: 'var(--color-text2)', fontWeight: 500 }}>
-              ${formatPrice(activeMarket.price)}
-            </span>
+          {mobileNav === 'account' ? (
+            <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Portfolio</span>
+          ) : mobileNav === 'vaults' ? (
+            <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Yield Vaults</span>
+          ) : (
+            <>
+              <button 
+                onClick={() => setIsMarketSelectorOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
+              >
+                {activeMarket && activeMarket.pair.includes('BTC') ? (
+                  <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="16" fill="#F7931A"/>
+                    <path d="M21.9 14.1c.3-2.1-1.3-3.2-3.5-4l.7-2.9-1.8-.4-.7 2.8c-.5-.1-.9-.2-1.4-.4l.7-2.8-1.8-.4-.7 2.9c-1.6-.3-3.1-.7-4.3-1.6l-1 2.2s.8.6 1.8 1.1c-.2.7-1 4.2-1.2 4.9-1.4.3-2.5 0-2.5 0l-1.1 2.4c1.1.5 2.1.8 3.2.8l-.7 3 1.8.5.7-3c.5.1.9.3 1.4.4l-.7 3 1.8.4.7-3c2.4.5 4.5.4 5.9-1.7 1.1-1.7.7-3 .2-3.8 1.2-.2 2.1-.9 2.5-2.5zm-3.5 5.5c-.5 1.9-3.7.9-4.8.6l.8-3.4c1.1.3 4.6 1 4 2.8zm.5-5c-.4 1.7-2.9.8-3.7.6l.7-3c.8.2 3.3.6 3 2.4z" fill="#fff"/>
+                  </svg>
+                ) : (
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#627EEA' }} />
+                )}
+                <span className="font-mono" style={{ fontWeight: 600, fontSize: 16 }}>
+                  {activeMarket ? activeMarket.pair : 'Trade'}
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              {activeMarket && (
+                <span className="font-mono" style={{ fontSize: 13, color: 'var(--color-text2)', fontWeight: 500 }}>
+                  ${formatPrice(activeMarket.price)}
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -124,7 +136,7 @@ export default function Topbar() {
 
             {!isConnected ? (
               <button
-                className="btn btn-connect-unified"
+                className="btn btn-connect-unified desktop-only"
                 onClick={() => setWalletModalOpen(true)}
               >
                 Connect Wallet
@@ -343,7 +355,7 @@ export default function Topbar() {
         .topbar {
           position: sticky;
           top: 0;
-          z-index: 100;
+          z-index: 1100;
           background-color: var(--color-bg1);
           border-bottom: 1px solid var(--color-border);
           height: 60px;
@@ -362,18 +374,26 @@ export default function Topbar() {
         }
         .topbar-inner {
           width: 100%;
-          max-width: 1600px;
-          padding: 0 16px;
+          padding: 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
         }
         .topbar-left {
           display: flex;
           align-items: center;
-          gap: 24px; /* Space between logo and nav */
+          gap: 0;
           flex: 1;
+        }
+        .topbar-logo-wrapper {
+          width: 200px;
+          height: 60px;
+          display: flex;
+          align-items: center;
+          padding: 0 16px;
+          border-right: 1px solid var(--color-border);
+          box-sizing: border-box;
+          flex-shrink: 0;
         }
         .mobile-menu-btn {
           display: none;
@@ -407,6 +427,7 @@ export default function Topbar() {
           display: flex;
           align-items: center;
           gap: 16px;
+          padding-left: 20px;
         }
         .topbar-nav-link {
           padding: 8px 0;
@@ -427,6 +448,7 @@ export default function Topbar() {
           align-items: center;
           justify-content: flex-end;
           gap: 16px;
+          padding-right: 16px;
           flex: 1;
         }
         .btn-connect {
@@ -716,6 +738,10 @@ export default function Topbar() {
             height: 60px;
             padding-top: 4px;
           }
+          .topbar-inner {
+            padding: 0 16px;
+            gap: 16px;
+          }
           .topbar-left {
             gap: 12px;
             flex: 1;
@@ -736,7 +762,7 @@ export default function Topbar() {
           .mobile-only {
             display: flex;
           }
-          .btn-connect, .btn-connect-unified {
+          .btn-connect {
             display: none !important;
           }
           .topbar-account {

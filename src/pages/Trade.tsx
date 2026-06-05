@@ -4,16 +4,15 @@ import PriceChart from '../components/PriceChart'
 import OrderBook from '../components/OrderBook'
 import OrderForm from '../components/OrderForm'
 import Positions from '../components/Positions'
+import Portfolio from './Portfolio'
+import Vault from './Vault'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
-import type { OrderSide } from '../types'
 
 export default function Trade() {
   const { isConnected } = useArcWallet()
-  const { setWalletModalOpen, markets, activeMarketId } = useTradeStore()
+  const { setWalletModalOpen, markets, activeMarketId, mobileNav, setMobileNav } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
-  const [orderSide, setOrderSide] = useState<OrderSide>('long')
   const [mobileView, setMobileView] = useState<'chart' | 'orderbook' | 'trades'>('chart')
   
   const fp = (p: number) => p >= 10000 ? p.toLocaleString('en-US', { maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
@@ -24,7 +23,7 @@ export default function Trade() {
       <div className="trade-sidebar">
         <MarketSidebar />
       </div>
-      <div className="trade-middle">
+      <div className={`trade-middle ${mobileNav !== 'markets' ? 'mobile-hidden' : ''}`}>
         <div className="trade-middle-top">
           <div className="trade-center">
         {activeMarket && (
@@ -114,32 +113,66 @@ export default function Trade() {
         <OrderForm />
       </div>
 
+      {mobileNav === 'trade' && (
+        <div className="mobile-only trade-mobile-tab-view">
+          <OrderForm />
+        </div>
+      )}
+
+      {mobileNav === 'account' && (
+        <div className="mobile-only trade-mobile-tab-view">
+          <Portfolio />
+        </div>
+      )}
+
+      {mobileNav === 'vaults' && (
+        <div className="mobile-only trade-mobile-tab-view">
+          <Vault />
+        </div>
+      )}
+
       {/* Mobile Bottom Action Bar */}
       <div className="trade-mobile-action-bar">
         {!isConnected ? (
-          <button className="action-btn action-connect" onClick={() => setWalletModalOpen(true)}>
+          <button 
+            className="btn btn-connect-unified animate-fade-in" 
+            style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 600, borderRadius: '8px' }}
+            onClick={() => setWalletModalOpen(true)}
+          >
             Connect Wallet
           </button>
         ) : (
           <>
-            <button className="action-btn action-buy" onClick={() => { setOrderSide('long'); setIsOrderModalOpen(true); }}>
-              BUY
+            <button className={`mobile-nav-btn ${mobileNav === 'markets' ? 'active' : ''}`} onClick={() => setMobileNav('markets')}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="4" y="14" width="4" height="7" rx="1"/>
+                <rect x="10" y="9" width="4" height="12" rx="1"/>
+                <rect x="16" y="3" width="4" height="18" rx="1"/>
+              </svg>
+              <span>Markets</span>
             </button>
-            <button className="action-btn action-sell" onClick={() => { setOrderSide('short'); setIsOrderModalOpen(true); }}>
-              SELL
+            <button className={`mobile-nav-btn ${mobileNav === 'trade' ? 'active' : ''}`} onClick={() => setMobileNav('trade')}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 4h-4v4H7l5 5 5-5h-3V4zM10 20h4v-4h3l-5-5-5 5h3v4z"/>
+              </svg>
+              <span>Trade</span>
+            </button>
+            <button className={`mobile-nav-btn ${mobileNav === 'vaults' ? 'active' : ''}`} onClick={() => setMobileNav('vaults')}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Vaults</span>
+            </button>
+            <button className={`mobile-nav-btn ${mobileNav === 'account' ? 'active' : ''}`} onClick={() => setMobileNav('account')}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"/>
+              </svg>
+              <span>Account</span>
             </button>
           </>
         )}
       </div>
 
-      {/* Mobile Order Form Modal */}
-      {isOrderModalOpen && (
-        <div className="trade-mobile-modal-backdrop" onClick={() => setIsOrderModalOpen(false)}>
-          <div className="trade-mobile-modal animate-slide-up" onClick={e => e.stopPropagation()}>
-            <OrderForm initialSide={orderSide} onClose={() => setIsOrderModalOpen(false)} />
-          </div>
-        </div>
-      )}
 
       <style>{`
         .trade-layout {
@@ -245,6 +278,9 @@ export default function Trade() {
         .trade-mobile-tabs {
           display: none;
         }
+        .trade-mobile-tab-view {
+          display: none;
+        }
 
         .action-btn {
           flex: 1; padding: 14px;
@@ -258,6 +294,33 @@ export default function Trade() {
         .action-sell { background-color: var(--color-red); color: #fff; text-transform: uppercase; }
         .action-connect { background-color: var(--color-green); color: #070c18; text-transform: uppercase; font-size: 13px !important; padding: 12px !important; border-radius: 999px !important; width: 100% !important; margin: 0 !important; box-sizing: border-box !important; text-align: center !important; display: flex !important; justify-content: center !important; align-items: center !important; }
         
+        .mobile-nav-btn {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          background: none;
+          border: none;
+          color: var(--color-text3);
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .mobile-nav-btn.active {
+          color: var(--color-text1);
+        }
+        .mobile-nav-btn svg {
+          width: 22px;
+          height: 22px;
+          stroke: currentColor;
+        }
+        .mobile-nav-btn:hover {
+          color: var(--color-text2);
+        }
+
         .trade-below-chart {
           display: flex;
           flex-direction: column;
@@ -534,6 +597,47 @@ export default function Trade() {
             z-index: 900;
             justify-content: center;
             align-items: center;
+          }
+          .mobile-nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            color: var(--color-text3);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
+          .mobile-nav-btn svg {
+            width: 22px;
+            height: 22px;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
+          }
+          .mobile-nav-btn.active {
+            color: var(--color-text1);
+          }
+          .mobile-nav-btn.active svg {
+            transform: translateY(-2px) scale(1.15);
+            filter: drop-shadow(0 4px 6px rgba(255, 255, 255, 0.15));
+            color: var(--color-accent);
+          }
+          .trade-mobile-tab-view {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: 100%;
+            min-width: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+          }
+          .mobile-hidden {
+            display: none !important;
           }
         }
       `}</style>

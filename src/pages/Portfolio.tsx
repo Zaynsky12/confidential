@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useState } from 'react'
 import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
@@ -6,18 +6,23 @@ import { useArcWallet } from '../hooks/useArcWallet'
 
 export default function Portfolio() {
   const { positions } = useTradeStore()
-  const { isConnected, truncatedAddress, balance } = useArcWallet()
+  const { isConnected, balance } = useArcWallet()
   const chartRef = useRef<HTMLDivElement>(null)
   const chartApiRef = useRef<IChartApi | null>(null)
 
-  const openPos = positions.filter(p=>p.status==='open')
+  const [activeTab, setActiveTab] = useState('Positions')
+  const [chartMetric, setChartMetric] = useState('PnL')
+  const [chartTimeframe, setChartTimeframe] = useState('30d')
 
+  const tabs = ['Balances', 'Collateral', 'Positions', 'Open Orders', 'TWAPs', 'TWAP History', 'Trade History', 'Funding History', 'Order History', 'Transfers']
+
+  const openPos = positions.filter(p=>p.status==='open')
   const totalPnl = positions.reduce((s,p)=>s+p.pnl,0)
   const wins = positions.filter(p=>p.pnl>0).length
   const winRate = positions.length?((wins/positions.length)*100).toFixed(1):'0.0'
   const totalVol = positions.reduce((s,p)=>s+p.entryPrice*p.size,0)
   const bestTrade = positions.length? Math.max(...positions.map(p=>p.pnl)):0
-  const equity = balance + positions.filter(p=>p.status==='open').reduce((s,p)=>s+p.collateral+p.pnl,0)
+  const equity = balance + openPos.reduce((s,p)=>s+p.collateral+p.pnl,0)
 
   // Mock 30-day PnL data
   const pnlData = useMemo(()=>{
@@ -34,14 +39,14 @@ export default function Portfolio() {
   useEffect(()=>{
     if(!chartRef.current) return
     const chart = createChart(chartRef.current,{
-      layout:{ background:{type:ColorType.Solid,color:'#0d1424'}, textColor:'#8899b0', fontFamily:"'IBM Plex Mono',monospace", fontSize:11 },
+      layout:{ background:{type:ColorType.Solid,color:'transparent'}, textColor:'#848e9c', fontFamily:"'Inter', sans-serif", fontSize:11 },
       grid:{ vertLines:{color:'rgba(255,255,255,0.03)'}, horzLines:{color:'rgba(255,255,255,0.03)'} },
       rightPriceScale:{ borderColor:'rgba(255,255,255,0.06)' },
       timeScale:{ borderColor:'rgba(255,255,255,0.06)' },
-      width: chartRef.current.clientWidth, height:250,
+      width: chartRef.current.clientWidth, height:280,
     })
     const series = chart.addSeries(AreaSeries, {
-      topColor:'rgba(0,82,255,0.3)', bottomColor:'rgba(0,82,255,0.02)', lineColor:'#0052FF', lineWidth:2,
+      topColor:'rgba(255,255,255,0.15)', bottomColor:'rgba(255,255,255,0.0)', lineColor:'#ffffff', lineWidth:2,
     })
     series.setData(pnlData)
     chart.timeScale().fitContent()
@@ -53,129 +58,417 @@ export default function Portfolio() {
     return ()=>{ ro.disconnect(); chart.remove() }
   },[pnlData])
 
-  const usedCollateral = openPos.reduce((s,p)=>s+p.collateral,0)
-  const availableCollateral = balance
-  const healthPct = usedCollateral+availableCollateral>0 ? (usedCollateral/(usedCollateral+availableCollateral))*100 : 0
-
   return (
     <div className="portfolio-container">
-      <div className="portfolio-header">
-        <div>
-          <h1 style={{ fontSize:28,fontWeight:600,letterSpacing:'-0.02em',marginBottom:4 }}>Portfolio</h1>
-          {isConnected && <span className="font-mono" style={{ fontSize:13,color:'var(--color-text3)' }}>{truncatedAddress}</span>}
+      {/* DESKTOP LAYOUT (Hidden on Mobile) */}
+      <div className="portfolio-desktop-only">
+        {/* HEADER */}
+        <div className="portfolio-header">
+          <h1 style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>Portfolio</h1>
         </div>
-        <div style={{ textAlign:'right' }}>
-          <div className="label" style={{ marginBottom:4 }}>Total Equity</div>
-          <div className="font-mono" style={{ fontSize:24,fontWeight:600 }}>{equity.toFixed(2)} USDC</div>
-        </div>
-      </div>
 
-      {/* PnL Chart */}
-      <div className="panel" style={{ marginBottom:24,overflow:'hidden' }}>
-        <div style={{ padding:'14px 20px',borderBottom:'1px solid var(--color-border)',fontWeight:600,fontSize:14 }}>PnL (30 Days)</div>
-        <div ref={chartRef} style={{ height:250 }} />
-      </div>
-
-      {/* Stats */}
-      <div className="portfolio-stats">
-        {[
-          ['Total PnL',`${totalPnl>=0?'+':''}${totalPnl.toFixed(2)} USDC`,totalPnl>=0],
-          ['Win Rate',`${winRate}%`,true],
-          ['Total Volume',`${totalVol.toFixed(2)} USDC`,true],
-          ['Best Trade',`+${bestTrade.toFixed(2)} USDC`,true],
-        ].map(([label,value,positive])=>(
-          <div key={label as string} className="panel" style={{ padding:16,textAlign:'center' }}>
-            <div className="label" style={{ marginBottom:8 }}>{label}</div>
-            <div className="font-mono" style={{ fontSize:16,fontWeight:600,color:positive?'var(--color-green)':'var(--color-red)' }}>{value}</div>
+        {/* STATS ROW */}
+        <div className="portfolio-stats-grid">
+          <div className="stat-card">
+            <div className="stat-label">Portfolio Value</div>
+            <div className="stat-value font-mono">US${equity.toFixed(2)}</div>
           </div>
-        ))}
-      </div>
-
-      {/* Collateral Health */}
-      <div className="panel" style={{ padding:20,marginBottom:24 }}>
-        <div style={{ display:'flex',justifyContent:'space-between',marginBottom:8 }}>
-          <span style={{ fontSize:13,fontWeight:500 }}>Collateral Health</span>
-          <span className="font-mono" style={{ fontSize:12,color:'var(--color-text2)' }}>{usedCollateral.toFixed(2)} / {(usedCollateral+availableCollateral).toFixed(2)} USDC</span>
+          <div className="stat-card">
+            <div className="stat-label">PnL</div>
+            <div className={`stat-value font-mono ${totalPnl >= 0 ? 'text-green' : 'text-red'}`}>
+              {totalPnl >= 0 ? '+' : ''}US${totalPnl.toFixed(2)}
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">30 Day Volume</div>
+            <div className="stat-value font-mono">US${totalVol.toFixed(2)}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Fees (Taker / Maker)</div>
+            <div className="stat-value font-mono" style={{ cursor: 'pointer', transition: 'color 0.2s' }}>0.0340% / 0.0110%</div>
+          </div>
         </div>
-        <div style={{ height:8,background:'var(--color-bg2)',borderRadius:4,overflow:'hidden' }}>
-          <div style={{ height:'100%',width:`${healthPct}%`,borderRadius:4,transition:'width 300ms',
-            background: healthPct>80?'var(--color-red)':healthPct>50?'#f0b90b':'var(--color-green)' }} />
-        </div>
-      </div>
 
-      {/* Positions table */}
-      <div className="panel" style={{ overflow:'hidden' }}>
-        <div style={{ padding:'14px 20px',borderBottom:'1px solid var(--color-border)',fontWeight:600,fontSize:14 }}>Positions</div>
-        {positions.length===0 ? (
-          <div style={{ padding:40,textAlign:'center',color:'var(--color-text3)',fontSize:13 }}>No positions yet</div>
-        ) : (
-          <div style={{ overflowX:'auto' }}>
-            <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12 }}>
-              <thead>
-                <tr style={{ borderBottom:'1px solid var(--color-border)' }}>
-                  {['Market','Side','Size','Entry','Mark','PnL','Leverage','Status'].map(h=>(
-                    <th key={h} className="label" style={{ padding:'8px 12px',textAlign:'left' }}>{h}</th>
+        {/* MID SECTION */}
+        <div className="portfolio-mid-grid">
+          {/* LEFT: OVERVIEW */}
+          <div className="overview-panel">
+            <div className="panel-header">Overview</div>
+            <div className="overview-list">
+              {[
+                ['All Time Return', `${totalPnl>=0?'+':''}${totalPnl.toFixed(2)} USDC`, totalPnl>=0?'var(--color-green)':'var(--color-red)'],
+                ['Volume', `${totalVol.toFixed(2)} USDC`, 'var(--color-text1)'],
+                ['Best Trade', `${bestTrade>0?'+':''}${bestTrade.toFixed(2)} USDC`, bestTrade>0?'var(--color-green)':'var(--color-text1)'],
+                ['Trading Portfolio', `${equity.toFixed(2)} USDC`, 'var(--color-text1)'],
+                ['Vault Allocation', '0.00 USDC', 'var(--color-text1)'],
+                ['Sharpe Ratio', '0.00', 'var(--color-text1)'],
+                ['Max Drawdown', '0.00%', 'var(--color-text1)'],
+                ['Weekly Win Rate (12w)', `${winRate}%`, 'var(--color-text1)'],
+                ['Avg. Cash Position', 'US$0.00', 'var(--color-text1)'],
+                ['Avg. Leverage', '0.00x', 'var(--color-text1)'],
+                ['Cross-margin Ratio', '0.00%', 'var(--color-text1)'],
+                ['Cross-account Position', '0.00 USDC', 'var(--color-text1)'],
+              ].map(([label, value, color]) => (
+                <div key={label} className="overview-item">
+                  <span className="overview-label">{label}</span>
+                  <span className="overview-value font-mono" style={{ color }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT: CHART */}
+          <div className="chart-panel">
+            <div className="chart-header">
+              <div>
+                <div style={{ color:'var(--color-text2)', fontSize:13, marginBottom:4 }}>Profit/Loss</div>
+                <div className="font-mono" style={{ fontSize:20, fontWeight:600 }}>US${totalPnl.toFixed(2)}</div>
+              </div>
+              <div className="chart-controls">
+                <div className="control-group">
+                  <button className={`control-btn ${chartMetric==='PnL'?'active':''}`} onClick={()=>setChartMetric('PnL')}>PnL</button>
+                  <button className={`control-btn ${chartMetric==='Portfolio Val.'?'active':''}`} onClick={()=>setChartMetric('Portfolio Val.')}>Portfolio Val.</button>
+                </div>
+                <div className="control-group">
+                  {['24h','7d','30d','90d','All'].map(tf => (
+                    <button key={tf} className={`control-btn ${chartTimeframe===tf?'active':''}`} onClick={()=>setChartTimeframe(tf)}>{tf}</button>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {positions.map(p=>(
-                  <tr key={p.id} style={{ borderBottom:'1px solid var(--color-border)' }}>
-                    <td style={{ padding:'8px 12px',fontWeight:500 }}>{p.pair}</td>
-                    <td style={{ padding:'8px 12px' }}><span className={p.side==='long'?'badge badge-green':'badge badge-red'} style={{ fontSize:9,padding:'1px 6px' }}>{p.side.toUpperCase()}</span></td>
-                    <td className="font-mono" style={{ padding:'8px 12px' }}>{p.size.toFixed(4)}</td>
-                    <td className="font-mono" style={{ padding:'8px 12px' }}>{p.entryPrice.toFixed(2)}</td>
-                    <td className="font-mono" style={{ padding:'8px 12px' }}>{p.markPrice.toFixed(2)}</td>
-                    <td className={`font-mono ${p.pnl>=0?'text-green':'text-red'}`} style={{ padding:'8px 12px',fontWeight:500 }}>{p.pnl>=0?'+':''}{p.pnl.toFixed(2)}</td>
-                    <td className="font-mono" style={{ padding:'8px 12px' }}>{p.leverage}x</td>
-                    <td style={{ padding:'8px 12px' }}><span className="badge" style={{ fontSize:9,padding:'1px 6px' }}>{p.status.toUpperCase()}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </div>
+              </div>
+            </div>
+            <div ref={chartRef} className="chart-container" />
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* MOBILE ACCOUNT OVERVIEW (Hidden on Desktop) */}
+      <div className="portfolio-mobile-only mobile-account-overview-card">
+        <div className="mobile-overview-row"><span className="label">Equity</span><span className="value">${equity.toFixed(2)}</span></div>
+        <div className="mobile-overview-row"><span className="label">Balance</span><span className="value">${balance.toFixed(2)}</span></div>
+        <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value ${totalPnl >= 0 ? 'text-green' : 'text-red'}`}>${totalPnl.toFixed(2)}</span></div>
+        <div className="mobile-overview-row"><span className="label">Funding Cost (Unrealized)</span><span className="value">$0.00</span></div>
+        <div className="mobile-overview-row"><span className="label">Cross-margin Ratio</span><span className="value">0.0000%</span></div>
+        <div className="mobile-overview-row"><span className="label">Maintenance Margin</span><span className="value">$0.00</span></div>
+      </div>
+
+      {/* BOTTOM SECTION: TABS & TABLES */}
+      <div className="portfolio-bottom">
+        <div className="tab-scroll-container">
+          <div className="tabs-row">
+            {tabs.map(tab => (
+              <button 
+                key={tab} 
+                className={`pt-tab ${activeTab === tab ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="tab-content">
+          {!isConnected ? (
+            <div className="empty-state">
+              <div style={{ color: 'var(--color-text3)', fontSize:14 }}>Connect an account first</div>
+            </div>
+          ) : activeTab === 'Positions' ? (
+            <div style={{ overflowX:'auto' }}>
+              <table className="portfolio-table">
+                <thead>
+                  <tr>
+                    {['Market','Side','Size','Entry','Mark','PnL','Leverage','Status'].map(h=>(
+                      <th key={h}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No positions yet</td>
+                    </tr>
+                  ) : positions.map(p=>(
+                    <tr key={p.id}>
+                      <td style={{ fontWeight:500 }}>{p.pair}</td>
+                      <td><span className={p.side==='long'?'badge badge-green':'badge badge-red'} style={{ fontSize:9,padding:'2px 6px' }}>{p.side.toUpperCase()}</span></td>
+                      <td className="font-mono">{p.size.toFixed(4)}</td>
+                      <td className="font-mono">{p.entryPrice.toFixed(2)}</td>
+                      <td className="font-mono">{p.markPrice.toFixed(2)}</td>
+                      <td className={`font-mono ${p.pnl>=0?'text-green':'text-red'}`} style={{ fontWeight:500 }}>{p.pnl>=0?'+':''}{p.pnl.toFixed(2)}</td>
+                      <td className="font-mono">{p.leverage}x</td>
+                      <td><span className="badge" style={{ fontSize:9,padding:'2px 6px' }}>{p.status.toUpperCase()}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div style={{ color: 'var(--color-text3)', fontSize:14 }}>No data yet</div>
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
         .portfolio-container {
-          max-width: 1000px;
+          width: 100%;
+          max-width: 1200px;
           margin: 0 auto;
           padding: 40px 24px;
+          min-height: calc(100vh - 60px);
+          background: var(--color-bg0);
+          color: var(--color-text1);
+          box-sizing: border-box;
+          min-width: 0;
         }
         .portfolio-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
           margin-bottom: 32px;
         }
-        .portfolio-stats {
+
+        /* Stats Grid */
+        .portfolio-stats-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+        .stat-card {
+          padding: 20px;
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+        }
+        .stat-label {
+          color: var(--color-text2);
+          font-size: 13px;
+          margin-bottom: 8px;
+        }
+        .stat-value {
+          font-size: 24px;
+          font-weight: 600;
+        }
+
+        /* Mid Section Grid */
+        .portfolio-mid-grid {
+          display: grid;
+          grid-template-columns: 300px 1fr;
+          gap: 16px;
           margin-bottom: 24px;
         }
 
+        /* Overview Panel */
+        .overview-panel {
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+          display: flex;
+          flex-direction: column;
+        }
+        .panel-header {
+          padding: 16px 20px;
+          font-size: 15px;
+          font-weight: 600;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .overview-list {
+          display: flex;
+          flex-direction: column;
+          padding: 12px 20px;
+          gap: 12px;
+        }
+        .overview-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 13px;
+        }
+        .overview-label {
+          color: var(--color-text2);
+          border-bottom: 1px dashed rgba(255,255,255,0.2);
+          padding-bottom: 2px;
+          cursor: help;
+        }
+        .overview-value {
+          font-weight: 500;
+        }
+
+        /* Chart Panel */
+        .chart-panel {
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .chart-header {
+          padding: 16px 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .chart-controls {
+          display: flex;
+          gap: 16px;
+        }
+        .control-group {
+          display: flex;
+          background: var(--color-bg0);
+          border-radius: 6px;
+          padding: 2px;
+          border: 1px solid var(--color-border);
+        }
+        .control-btn {
+          background: transparent;
+          border: none;
+          color: var(--color-text3);
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.2s;
+        }
+        .control-btn.active {
+          background: var(--color-bg2);
+          color: var(--color-text1);
+        }
+        .chart-container {
+          flex: 1;
+          height: 280px;
+          padding-top: 16px;
+        }
+
+        /* Bottom Section */
+        .portfolio-bottom {
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+          overflow: hidden;
+        }
+        .tab-scroll-container {
+          overflow-x: auto;
+          scrollbar-width: none;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .tab-scroll-container::-webkit-scrollbar {
+          display: none;
+        }
+        .tabs-row {
+          display: flex;
+          padding: 0 16px;
+          gap: 24px;
+        }
+        .pt-tab {
+          background: transparent;
+          border: none;
+          color: var(--color-text3);
+          font-size: 14px;
+          font-weight: 500;
+          padding: 16px 0;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+        .pt-tab:hover {
+          color: var(--color-text2);
+        }
+        .pt-tab.active {
+          color: var(--color-text1);
+          border-bottom-color: #ffffff;
+        }
+
+        /* Tables & Empty States */
+        .tab-content {
+          min-height: 200px;
+        }
+        .empty-state {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 200px;
+        }
+        .portfolio-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 13px;
+        }
+        .portfolio-table th {
+          text-align: left;
+          padding: 14px 20px;
+          color: var(--color-text3);
+          font-weight: 500;
+          border-bottom: 1px solid var(--color-border);
+          white-space: nowrap;
+        }
+        .portfolio-table td {
+          padding: 12px 20px;
+          border-bottom: 1px solid var(--color-border);
+          white-space: nowrap;
+        }
+
+        .portfolio-mobile-only {
+          display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .portfolio-mid-grid {
+            grid-template-columns: 250px 1fr;
+          }
+        }
         @media (max-width: 768px) {
+          .portfolio-desktop-only {
+            display: none !important;
+          }
+          .portfolio-mobile-only {
+            display: block;
+          }
           .portfolio-container {
-            padding: 20px 14px;
+            padding: 16px 0;
+            overflow-x: hidden;
+            padding-bottom: 100px; /* Leave space for mobile action bar */
           }
-          .portfolio-container h1 {
-            font-size: 22px !important;
-          }
-          .portfolio-header {
+          .mobile-account-overview-card {
+            background: var(--color-bg1);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 0 16px 20px 16px;
+            display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            gap: 16px;
+            gap: 12px;
           }
-          .portfolio-header > div:last-child {
-            text-align: left;
+          .mobile-overview-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
           }
-          .portfolio-stats {
-            grid-template-columns: repeat(2, 1fr);
+          .mobile-overview-row .label {
+            color: var(--color-text2);
+          }
+          .mobile-overview-row .value {
+            color: var(--color-text1);
+            font-family: 'JetBrains Mono', monospace;
+          }
+          .portfolio-bottom {
+            border: none;
+            border-radius: 0;
+            border-top: 1px solid var(--color-border);
+          }
+        }
+
+        @media (max-width: 480px) {
+          .portfolio-stats-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
     </div>
   )
 }
+

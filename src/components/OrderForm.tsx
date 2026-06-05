@@ -262,8 +262,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Fees</span><span style={{ borderBottom:'1px dashed #555' }}>0.034% / 0.011%</span></div>
       </div>
 
-      {/* Account Overview */}
-      <div style={{ border:'1px solid var(--color-border)', borderRadius:8, padding:'12px', display:'flex', flexDirection:'column', gap:8, fontSize:11, background:'var(--color-bg2)' }}>
+      {/* Account Overview (Hidden on Mobile) */}
+      <div className="account-overview-box" style={{ border:'1px solid var(--color-border)', borderRadius:8, padding:'12px', display:'flex', flexDirection:'column', gap:8, fontSize:11, background:'var(--color-bg2)', marginTop: 16 }}>
         <div style={{ fontWeight:600, marginBottom:2 }}>Account Overview</div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Equity</span><span>${balance.toFixed(2)}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Balance</span><span>${balance.toFixed(2)}</span></div>
@@ -273,6 +273,13 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Maintenance Margin</span><span>$0.00</span></div>
       </div>
 
+      <style>{`
+        @media (max-width: 768px) {
+          .account-overview-box {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }
