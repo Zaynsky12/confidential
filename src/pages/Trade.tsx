@@ -278,8 +278,9 @@ export default function Trade() {
           .trade-desktop-only { display: none !important; }
           .trade-mobile-action-bar {
             display: flex;
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
+            position: sticky;
+            bottom: 0;
+            margin-top: auto;
             width: 100%;
             box-sizing: border-box;
             background-color: var(--color-bg0);
@@ -301,11 +302,14 @@ export default function Trade() {
           .trade-layout {
             display: flex;
             flex-direction: column;
-            height: auto;
-            min-height: calc(100vh - 52px);
+            /* 60px Topbar + 44px MobileTabs = 104px */
+            height: calc(100dvh - 104px);
+            min-height: calc(100vh - 104px);
             overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 68px; /* room for sticky bottom bar */
+            padding-bottom: 0;
           }
           .trade-sidebar {
             display: none;

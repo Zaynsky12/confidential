@@ -1,6 +1,13 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 
 export default function MobileTabs() {
+  const location = useLocation()
+
+  // Only show on Trade and Portfolio pages
+  if (location.pathname !== '/' && location.pathname !== '/portfolio') {
+    return null
+  }
+
   return (
     <>
       <div className="mobile-tabs mobile-only">

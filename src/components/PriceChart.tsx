@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createChart, ColorType, CrosshairMode, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
-import type { IChartApi, ISeriesApi, CandlestickData, Time } from 'lightweight-charts'
+import type { IChartApi, ISeriesApi, CandlestickData, Time, MouseEventParams } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useMockCandles } from '../hooks/useMockCandles'
 
-const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1d', '1W', '1M']
+const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1D', '1W', '1M']
+const MOBILE_VISIBLE_TFS = ['5m', '1h', '1D', '1W']
 
 export default function PriceChart() {
   const { markets, activeMarketId, selectedTimeframe, setSelectedTimeframe } = useTradeStore()
@@ -12,9 +13,23 @@ export default function PriceChart() {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  
+  const [tfDropdownOpen, setTfDropdownOpen] = useState(false)
+  const [hoveredCandle, setHoveredCandle] = useState<CandlestickData | null>(null)
+  const tfDropdownRef = useRef<HTMLDivElement>(null)
 
   const basePrice = activeMarket?.price ?? 67000
   const { initialCandles, appendCandle } = useMockCandles(basePrice, selectedTimeframe)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (tfDropdownRef.current && !tfDropdownRef.current.contains(e.target as Node)) {
+        setTfDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Create chart
   useEffect(() => {
@@ -28,7 +43,7 @@ export default function PriceChart() {
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: 'rgba(255,255,255,0)' }, // Hidden vertical lines
+        vertLines: { color: 'rgba(255,255,255,0)' },
         horzLines: { color: 'rgba(255,255,255,0.02)' },
       },
       crosshair: {
@@ -39,6 +54,7 @@ export default function PriceChart() {
       rightPriceScale: {
         borderColor: 'rgba(255,255,255,0.06)',
         scaleMargins: { top: 0.1, bottom: 0.25 },
+        autoScale: true,
       },
       timeScale: {
         borderColor: 'rgba(255,255,255,0.06)',
@@ -50,7 +66,6 @@ export default function PriceChart() {
       height: chartContainerRef.current.clientHeight,
     })
 
-    // v5 API: use addSeries with CandlestickSeries type
     const series = chart.addSeries(CandlestickSeries, {
       upColor: '#2ebd85',
       downColor: '#f6465d',
@@ -73,11 +88,10 @@ export default function PriceChart() {
       color: c.close >= c.open ? 'rgba(46, 189, 133, 0.4)' : 'rgba(246, 70, 93, 0.4)',
     }))
 
-    // Add volume series
     const volumeSeries = chart.addSeries(HistogramSeries, {
       color: 'rgba(255,255,255,0.1)',
       priceFormat: { type: 'volume' },
-      priceScaleId: '', // set as an overlay
+      priceScaleId: '',
     })
     
     chart.priceScale('').applyOptions({
@@ -90,9 +104,16 @@ export default function PriceChart() {
 
     chartRef.current = chart
     seriesRef.current = series
-
-    // Save volume series to update it live
     ;(seriesRef as any).currentVolume = volumeSeries
+
+    chart.subscribeCrosshairMove((param: MouseEventParams) => {
+      if (param.time && param.seriesData.size > 0) {
+        const data = param.seriesData.get(series) as CandlestickData
+        if (data) setHoveredCandle(data)
+      } else {
+        setHoveredCandle(null)
+      }
+    })
 
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -139,8 +160,18 @@ export default function PriceChart() {
   const fp = (p: number) => p >= 10000 ? p.toLocaleString('en-US', { maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
   const fv = (v: number) => v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(2)}K`
 
+  const latestCandle = initialCandles[initialCandles.length - 1]
+  const displayCandle = hoveredCandle || {
+    open: latestCandle?.open ?? activeMarket.price,
+    high: latestCandle?.high ?? activeMarket.price,
+    low: latestCandle?.low ?? activeMarket.price,
+    close: latestCandle?.close ?? activeMarket.price
+  }
+
+  const isMobileHiddenTf = (tf: string) => !MOBILE_VISIBLE_TFS.includes(tf)
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg1)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg1)', position: 'relative' }}>
       {/* HL-style Header */}
       <div className="chart-header-stats">
         <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -187,9 +218,10 @@ export default function PriceChart() {
       <div className="chart-timeframes">
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           {/* Main Timeframes */}
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="tf-container" style={{ display: 'flex', gap: 12 }}>
             {TIMEFRAMES.map((tf) => (
               <button key={tf} onClick={() => setSelectedTimeframe(tf)}
+                className={`tf-btn ${isMobileHiddenTf(tf) ? 'mobile-hidden' : ''}`}
                 style={{ fontSize: 13, fontWeight: selectedTimeframe === tf ? 600 : 500, cursor: 'pointer', transition: 'color 150ms', border: 'none', background: 'none', padding: 0,
                   color: selectedTimeframe === tf ? '#e29931' : 'var(--color-text2)' }}>
                 {tf}
@@ -197,9 +229,31 @@ export default function PriceChart() {
             ))}
           </div>
           
-          <button style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: 0, display: 'flex' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
+          {/* Mobile Extra Timeframes Dropdown */}
+          <div className="mobile-only" ref={tfDropdownRef} style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setTfDropdownOpen(!tfDropdownOpen)}
+              style={{ background: 'none', border: 'none', color: isMobileHiddenTf(selectedTimeframe) ? '#e29931' : 'var(--color-text3)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              {isMobileHiddenTf(selectedTimeframe) ? <span style={{ fontSize: 13, fontWeight: 600 }}>{selectedTimeframe}</span> : null}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            
+            {tfDropdownOpen && (
+              <div className="tf-dropdown animate-fade-in">
+                {TIMEFRAMES.filter(isMobileHiddenTf).map(tf => (
+                  <button 
+                    key={tf}
+                    className="tf-dropdown-item"
+                    style={{ color: selectedTimeframe === tf ? '#e29931' : 'var(--color-text1)' }}
+                    onClick={() => { setSelectedTimeframe(tf); setTfDropdownOpen(false); }}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ width: 1, height: 16, background: 'var(--color-border)', margin: '0 8px' }} />
@@ -215,7 +269,7 @@ export default function PriceChart() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
           </button>
           
-          <button className="tool-btn text-btn" style={{ marginLeft: 4 }}>
+          <button className="tool-btn text-btn desktop-only" style={{ marginLeft: 4 }}>
             Show Outliers
           </button>
         </div>
@@ -227,8 +281,18 @@ export default function PriceChart() {
         </button>
       </div>
 
-      {/* Chart */}
-      <div ref={chartContainerRef} style={{ flex: 1, minHeight: 300 }} />
+      {/* Chart container with relative positioning for OHLC overlay */}
+      <div style={{ flex: 1, position: 'relative', minHeight: 300 }}>
+        {/* TradingView style OHLC overlay */}
+        <div className="ohlc-overlay font-mono">
+          <span className="ohlc-item"><span className="ohlc-label">O</span><span className={displayCandle.open >= displayCandle.close ? 'text-red' : 'text-green'}>{displayCandle.open}</span></span>
+          <span className="ohlc-item"><span className="ohlc-label">H</span><span className={displayCandle.high >= displayCandle.open ? 'text-green' : 'text-red'}>{displayCandle.high}</span></span>
+          <span className="ohlc-item"><span className="ohlc-label">L</span><span className={displayCandle.low <= displayCandle.open ? 'text-red' : 'text-green'}>{displayCandle.low}</span></span>
+          <span className="ohlc-item"><span className="ohlc-label">C</span><span className={displayCandle.close >= displayCandle.open ? 'text-green' : 'text-red'}>{displayCandle.close}</span></span>
+        </div>
+        
+        <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
+      </div>
 
       <style>{`
         .chart-header-stats {
@@ -263,6 +327,7 @@ export default function PriceChart() {
           padding: 6px 16px;
           border-bottom: 1px solid var(--color-border);
           flex-shrink: 0;
+          position: relative;
         }
         .chart-tools {
           display: flex;
@@ -281,6 +346,54 @@ export default function PriceChart() {
         .tool-btn.text-btn {
           color: #a4b3d1;
           font-size: 13px;
+        }
+        .tf-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          margin-top: 8px;
+          background: var(--color-bg2);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-panel);
+          display: flex;
+          flex-direction: column;
+          min-width: 80px;
+          z-index: 100;
+          overflow: hidden;
+        }
+        .tf-dropdown-item {
+          padding: 10px 16px;
+          background: none;
+          border: none;
+          text-align: left;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 150ms;
+        }
+        .tf-dropdown-item:hover {
+          background-color: var(--color-bg3);
+        }
+        .ohlc-overlay {
+          position: absolute;
+          top: 8px;
+          left: 12px;
+          z-index: 10;
+          display: flex;
+          gap: 12px;
+          font-size: 11px;
+          pointer-events: none;
+          background: rgba(11, 16, 22, 0.6);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+        .ohlc-item {
+          display: flex;
+          gap: 4px;
+        }
+        .ohlc-label {
+          color: var(--color-text3);
         }
 
         /* ═══ Tablet Responsiveness ═══ */
@@ -329,9 +442,17 @@ export default function PriceChart() {
           }
           .chart-timeframes {
             padding: 8px 16px;
+            gap: 8px;
           }
           .chart-timeframes button {
             font-size: 13px !important;
+          }
+          .mobile-hidden {
+            display: none !important;
+          }
+          .ohlc-overlay {
+            font-size: 10px;
+            gap: 8px;
           }
         }
       `}</style>
