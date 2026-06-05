@@ -259,7 +259,7 @@ export default function Trade() {
         .action-btn:active { opacity: 0.85; transform: scale(0.98); }
         .action-buy { background-color: var(--color-green); color: #070c18; text-transform: uppercase; }
         .action-sell { background-color: var(--color-red); color: #fff; text-transform: uppercase; }
-        .action-connect { background-color: #ffb800; color: #000; text-transform: uppercase; font-size: 13px !important; padding: 12px !important; border-radius: var(--radius-md) !important; width: 100% !important; margin: 0 !important; box-sizing: border-box !important; text-align: center !important; display: flex !important; justify-content: center !important; align-items: center !important; }
+        .action-connect { background-color: var(--color-green); color: #070c18; text-transform: uppercase; font-size: 13px !important; padding: 12px !important; border-radius: 999px !important; width: 100% !important; margin: 0 !important; box-sizing: border-box !important; text-align: center !important; display: flex !important; justify-content: center !important; align-items: center !important; }
         
         .trade-below-chart {
           display: flex;
@@ -481,14 +481,21 @@ export default function Trade() {
             flex-shrink: 0;
           }
           .trade-chart {
-            min-height: 300px;
-            height: 50vh;
+            min-height: 200px;
+            height: 35vh;
+            max-height: 280px;
             flex: none;
+            overflow: hidden !important;
+          }
+          .trade-below-chart {
+            display: none !important;
           }
           .trade-positions {
             height: auto;
+            min-height: 120px;
             flex-shrink: 0;
             display: block !important;
+            overflow: visible;
           }
           .action-btn {
             padding: 8px 4px;

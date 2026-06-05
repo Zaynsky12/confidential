@@ -367,12 +367,28 @@ export default function Positions() {
         @media (max-width: 768px) {
           .positions-container {
             height: auto;
+            min-height: 160px;
+            display: flex !important;
+            flex-direction: column;
+          }
+          .pos-tabs {
+            display: flex !important;
+            flex-shrink: 0;
+            min-height: 36px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-top: 2px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+            background: var(--color-bg1);
           }
           .pos-content {
             overflow: visible;
+            flex-shrink: 0;
           }
           .pos-table-wrapper {
+            overflow-x: auto;
             overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
           }
           .pos-tab {
             padding: 10px 12px;

@@ -155,8 +155,9 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       )}
 
       <button onClick={handleSubmit}
-        className={`btn ${side==='long'?'btn-green':'btn-red'}`}
-        style={{ width:'100%',padding:12,fontWeight:600 }}>
+        className={`btn ${!isConnected ? '' : side==='long'?'btn-green':'btn-red'}`}
+        style={{ width:'100%',padding:12,fontWeight:600,borderRadius: !isConnected ? 999 : 6,
+          ...(! isConnected ? { backgroundColor:'var(--color-green)',color:'#070c18' } : {}) }}>
         {!isConnected ? 'Connect Wallet' : `Place ${side==='long'?'Long':'Short'} Order`}
       </button>
     </div>

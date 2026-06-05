@@ -127,7 +127,7 @@ export default function Topbar() {
 
             {!isConnected ? (
               <button
-                className="btn btn-primary btn-connect"
+                className="btn btn-connect-unified"
                 onClick={() => setWalletModalOpen(true)}
               >
                 Connect Wallet
@@ -229,7 +229,7 @@ export default function Topbar() {
             <div className="mobile-menu-footer">
               {!isConnected ? (
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-connect-unified"
                   style={{ width: '100%', padding: '12px' }}
                   onClick={() => { setWalletModalOpen(true); setIsMobileMenuOpen(false); }}
                 >
@@ -435,6 +435,21 @@ export default function Topbar() {
         .btn-connect {
           padding: 6px 16px;
           font-size: 13px;
+        }
+        .btn-connect-unified {
+          background-color: var(--color-green) !important;
+          color: #070c18 !important;
+          border: none !important;
+          border-radius: 999px !important;
+          font-size: 13px;
+          font-weight: 600;
+          padding: 8px 20px;
+          letter-spacing: 0.3px;
+          cursor: pointer;
+          transition: opacity 150ms;
+        }
+        .btn-connect-unified:hover {
+          opacity: 0.9;
         }
         .topbar-gas {
           display: flex;
