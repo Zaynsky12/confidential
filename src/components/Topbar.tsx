@@ -739,7 +739,7 @@ export default function Topbar() {
           .mobile-only {
             display: flex;
           }
-          .btn-connect {
+          .btn-connect, .btn-connect-unified {
             display: none !important;
           }
           .topbar-account {
