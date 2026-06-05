@@ -1,6 +1,6 @@
 export type MarketCategory = 'crypto' | 'rwa';
 export type OrderSide = 'long' | 'short';
-export type OrderType = 'limit' | 'market' | 'stop';
+export type OrderType = 'limit' | 'market' | 'twap' | 'stop market' | 'stop limit';
 export type OrderStatus = 'open' | 'filled' | 'cancelled';
 export type PositionStatus = 'open' | 'closed';
 

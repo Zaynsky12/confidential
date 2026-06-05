@@ -32,9 +32,11 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
 
   const maxAskTotal = Math.max(...orderBook.asks.map((a) => a.total), 0.01)
   const maxBidTotal = Math.max(...orderBook.bids.map((b) => b.total), 0.01)
-  const spread = orderBook.asks.length && orderBook.bids.length
-    ? (orderBook.asks[orderBook.asks.length - 1].price - orderBook.bids[0].price).toFixed(2)
-    : '0.00'
+  const hasOrders = orderBook.asks.length > 0 && orderBook.bids.length > 0
+  const lowestAsk = hasOrders ? orderBook.asks[orderBook.asks.length - 1].price : 0
+  const highestBid = hasOrders ? orderBook.bids[0].price : 0
+  const spreadDiff = hasOrders ? lowestAsk - highestBid : 0
+  const spreadPct = hasOrders && highestBid > 0 ? (spreadDiff / highestBid) * 100 : 0
 
   return (
     <div className="orderbook-wrapper">
@@ -65,8 +67,8 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
               {orderBook.asks.map((ask, i) => (
                 <div key={`ask-${i}`} className="ob-row ask">
                   <div className="ob-depth-bar ask-bar" style={{ width: `${(ask.total / maxAskTotal) * 100}%` }} />
-                  <span className="font-mono text-red">{formatPrice(ask.price)}</span>
-                  <span className="font-mono">{ask.size.toFixed(4)}</span>
+                  <span className="font-mono" style={{ color: '#E05252' }}>{formatPrice(ask.price)}</span>
+                  <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{ask.size.toFixed(4)}</span>
                   <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{ask.total.toFixed(4)}</span>
                 </div>
               ))}
@@ -74,10 +76,11 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
 
             {/* Spread */}
             <div className="ob-spread">
-              <span className="font-mono" style={{ color: 'var(--color-text1)', fontSize: '14px', fontWeight: 600 }}>
-                {activeMarket ? formatPrice(activeMarket.price) : '—'}
-              </span>
-              <span style={{ fontSize: '11px', color: 'var(--color-text3)' }}>Spread: {spread}</span>
+              <span className="font-mono" style={{ color: 'var(--color-text3)' }}>Spread</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{spreadDiff.toFixed(2)}</span>
+                <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{spreadPct.toFixed(3)}%</span>
+              </div>
             </div>
 
             {/* Bids */}
@@ -85,8 +88,8 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
               {orderBook.bids.map((bid, i) => (
                 <div key={`bid-${i}`} className="ob-row bid">
                   <div className="ob-depth-bar bid-bar" style={{ width: `${(bid.total / maxBidTotal) * 100}%` }} />
-                  <span className="font-mono text-green">{formatPrice(bid.price)}</span>
-                  <span className="font-mono">{bid.size.toFixed(4)}</span>
+                  <span className="font-mono" style={{ color: '#3FB06A' }}>{formatPrice(bid.price)}</span>
+                  <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{bid.size.toFixed(4)}</span>
                   <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{bid.total.toFixed(4)}</span>
                 </div>
               ))}
@@ -96,21 +99,24 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
 
         {tab === 'trades' && (
           <>
-            <div className="ob-header">
-              <span>Time</span>
-              <span>Side</span>
+            <div className="ob-header trades-header">
               <span>Price</span>
               <span>Size</span>
+              <span>Time</span>
             </div>
             <div className="trades-list">
               {recentTrades.map((t) => (
                 <div key={t.id} className="ob-row trade-row">
-                  <span className="font-mono" style={{ color: 'var(--color-text3)', fontSize: '11px' }}>{formatTime(t.time)}</span>
-                  <span className={`font-mono ${t.side === 'buy' ? 'text-green' : 'text-red'}`} style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-                    {t.side}
-                  </span>
-                  <span className={`font-mono ${t.side === 'buy' ? 'text-green' : 'text-red'}`}>{formatPrice(t.price)}</span>
-                  <span className="font-mono">{t.size.toFixed(4)}</span>
+                  <span className="font-mono" style={{ color: t.side === 'buy' ? '#3FB06A' : '#E05252' }}>{formatPrice(t.price)}</span>
+                  <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{t.size.toFixed(4)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                    <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{formatTime(t.time)}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                  </div>
                 </div>
               ))}
             </div>
@@ -143,8 +149,8 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
         }
         .ob-tab:hover { color: var(--color-text2); }
         .ob-tab.active {
-          color: var(--color-text1);
-          border-bottom-color: var(--color-accent);
+          color: #fff;
+          border-bottom-color: #fff;
         }
         .ob-content {
           flex: 1;
@@ -154,7 +160,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
         }
         .ob-header {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
+          grid-template-columns: 1.2fr 1fr 1fr;
           padding: 6px 12px;
           font-size: 10px;
           font-weight: 500;
@@ -163,22 +169,20 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
           color: var(--color-text3);
           border-bottom: 1px solid var(--color-border);
         }
-        .ob-header span:nth-child(2) { text-align: right; }
-        .ob-header span:nth-child(3) { text-align: right; }
-        .ob-header span:nth-child(4) { text-align: right; }
+        .ob-header span { text-align: center; }
         .ob-row {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          padding: 3px 12px;
+          grid-template-columns: 1.2fr 1fr 1fr;
+          height: 34px;
+          align-items: center;
+          padding: 0 12px;
           font-size: 12px;
           position: relative;
           transition: background-color 100ms;
         }
         .ob-row:hover { background-color: var(--color-bg2); }
-        .ob-row span:nth-child(2) { text-align: right; z-index: 1; }
-        .ob-row span:nth-child(3) { text-align: right; z-index: 1; }
-        .ob-row span:nth-child(4) { text-align: right; z-index: 1; }
-        .ob-row span:first-child { z-index: 1; }
+        .ob-row span { text-align: center; z-index: 1; }
+        .ob-row div:nth-child(3) { z-index: 1; justify-content: center; }
         .ob-depth-bar {
           position: absolute;
           right: 0;
@@ -186,8 +190,8 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
           height: 100%;
           transition: width 300ms ease;
         }
-        .ask-bar { background-color: rgba(246, 70, 93, 0.08); }
-        .bid-bar { background-color: rgba(14, 203, 129, 0.08); }
+        .ask-bar { background-color: rgba(224, 82, 82, 0.08); }
+        .bid-bar { background-color: rgba(63, 176, 106, 0.08); }
         .ob-asks {
           display: flex;
           flex-direction: column;
@@ -198,15 +202,17 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
         }
         .ob-spread {
           display: flex;
+          height: 34px;
           align-items: center;
           justify-content: space-between;
-          padding: 6px 12px;
+          padding: 0 12px;
+          font-size: 13px;
           background-color: var(--color-bg2);
           border-top: 1px solid var(--color-border);
           border-bottom: 1px solid var(--color-border);
         }
         .trade-row {
-          grid-template-columns: 1fr 0.6fr 1fr 1fr;
+          grid-template-columns: 1.2fr 1fr 1fr;
         }
         .trades-list {
           flex: 1;

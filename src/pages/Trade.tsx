@@ -24,11 +24,13 @@ export default function Trade() {
       <div className="trade-sidebar">
         <MarketSidebar />
       </div>
-      <div className="trade-center">
+      <div className="trade-middle">
+        <div className="trade-middle-top">
+          <div className="trade-center">
         {activeMarket && (
           <div className="chart-header-stats">
             <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 18, fontWeight: 600 }}>{activeMarket.pair.replace('/', '-')}</span>
+              <span style={{ fontSize: 18, fontWeight: 600 }}>{activeMarket.pair}</span>
               <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600 }}>40x</span>
             </div>
             
@@ -45,24 +47,24 @@ export default function Trade() {
             <div className="chart-stat-item">
               <span className="chart-stat-label">24h Change</span>
               <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
-                {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
+                {activeMarket.change24h >= 0 ? '+' : ''}{(activeMarket.price * (activeMarket.change24h / 100)).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})} / {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
               </span>
             </div>
 
             <div className="chart-stat-item chart-stat-mobile-col">
               <span className="chart-stat-label">24h Volume</span>
-              <span className="font-mono chart-stat-value">{fv(activeMarket.volume24h)}</span>
+              <span className="font-mono chart-stat-value">${fv(activeMarket.volume24h)}</span>
             </div>
 
             <div className="chart-stat-item chart-stat-mobile-col">
               <span className="chart-stat-label">Open Interest</span>
-              <span className="font-mono chart-stat-value">{fv(activeMarket.openInterest)}</span>
+              <span className="font-mono chart-stat-value">${fv(activeMarket.openInterest)}</span>
             </div>
 
-            <div className="chart-stat-item chart-stat-mobile-col mobile-only">
+            <div className="chart-stat-item chart-stat-mobile-col">
               <span className="chart-stat-label">Funding / Countdown</span>
-              <span className="font-mono chart-stat-value">
-                <span style={{ color: 'var(--color-green)' }}>0.0011%</span> <span style={{ color: 'var(--color-text1)' }}>00:48:11</span>
+              <span className="font-mono chart-stat-value" style={{ color: 'var(--color-text1)' }}>
+                -0.0001%
               </span>
             </div>
           </div>
@@ -84,32 +86,6 @@ export default function Trade() {
         {mobileView === 'chart' && (
           <div className="trade-chart">
             <PriceChart />
-            {/* Mobile Below-Chart Controls */}
-            <div className="mobile-only trade-below-chart">
-              <div className="tbc-row">
-                <div className="tbc-dropdown">
-                  Date Range <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                </div>
-                <div className="tbc-settings">
-                  <span style={{ color: 'var(--color-text1)' }}>22:11:37 UTC+1</span>
-                  <span>%</span>
-                  <span>log</span>
-                  <span style={{ color: '#e29931', fontWeight: 500 }}>auto</span>
-                </div>
-              </div>
-              
-              <div className="tbc-row" style={{ marginTop: 16 }}>
-                <div className="tbc-segmented-control">
-                  <button className="tbc-seg-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-                  <button className="tbc-seg-btn active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/></svg></button>
-                  <button className="tbc-seg-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg></button>
-                </div>
-                <div className="tbc-order-value">
-                  <span className="tbc-ov-label">Order Value</span>
-                  <span className="tbc-ov-value font-mono">0 BTC / 0 USD</span>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -125,17 +101,17 @@ export default function Trade() {
           </div>
         )}
 
+          </div>
+          <div className="trade-orderbook-col trade-desktop-only">
+            <OrderBook />
+          </div>
+        </div>
         <div className="trade-positions">
           <Positions />
         </div>
       </div>
       <div className="trade-right trade-desktop-only">
-        <div className="trade-order-form">
-          <OrderForm />
-        </div>
-        <div className="trade-orderbook">
-          <OrderBook />
-        </div>
+        <OrderForm />
       </div>
 
       {/* Mobile Bottom Action Bar */}
@@ -169,10 +145,23 @@ export default function Trade() {
         .trade-layout {
           display: grid;
           grid-template-columns: 200px 1fr 300px;
-          height: calc(100vh - 52px);
-          overflow: hidden;
+          min-height: calc(100vh - 60px);
+        }
+        .trade-middle {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          min-height: 0;
+        }
+        .trade-middle-top {
+          display: flex;
+          height: 550px;
+          min-width: 0;
         }
         .trade-sidebar {
+          position: sticky;
+          top: 60px;
+          height: calc(100vh - 60px);
           border-right: 1px solid var(--color-border);
           overflow-y: auto;
           background: var(--color-bg0);
@@ -182,6 +171,9 @@ export default function Trade() {
           flex-direction: column;
           overflow-y: auto;
           overflow-x: hidden;
+          min-height: 0;
+          min-width: 0;
+          flex: 1;
         }
         .trade-chart {
           flex: 1;
@@ -195,10 +187,15 @@ export default function Trade() {
           align-items: center;
           padding: 12px 16px;
           border-bottom: 1px solid var(--color-border);
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          scrollbar-width: none;
           gap: 24px;
           font-size: 13px;
           flex-shrink: 0;
+        }
+        .chart-header-stats::-webkit-scrollbar {
+          display: none;
         }
         .chart-stat-item {
           display: flex;
@@ -217,25 +214,25 @@ export default function Trade() {
           white-space: nowrap;
         }
         .trade-positions {
-          min-height: 200px;
-          flex-shrink: 0;
+          flex: 1;
           overflow: visible;
           background: var(--color-bg0);
+          border-top: 1px solid var(--color-border);
         }
-        .trade-right {
+        .trade-orderbook-col {
+          width: 260px;
+          flex-shrink: 0;
+          border-left: 1px solid var(--color-border);
+          background: var(--color-bg1);
+          overflow: hidden;
+          min-height: 0;
           display: flex;
           flex-direction: column;
+        }
+        .trade-right {
           border-left: 1px solid var(--color-border);
-          overflow: hidden;
           background: var(--color-bg1);
-        }
-        .trade-order-form {
-          flex-shrink: 0;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .trade-orderbook {
-          flex: 1;
-          overflow: hidden;
+          min-height: 0;
         }
 
         /* Hidden by default on desktop */
@@ -342,14 +339,14 @@ export default function Trade() {
           }
           
           .trade-layout {
-            grid-template-columns: 1fr 280px;
+            grid-template-columns: 1fr;
             grid-template-rows: 1fr;
             padding-bottom: 68px;
           }
           .trade-sidebar {
             display: none;
           }
-          .trade-center {
+          .trade-middle {
             grid-column: 1;
             grid-row: 1;
           }
@@ -359,11 +356,6 @@ export default function Trade() {
           }
           .trade-positions {
             height: 200px;
-          }
-          .trade-right {
-            grid-column: 2;
-            grid-row: 1;
-            border-left: 1px solid var(--color-border);
           }
           .trade-desktop-only {
             display: none !important;
@@ -443,6 +435,16 @@ export default function Trade() {
             background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
             z-index: 998; flex-direction: column; justify-content: flex-end;
           }
+          .trade-mobile-modal {
+            background: var(--color-bg1);
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            overflow-y: auto;
+            max-height: 85vh;
+            width: 100%;
+            padding: 16px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+          }
           .trade-mobile-tabs {
             display: flex;
             background: var(--color-bg1);
@@ -476,20 +478,24 @@ export default function Trade() {
             overflow-x: hidden;
             width: 100%;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 0;
+            padding-bottom: 100px; /* Ensures Action Bar does not cover content */
           }
           .trade-sidebar {
             display: none;
           }
           
+          .trade-middle-top {
+            height: auto;
+            flex-direction: column;
+          }
           .trade-center {
             height: auto;
             flex-shrink: 0;
           }
           .trade-chart {
-            min-height: 200px;
-            height: 35vh;
-            max-height: 280px;
+            min-height: 300px;
+            height: 50vh;
+            max-height: 450px;
             flex: none;
             overflow: hidden !important;
           }
@@ -498,17 +504,36 @@ export default function Trade() {
           }
           .trade-positions {
             height: auto;
-            min-height: 120px;
+            min-height: 400px; /* Increased to allow comfortable scrolling past the action bar */
             flex-shrink: 0;
             display: block !important;
             overflow: visible;
           }
           .action-btn {
-            padding: 8px 4px;
-            font-size: 11px;
+            padding: 10px 8px;
+            font-size: 13px;
+            font-weight: 600;
             box-sizing: border-box;
             flex: 1;
             min-width: 0;
+          }
+          .trade-mobile-action-bar {
+            display: flex !important;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            margin-top: 0;
+            box-sizing: border-box;
+            background-color: var(--color-bg0);
+            border-top: 1px solid var(--color-border);
+            padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            gap: 12px;
+            z-index: 900;
+            justify-content: center;
+            align-items: center;
           }
         }
       `}</style>

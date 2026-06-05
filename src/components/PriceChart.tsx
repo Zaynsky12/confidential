@@ -4,8 +4,8 @@ import type { IChartApi, ISeriesApi, CandlestickData, Time, MouseEventParams } f
 import { useTradeStore } from '../store/useTradeStore'
 import { useMockCandles } from '../hooks/useMockCandles'
 
-const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1D', '1W', '1M']
-const MOBILE_VISIBLE_TFS = ['5m', '1h', '1D', '1W']
+const TIMEFRAMES = ['5m', '15m', '1h', '4h', 'D', 'W']
+const BOTTOM_TFS = ['5y', '1y', '6m', '3m', '1m', '5d', '1d']
 
 export default function PriceChart() {
   const { markets, activeMarketId, selectedTimeframe, setSelectedTimeframe } = useTradeStore()
@@ -14,22 +14,13 @@ export default function PriceChart() {
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   
-  const [tfDropdownOpen, setTfDropdownOpen] = useState(false)
-  const [hoveredCandle, setHoveredCandle] = useState<CandlestickData | null>(null)
-  const tfDropdownRef = useRef<HTMLDivElement>(null)
+  type HoveredCandleData = CandlestickData & { volume?: number }
+  const [hoveredCandle, setHoveredCandle] = useState<HoveredCandleData | null>(null)
 
   const basePrice = activeMarket?.price ?? 67000
   const { initialCandles, appendCandle } = useMockCandles(basePrice, selectedTimeframe)
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (tfDropdownRef.current && !tfDropdownRef.current.contains(e.target as Node)) {
-        setTfDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+
 
   // Create chart
   useEffect(() => {
@@ -67,11 +58,11 @@ export default function PriceChart() {
     })
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: '#2ebd85',
-      downColor: '#f6465d',
+      upColor: '#3FB06A',
+      downColor: '#E05252',
       borderVisible: false,
-      wickUpColor: '#2ebd85',
-      wickDownColor: '#f6465d',
+      wickUpColor: '#3FB06A',
+      wickDownColor: '#E05252',
     })
 
     const chartData: CandlestickData[] = initialCandles.map((c) => ({
@@ -85,7 +76,7 @@ export default function PriceChart() {
     const volumeData = initialCandles.map((c) => ({
       time: c.time as Time,
       value: c.volume,
-      color: c.close >= c.open ? 'rgba(46, 189, 133, 0.4)' : 'rgba(246, 70, 93, 0.4)',
+      color: c.close >= c.open ? 'rgba(63, 176, 106, 0.4)' : 'rgba(224, 82, 82, 0.4)',
     }))
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
@@ -109,7 +100,10 @@ export default function PriceChart() {
     chart.subscribeCrosshairMove((param: MouseEventParams) => {
       if (param.time && param.seriesData.size > 0) {
         const data = param.seriesData.get(series) as CandlestickData
-        if (data) setHoveredCandle(data)
+        const volData = param.seriesData.get(volumeSeries) as any
+        if (data) {
+          setHoveredCandle({ ...data, volume: volData?.value })
+        }
       } else {
         setHoveredCandle(null)
       }
@@ -148,7 +142,7 @@ export default function PriceChart() {
         ;(seriesRef as any).currentVolume.update({
           time: candle.time as Time,
           value: candle.volume,
-          color: candle.close >= candle.open ? 'rgba(46, 189, 133, 0.4)' : 'rgba(246, 70, 93, 0.4)',
+          color: candle.close >= candle.open ? 'rgba(63, 176, 106, 0.4)' : 'rgba(224, 82, 82, 0.4)',
         })
       }
     }, 2000)
@@ -162,91 +156,107 @@ export default function PriceChart() {
     open: latestCandle?.open ?? activeMarket.price,
     high: latestCandle?.high ?? activeMarket.price,
     low: latestCandle?.low ?? activeMarket.price,
-    close: latestCandle?.close ?? activeMarket.price
+    close: latestCandle?.close ?? activeMarket.price,
+    volume: latestCandle?.volume ?? 0
   }
 
-  const isMobileHiddenTf = (tf: string) => !MOBILE_VISIBLE_TFS.includes(tf)
+  const getColor = (val1: number, val2: number) => val1 >= val2 ? '#3FB06A' : '#E05252'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg1)', position: 'relative' }}>
-      {/* HL-style Timeframes & Indicators Bar */}
-      <div className="chart-timeframes">
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          {/* Main Timeframes */}
-          <div className="tf-container" style={{ display: 'flex', gap: 12 }}>
-            {TIMEFRAMES.map((tf) => (
-              <button key={tf} onClick={() => setSelectedTimeframe(tf)}
-                className={`tf-btn ${isMobileHiddenTf(tf) ? 'mobile-hidden' : ''}`}
-                style={{ fontSize: 13, fontWeight: selectedTimeframe === tf ? 600 : 500, cursor: 'pointer', transition: 'color 150ms', border: 'none', background: 'none', padding: 0,
-                  color: selectedTimeframe === tf ? '#e29931' : 'var(--color-text2)' }}>
-                {tf}
-              </button>
-            ))}
-          </div>
-          
-          {/* Mobile Extra Timeframes Dropdown */}
-          <div className="mobile-only" ref={tfDropdownRef} style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setTfDropdownOpen(!tfDropdownOpen)}
-              style={{ background: 'none', border: 'none', color: isMobileHiddenTf(selectedTimeframe) ? '#e29931' : 'var(--color-text3)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              {isMobileHiddenTf(selectedTimeframe) ? <span style={{ fontSize: 13, fontWeight: 600 }}>{selectedTimeframe}</span> : null}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+      
+      {/* 1. TOP TOOLBAR */}
+      <div className="chart-top-toolbar" style={{ display: 'flex', alignItems: 'center', padding: '6px 16px', borderBottom: '1px solid var(--color-border)', flexShrink: 0, gap: '16px' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {TIMEFRAMES.map((tf) => (
+            <button key={tf} onClick={() => setSelectedTimeframe(tf)}
+              style={{ fontSize: 13, fontWeight: selectedTimeframe === tf ? 600 : 500, cursor: 'pointer', transition: 'color 150ms', border: 'none', background: 'none', padding: 0,
+                color: selectedTimeframe === tf ? '#eab308' : 'var(--color-text3)' }}>
+              {tf}
             </button>
-            
-            {tfDropdownOpen && (
-              <div className="tf-dropdown animate-fade-in">
-                {TIMEFRAMES.filter(isMobileHiddenTf).map(tf => (
-                  <button 
-                    key={tf}
-                    className="tf-dropdown-item"
-                    style={{ color: selectedTimeframe === tf ? '#e29931' : 'var(--color-text1)' }}
-                    onClick={() => { setSelectedTimeframe(tf); setTfDropdownOpen(false); }}
-                  >
-                    {tf}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          ))}
+          <button style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
         </div>
 
-        <div style={{ width: 1, height: 16, background: 'var(--color-border)', margin: '0 8px' }} />
+        <div style={{ width: 1, height: 16, background: 'var(--color-border)' }} />
 
-        <div className="chart-tools">
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button className="tool-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="5" width="6" height="14" rx="1"/><path d="M12 2v3"/><path d="M12 19v3"/></svg>
           </button>
-          
-          <div style={{ width: 1, height: 16, background: 'var(--color-border)', margin: '0 8px' }} />
-          
-          <button className="tool-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
+          <div style={{ width: 1, height: 16, background: 'var(--color-border)' }} />
+          <button className="tool-btn text-btn desktop-only" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontStyle: 'italic', fontFamily: 'serif' }}>fx</span> Indicators
           </button>
-          
-          <button className="tool-btn text-btn desktop-only" style={{ marginLeft: 4 }}>
+          <button className="tool-btn text-btn desktop-only">
             Show Outliers
           </button>
         </div>
 
         <div style={{ flex: 1 }} />
-        
-        <button className="tool-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-        </button>
+
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v16H4z"/><path d="M4 12h16M12 4v16"/></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><circle cx="12" cy="13" r="4"></circle></svg></button>
+        </div>
       </div>
 
-      {/* Chart container with relative positioning for OHLC overlay */}
-      <div style={{ flex: 1, position: 'relative', minHeight: 300 }}>
-        {/* TradingView style OHLC overlay */}
-        <div className="ohlc-overlay font-mono">
-          <span className="ohlc-item"><span className="ohlc-label">O</span><span className={displayCandle.open >= displayCandle.close ? 'text-red' : 'text-green'}>{displayCandle.open}</span></span>
-          <span className="ohlc-item"><span className="ohlc-label">H</span><span className={displayCandle.high >= displayCandle.open ? 'text-green' : 'text-red'}>{displayCandle.high}</span></span>
-          <span className="ohlc-item"><span className="ohlc-label">L</span><span className={displayCandle.low <= displayCandle.open ? 'text-red' : 'text-green'}>{displayCandle.low}</span></span>
-          <span className="ohlc-item"><span className="ohlc-label">C</span><span className={displayCandle.close >= displayCandle.open ? 'text-green' : 'text-red'}>{displayCandle.close}</span></span>
-        </div>
+      {/* MIDDLE SECTION: Left Toolbar + Chart */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         
-        <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
+        {/* 2. LEFT DRAWING TOOLBAR */}
+        <div className="chart-left-toolbar desktop-only" style={{ width: '40px', borderRight: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0', gap: '16px', flexShrink: 0 }}>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="7" x2="7" y2="17"></line><circle cx="18" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg></button>
+          <button className="tool-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="8" y1="12" x2="16" y2="12"></line><line x1="12" y1="8" x2="12" y2="16"></line></svg></button>
+        </div>
+
+        {/* 3. MAIN CHART AREA */}
+        <div style={{ flex: 1, position: 'relative' }}>
+          {/* OHLC Overlay */}
+          <div className="ohlc-overlay font-mono">
+            <span style={{ color: 'var(--color-text1)', fontWeight: 600, marginRight: 8 }}>{activeMarket.pair.replace('-', '/')} · {selectedTimeframe} · ArcTrade</span>
+            <span className="ohlc-item"><span className="ohlc-label">O</span><span style={{ color: getColor(displayCandle.open, displayCandle.close) }}>{displayCandle.open}</span></span>
+            <span className="ohlc-item"><span className="ohlc-label">H</span><span style={{ color: getColor(displayCandle.high, displayCandle.open) }}>{displayCandle.high}</span></span>
+            <span className="ohlc-item"><span className="ohlc-label">L</span><span style={{ color: getColor(displayCandle.low, displayCandle.open) }}>{displayCandle.low}</span></span>
+            <span className="ohlc-item"><span className="ohlc-label">C</span><span style={{ color: getColor(displayCandle.close, displayCandle.open) }}>{displayCandle.close}</span></span>
+            {/* Mock Price Change */}
+            <span style={{ color: getColor(displayCandle.close, displayCandle.open), marginLeft: 8 }}>
+              {displayCandle.close >= displayCandle.open ? '+' : '-'}{Math.abs(displayCandle.close - displayCandle.open).toFixed(1)} ({(Math.abs(displayCandle.close - displayCandle.open) / displayCandle.open * 100).toFixed(2)}%)
+            </span>
+          </div>
+          
+          {/* Volume Overlay */}
+          <div style={{ position: 'absolute', bottom: '16px', left: '12px', zIndex: 10, fontSize: '11px', color: 'var(--color-text3)' }}>
+            Volume <span style={{ color: getColor(displayCandle.close, displayCandle.open) }}>{displayCandle.volume ? displayCandle.volume.toFixed(0) : '563'}</span>
+          </div>
+
+          <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
+        </div>
+      </div>
+
+      {/* 4. BOTTOM TOOLBAR */}
+      <div className="chart-bottom-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px', borderTop: '1px solid var(--color-border)', flexShrink: 0, fontSize: '12px' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          {BOTTOM_TFS.map(r => (
+            <span key={r} style={{ color: r === '1d' ? '#eab308' : 'var(--color-text2)', cursor: 'pointer', fontWeight: 500 }}>{r}</span>
+          ))}
+          <button className="tool-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></button>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', color: 'var(--color-text3)' }}>
+          <span>16:50:02 UTC+1</span>
+          <span>%</span>
+          <span>log</span>
+          <span style={{ color: '#eab308', cursor: 'pointer' }}>auto</span>
+        </div>
       </div>
 
       <style>{`
@@ -354,60 +364,40 @@ export default function PriceChart() {
         /* ═══ Tablet Responsiveness ═══ */
         @media (max-width: 1024px) {
           .desktop-only { display: none !important; }
-          .chart-header-stats {
-            flex-wrap: nowrap;
+          .chart-top-toolbar, .chart-bottom-toolbar {
             overflow-x: auto;
             -ms-overflow-style: none;
             scrollbar-width: none;
-            padding: 10px 12px;
-            gap: 16px;
+            -webkit-overflow-scrolling: touch;
           }
-          .chart-header-stats::-webkit-scrollbar {
-            display: none;
-          }
-          .chart-timeframes {
-            overflow-x: auto;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-          .chart-timeframes::-webkit-scrollbar {
+          .chart-top-toolbar::-webkit-scrollbar, .chart-bottom-toolbar::-webkit-scrollbar {
             display: none;
           }
         }
 
         /* ═══ Mobile Responsiveness ═══ */
         @media (max-width: 768px) {
-          .chart-header-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            padding: 12px 16px;
-            gap: 16px;
-          }
-          .chart-stat-item {
-            align-items: flex-start;
-          }
-          .chart-stat-label {
-            font-size: 12px;
-            margin-bottom: 4px;
-            color: var(--color-text3);
-          }
-          .chart-stat-value {
-            font-size: 14px;
-            color: var(--color-text1);
-          }
-          .chart-timeframes {
-            padding: 8px 16px;
-            gap: 8px;
-          }
-          .chart-timeframes button {
-            font-size: 13px !important;
-          }
           .mobile-hidden {
             display: none !important;
           }
+          .chart-top-toolbar {
+            padding: 6px 12px !important;
+            gap: 12px !important;
+          }
+          .chart-bottom-toolbar {
+            padding: 4px 12px !important;
+          }
           .ohlc-overlay {
             font-size: 10px;
-            gap: 8px;
+            gap: 6px;
+            max-width: calc(100vw - 24px);
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            white-space: nowrap;
+          }
+          .ohlc-overlay::-webkit-scrollbar {
+            display: none;
           }
         }
       `}</style>

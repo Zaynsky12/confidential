@@ -114,10 +114,7 @@ export default function Topbar() {
 
         {/* Right — Wallet & Settings */}
         <div className="topbar-right">
-          <div className="topbar-gas desktop-only">
-            <span className="gas-dot" />
-            <span className="font-mono" style={{ fontSize: '12px' }}>Gas: USDC · ~0.001</span>
-          </div>
+
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
@@ -349,7 +346,7 @@ export default function Topbar() {
           z-index: 100;
           background-color: var(--color-bg1);
           border-bottom: 1px solid var(--color-border);
-          height: 52px;
+          height: 60px;
           display: flex;
           align-items: center;
           justify-content: center;

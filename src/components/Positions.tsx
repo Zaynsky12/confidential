@@ -314,6 +314,7 @@ export default function Positions() {
           overflow: hidden;
           display: flex;
           flex-direction: column;
+          min-height: 0;
         }
         .pos-empty {
           padding: 32px 16px;
@@ -325,6 +326,7 @@ export default function Positions() {
           flex: 1;
           overflow-y: auto;
           overflow-x: auto;
+          min-height: 0;
         }
         .pos-header {
           display: grid;
