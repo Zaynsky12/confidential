@@ -5,7 +5,6 @@ import OrderBook from '../components/OrderBook'
 import OrderForm from '../components/OrderForm'
 import Positions from '../components/Positions'
 import Portfolio from './Portfolio'
-import Vault from './Vault'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
 
