@@ -32,17 +32,17 @@ export default function Trade() {
               <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600 }}>40x</span>
             </div>
             
-            <div className="chart-stat-item desktop-only">
+            <div className="chart-stat-item">
               <span className="chart-stat-label">Mark</span>
               <span className="font-mono chart-stat-value" style={{ color: 'var(--color-accent)' }}>{fp(activeMarket.price)}</span>
             </div>
 
-            <div className="chart-stat-item desktop-only">
+            <div className="chart-stat-item">
               <span className="chart-stat-label">Oracle</span>
               <span className="font-mono chart-stat-value">{fp(activeMarket.price * 1.0001)}</span>
             </div>
 
-            <div className="chart-stat-item desktop-only">
+            <div className="chart-stat-item">
               <span className="chart-stat-label">24h Change</span>
               <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
                 {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
@@ -395,21 +395,27 @@ export default function Trade() {
         /* ═══ Mobile (<= 768px) — Hyperliquid Scrollable Layout ═══ */
         @media (max-width: 768px) {
           .chart-header-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
             padding: 12px 16px;
-            gap: 16px;
+            gap: 20px;
+          }
+          .chart-header-stats::-webkit-scrollbar {
+            display: none;
           }
           .chart-stat-item {
             align-items: flex-start;
           }
           .chart-stat-label {
-            font-size: 12px;
+            font-size: 11px;
             margin-bottom: 4px;
             color: var(--color-text3);
           }
           .chart-stat-value {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--color-text1);
           }
 
