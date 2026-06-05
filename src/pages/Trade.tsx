@@ -180,7 +180,8 @@ export default function Trade() {
         .trade-center {
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
         .trade-chart {
           flex: 1;
@@ -216,9 +217,9 @@ export default function Trade() {
           white-space: nowrap;
         }
         .trade-positions {
-          height: 250px;
+          min-height: 200px;
           flex-shrink: 0;
-          overflow-y: auto;
+          overflow: visible;
           background: var(--color-bg0);
         }
         .trade-right {

@@ -178,16 +178,89 @@ export default function Positions() {
               ))
             )}
           </div>
-        ) : (
+        ) : tab === 'twaps' ? (
           <div className="pos-table-wrapper">
-             <div className="pos-header">
-                <span>Data</span>
-             </div>
-             <div className="pos-empty">
-               {!isConnected ? 'Please connect wallet to view this section' : 'No results found'}
-             </div>
+            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.5fr 1fr 1fr' }}>
+              <span>Created</span>
+              <span>Coin</span>
+              <span>Total Size</span>
+              <span>Filled</span>
+              <span>Time to Next Order</span>
+              <span>Reduce Only</span>
+              <span>Cancel</span>
+            </div>
+            <div className="pos-empty">
+              {!isConnected ? 'Please connect wallet to view TWAPs' : 'No results found'}
+            </div>
           </div>
-        )}
+        ) : tab === 'collateral' ? (
+          <div className="pos-table-wrapper">
+            <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+              <span>Asset</span>
+              <span>Type</span>
+              <span>Total</span>
+              <span>Value (USD)</span>
+            </div>
+            <div className="pos-empty">
+              {!isConnected ? 'Please connect wallet to view Collateral' : 'No results found'}
+            </div>
+          </div>
+        ) : tab === 'twap_history' ? (
+          <div className="pos-table-wrapper">
+            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
+              <span>Time</span>
+              <span>Coin</span>
+              <span>Total Size</span>
+              <span>Filled Price</span>
+              <span>Status</span>
+            </div>
+            <div className="pos-empty">
+              {!isConnected ? 'Please connect wallet to view TWAP History' : 'No results found'}
+            </div>
+          </div>
+        ) : tab === 'funding_history' ? (
+          <div className="pos-table-wrapper">
+            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
+              <span>Time</span>
+              <span>Market</span>
+              <span>Payment</span>
+              <span>Funding Rate</span>
+              <span>Position Size</span>
+            </div>
+            <div className="pos-empty">
+              {!isConnected ? 'Please connect wallet to view Funding History' : 'No results found'}
+            </div>
+          </div>
+        ) : tab === 'order_history' ? (
+          <div className="pos-table-wrapper">
+            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+              <span>Time</span>
+              <span>Market</span>
+              <span>Side</span>
+              <span>Type</span>
+              <span>Size</span>
+              <span>Price</span>
+              <span>Status</span>
+            </div>
+            <div className="pos-empty">
+              {!isConnected ? 'Please connect wallet to view Order History' : 'No results found'}
+            </div>
+          </div>
+        ) : tab === 'transfers' ? (
+          <div className="pos-table-wrapper">
+            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+              <span>Time</span>
+              <span>Asset</span>
+              <span>Amount</span>
+              <span>Type</span>
+              <span>Status</span>
+              <span>Tx</span>
+            </div>
+            <div className="pos-empty">
+              {!isConnected ? 'Please connect wallet to view Transfers' : 'No results found'}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <style>{`
@@ -208,8 +281,8 @@ export default function Positions() {
         }
         .pos-tabs::-webkit-scrollbar { display: none; }
         .pos-tab {
-          padding: 12px 16px;
-          font-size: 13px;
+          padding: 8px 10px;
+          font-size: 11px;
           font-weight: 500;
           color: var(--color-text3);
           background: none;
@@ -219,7 +292,7 @@ export default function Positions() {
           white-space: nowrap;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
           transition: all 150ms;
         }
         .pos-tab:hover {
