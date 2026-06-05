@@ -119,15 +119,21 @@ export default function Topbar() {
             <span className="font-mono" style={{ fontSize: '12px' }}>Gas: USDC · ~0.001</span>
           </div>
 
-          {!isConnected ? (
-            <button
-              className="btn btn-primary btn-connect"
-              onClick={() => setWalletModalOpen(true)}
-            >
-              Connect Wallet
-            </button>
-          ) : (
-            <div className="topbar-account" ref={dropdownRef}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
+              <button className="btn" onClick={() => !isConnected && setWalletModalOpen(true)} style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'rgba(46, 189, 133, 0.1)', color: 'var(--color-green)', border: '1px solid rgba(46, 189, 133, 0.2)' }}>Deposit</button>
+              <button className="btn" onClick={() => !isConnected && setWalletModalOpen(true)} style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'transparent', color: 'var(--color-text2)', border: '1px solid var(--color-border)' }}>Withdraw</button>
+            </div>
+
+            {!isConnected ? (
+              <button
+                className="btn btn-primary btn-connect"
+                onClick={() => setWalletModalOpen(true)}
+              >
+                Connect Wallet
+              </button>
+            ) : (
+              <div className="topbar-account" ref={dropdownRef}>
               <button
                 className="topbar-account-btn"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -168,7 +174,8 @@ export default function Topbar() {
                 </div>
               )}
             </div>
-          )}
+            )}
+          </div>
           
           <button className="settings-btn desktop-only" style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: '4px' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -245,6 +252,10 @@ export default function Topbar() {
                   </div>
                   <div className="font-mono" style={{ fontSize: '16px', color: 'var(--color-green)' }}>
                     {balance.toFixed(2)} USDC
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button className="btn" style={{ flex: 1, padding: '10px', fontSize: '13px', backgroundColor: 'var(--color-green)', color: '#070c18', border: 'none', fontWeight: 600 }}>Deposit</button>
+                    <button className="btn" style={{ flex: 1, padding: '10px', fontSize: '13px', backgroundColor: 'transparent', color: 'var(--color-text1)', border: '1px solid var(--color-border)' }}>Withdraw</button>
                   </div>
                 </div>
               )}

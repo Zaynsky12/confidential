@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { Market, Order, Position, RecentTrade, VaultDeposit, OrderBookEntry } from '../types'
 
 const INITIAL_MARKETS: Market[] = [
@@ -105,9 +106,11 @@ interface TradeStore {
   mockBalance: number
 }
 
-export const useTradeStore = create<TradeStore>((set, get) => ({
-  // Markets
-  markets: INITIAL_MARKETS,
+export const useTradeStore = create<TradeStore>()(
+  persist(
+    (set, get) => ({
+      // Markets
+      markets: INITIAL_MARKETS,
   activeMarketId: 'btc-usdc',
   setActiveMarket: (id) => {
     set({ activeMarketId: id })
@@ -268,4 +271,4 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
 
   // Mock wallet balance
   mockBalance: 1200,
-}))
+}), { name: 'arc-trade-storage' }))

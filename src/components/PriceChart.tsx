@@ -157,9 +157,6 @@ export default function PriceChart() {
 
   if (!activeMarket) return null
 
-  const fp = (p: number) => p >= 10000 ? p.toLocaleString('en-US', { maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
-  const fv = (v: number) => v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(2)}K`
-
   const latestCandle = initialCandles[initialCandles.length - 1]
   const displayCandle = hoveredCandle || {
     open: latestCandle?.open ?? activeMarket.price,
@@ -172,48 +169,6 @@ export default function PriceChart() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg1)', position: 'relative' }}>
-      {/* HL-style Header */}
-      <div className="chart-header-stats">
-        <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 18, fontWeight: 600 }}>{activeMarket.pair.replace('/', '-')}</span>
-          <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600 }}>40x</span>
-        </div>
-        
-        <div className="chart-stat-item desktop-only">
-          <span className="chart-stat-label">Mark</span>
-          <span className="font-mono chart-stat-value" style={{ color: 'var(--color-accent)' }}>{fp(activeMarket.price)}</span>
-        </div>
-
-        <div className="chart-stat-item desktop-only">
-          <span className="chart-stat-label">Oracle</span>
-          <span className="font-mono chart-stat-value">{fp(activeMarket.price * 1.0001)}</span>
-        </div>
-
-        <div className="chart-stat-item desktop-only">
-          <span className="chart-stat-label">24h Change</span>
-          <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
-            {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
-          </span>
-        </div>
-
-        <div className="chart-stat-item chart-stat-mobile-col">
-          <span className="chart-stat-label">24h Volume</span>
-          <span className="font-mono chart-stat-value">{fv(activeMarket.volume24h)}</span>
-        </div>
-
-        <div className="chart-stat-item chart-stat-mobile-col">
-          <span className="chart-stat-label">Open Interest</span>
-          <span className="font-mono chart-stat-value">{fv(activeMarket.openInterest)}</span>
-        </div>
-
-        <div className="chart-stat-item chart-stat-mobile-col mobile-only">
-          <span className="chart-stat-label">Funding / Countdown</span>
-          <span className="font-mono chart-stat-value">
-            <span style={{ color: 'var(--color-green)' }}>0.0011%</span> <span style={{ color: 'var(--color-text1)' }}>00:48:11</span>
-          </span>
-        </div>
-      </div>
-
       {/* HL-style Timeframes & Indicators Bar */}
       <div className="chart-timeframes">
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>

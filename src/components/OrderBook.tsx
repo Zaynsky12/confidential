@@ -1,17 +1,22 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 
-type Tab = 'orderbook' | 'trades' | 'myorders'
+export type OrderBookTab = 'orderbook' | 'trades'
 
-export default function OrderBook() {
-  const { orderBook, recentTrades, orders, activeMarketId, markets, cancelOrder } = useTradeStore()
-  const [tab, setTab] = useState<Tab>('orderbook')
+interface OrderBookProps {
+  forcedTab?: OrderBookTab
+  hideTabs?: boolean
+}
+
+export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) {
+  const { orderBook, recentTrades, activeMarketId, markets } = useTradeStore()
+  const [tab, setTab] = useState<OrderBookTab>(forcedTab || 'orderbook')
+
+  useEffect(() => {
+    if (forcedTab) setTab(forcedTab)
+  }, [forcedTab])
+
   const activeMarket = markets.find((m) => m.id === activeMarketId)
-
-  const openOrders = useMemo(
-    () => orders.filter((o) => o.status === 'open' && o.marketId === activeMarketId),
-    [orders, activeMarketId]
-  )
 
   const formatPrice = (p: number) => {
     if (!activeMarket) return p.toFixed(2)
@@ -34,17 +39,16 @@ export default function OrderBook() {
   return (
     <div className="orderbook-wrapper">
       {/* Tabs */}
-      <div className="ob-tabs">
-        <button className={`ob-tab ${tab === 'orderbook' ? 'active' : ''}`} onClick={() => setTab('orderbook')}>
-          Order Book
-        </button>
-        <button className={`ob-tab ${tab === 'trades' ? 'active' : ''}`} onClick={() => setTab('trades')}>
-          Recent Trades
-        </button>
-        <button className={`ob-tab ${tab === 'myorders' ? 'active' : ''}`} onClick={() => setTab('myorders')}>
-          My Orders
-        </button>
-      </div>
+      {!hideTabs && (
+        <div className="ob-tabs">
+          <button className={`ob-tab ${tab === 'orderbook' ? 'active' : ''}`} onClick={() => setTab('orderbook')}>
+            Order Book
+          </button>
+          <button className={`ob-tab ${tab === 'trades' ? 'active' : ''}`} onClick={() => setTab('trades')}>
+            Recent Trades
+          </button>
+        </div>
+      )}
 
       <div className="ob-content">
         {tab === 'orderbook' && (
@@ -110,43 +114,6 @@ export default function OrderBook() {
                 </div>
               ))}
             </div>
-          </>
-        )}
-
-        {tab === 'myorders' && (
-          <>
-            <div className="ob-header">
-              <span>Pair</span>
-              <span>Side</span>
-              <span>Price</span>
-              <span>Size</span>
-              <span></span>
-            </div>
-            {openOrders.length === 0 ? (
-              <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--color-text3)', fontSize: '13px' }}>
-                No open orders
-              </div>
-            ) : (
-              <div className="trades-list">
-                {openOrders.map((o) => (
-                  <div key={o.id} className="ob-row trade-row">
-                    <span style={{ fontSize: '12px' }}>{o.pair}</span>
-                    <span className={`font-mono ${o.side === 'long' ? 'text-green' : 'text-red'}`} style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-                      {o.side}
-                    </span>
-                    <span className="font-mono">{formatPrice(o.price)}</span>
-                    <span className="font-mono">{o.size.toFixed(4)}</span>
-                    <button
-                      className="btn btn-ghost"
-                      style={{ padding: '2px 8px', fontSize: '11px', color: 'var(--color-red)' }}
-                      onClick={() => cancelOrder(o.id)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </>
         )}
       </div>
