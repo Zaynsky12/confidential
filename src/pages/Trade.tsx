@@ -557,10 +557,10 @@ export default function Trade() {
           }
           .trade-positions {
             height: auto;
-            min-height: auto; /* Allow card to hug content and avoid empty space */
+            min-height: 300px; /* Ensure component doesn't collapse */
             flex-shrink: 0;
             display: block !important;
-            overflow: hidden;
+            overflow: visible;
             /* Restoring inherited desktop card styles (border and bg1) */
           }
           .action-btn {
