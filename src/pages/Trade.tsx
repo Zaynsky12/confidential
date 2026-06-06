@@ -561,7 +561,7 @@ export default function Trade() {
           }
           .trade-positions {
             height: auto;
-            min-height: 300px; /* Ensure component doesn't collapse */
+            min-height: auto;
             flex-shrink: 0;
             display: block !important;
             overflow: visible;
