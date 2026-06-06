@@ -168,39 +168,44 @@ export default function Trade() {
           display: grid;
           grid-template-columns: 200px 1fr 300px;
           min-height: calc(100vh - 60px);
+          padding: 0 12px 12px 12px;
+          gap: 12px;
         }
         .trade-middle {
           display: flex;
           flex-direction: column;
           min-width: 0;
           min-height: 0;
+          gap: 12px;
         }
         .trade-middle-top {
           display: flex;
           height: 550px;
           min-width: 0;
+          gap: 12px;
         }
         .trade-sidebar {
           position: sticky;
           top: 60px;
-          height: calc(100vh - 60px);
-          border-right: 1px solid var(--color-border);
+          height: calc(100vh - 72px);
           overflow-y: auto;
-          background: var(--color-bg0);
+          display: flex;
+          flex-direction: column;
         }
         .trade-center {
           display: flex;
           flex-direction: column;
-          overflow-y: auto;
-          overflow-x: hidden;
+          overflow: hidden;
           min-height: 0;
           min-width: 0;
           flex: 1;
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background-color: var(--color-bg1);
         }
         .trade-chart {
           flex: 1;
           min-height: 0;
-          border-bottom: 1px solid var(--color-border);
         }
         
         /* ═══ Header Stats ═══ */
@@ -237,23 +242,20 @@ export default function Trade() {
         }
         .trade-positions {
           flex: 1;
-          overflow: visible;
-          background: var(--color-bg0);
-          border-top: 1px solid var(--color-border);
+          overflow: hidden;
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background-color: var(--color-bg1);
         }
         .trade-orderbook-col {
           width: 260px;
           flex-shrink: 0;
-          border-left: 1px solid var(--color-border);
-          background: var(--color-bg1);
           overflow: hidden;
           min-height: 0;
           display: flex;
           flex-direction: column;
         }
         .trade-right {
-          border-left: 1px solid var(--color-border);
-          background: var(--color-bg1);
           min-height: 0;
         }
 

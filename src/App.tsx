@@ -19,7 +19,7 @@ export default function App() {
   return (
     <>
       <Topbar />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 60 }}>
         <Routes>
           <Route path="/" element={<Trade />} />
           <Route path="/vault" element={<Vault />} />

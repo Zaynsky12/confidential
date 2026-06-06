@@ -130,7 +130,8 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
           flex-direction: column;
           height: 100%;
           background-color: var(--color-bg1);
-          border-top: 1px solid var(--color-border);
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
         }
         .ob-tabs {
           display: flex;

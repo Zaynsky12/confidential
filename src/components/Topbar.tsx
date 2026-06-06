@@ -45,9 +45,6 @@ export default function Topbar() {
 
   return (
     <header className="topbar">
-      {/* Glow effect */}
-      <div className="topbar-glow" />
-
       <div className="topbar-inner">
         {/* Left — Logo & Desktop Nav */}
         <div className="topbar-left">
@@ -187,14 +184,7 @@ export default function Topbar() {
             </div>
             )}
           </div>
-          
-          <button className="settings-btn desktop-only" style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: '4px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          
+
           <button className="favorite-btn mobile-only" style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: '4px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -355,24 +345,19 @@ export default function Topbar() {
 
       <style>{`
         .topbar {
-          position: sticky;
+          position: fixed;
           top: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
           z-index: 1100;
-          background-color: var(--color-bg1);
-          border-bottom: 1px solid var(--color-border);
+          background-color: var(--color-bg0);
+          border-bottom: none;
           height: 60px;
           display: flex;
           align-items: center;
           justify-content: center;
           overflow: visible;
-        }
-        .topbar-glow {
-          position: absolute;
-          top: 0; left: 50%;
-          transform: translateX(-50%);
-          width: 600px; height: 1px;
-          background: radial-gradient(ellipse, rgba(0,82,255,0.4) 0%, transparent 70%);
-          pointer-events: none;
         }
         .topbar-inner {
           width: 100%;
@@ -388,13 +373,10 @@ export default function Topbar() {
           flex: 1;
         }
         .topbar-logo-wrapper {
-          width: 200px;
-          height: 60px;
           display: flex;
           align-items: center;
-          padding: 0 16px;
-          border-right: 1px solid var(--color-border);
-          box-sizing: border-box;
+          padding: 0 24px;
+          height: 60px;
           flex-shrink: 0;
         }
         .mobile-menu-btn {
@@ -428,19 +410,19 @@ export default function Topbar() {
         .topbar-nav {
           display: flex;
           align-items: center;
-          gap: 16px;
-          padding-left: 20px;
+          gap: 20px;
+          padding-left: 8px;
         }
         .topbar-nav-link {
           padding: 8px 0;
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--color-text2);
           text-decoration: none;
           transition: color 200ms ease;
         }
         .topbar-nav-link:hover {
-          color: rgba(255, 255, 255, 0.8);
+          color: var(--color-text1);
         }
         .topbar-nav-link.active {
           color: #ffffff;
@@ -461,10 +443,10 @@ export default function Topbar() {
           background-color: var(--color-green) !important;
           color: #070c18 !important;
           border: none !important;
-          border-radius: 999px !important;
+          border-radius: 8px !important;
           font-size: 13px;
           font-weight: 600;
-          padding: 8px 20px;
+          padding: 6px 16px;
           letter-spacing: 0.3px;
           cursor: pointer;
           transition: opacity 150ms;
