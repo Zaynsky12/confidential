@@ -145,13 +145,13 @@ export default function Vault() {
             <div style={{ display: 'flex', background: 'var(--color-bg0)', borderRadius: 8, padding: 4, margin: '20px 20px 0', border: '1px solid var(--color-border)' }}>
               <button 
                 onClick={()=>{setActiveAction('Deposit'); setAmt('')}}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 6, border: 'none', background: activeAction === 'Deposit' ? 'var(--color-accent)' : 'transparent', color: activeAction === 'Deposit' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: 'none', background: activeAction === 'Deposit' ? 'var(--color-accent)' : 'transparent', color: activeAction === 'Deposit' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 Deposit
               </button>
               <button 
                 onClick={()=>{setActiveAction('Withdraw'); setAmt('')}}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 6, border: 'none', background: activeAction === 'Withdraw' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Withdraw' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: 'none', background: activeAction === 'Withdraw' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Withdraw' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 Withdraw
               </button>
@@ -445,9 +445,9 @@ export default function Vault() {
           background: var(--color-text1);
           color: var(--color-bg0);
           border: none;
-          border-radius: 12px;
-          padding: 16px 0;
-          font-size: 16px;
+          border-radius: 8px;
+          padding: 12px 0;
+          font-size: 15px;
           font-weight: 600;
           cursor: pointer;
           transition: opacity 0.2s;

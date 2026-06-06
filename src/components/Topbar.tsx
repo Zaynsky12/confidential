@@ -770,7 +770,7 @@ export default function Topbar() {
         .msp-table-wrapper {
           flex: 1;
           overflow-y: auto;
-          padding-top: 8px;
+          /* Removed padding-top to eliminate the empty gap */
         }
         .msp-table {
           width: 100%;
@@ -790,7 +790,7 @@ export default function Topbar() {
           text-transform: uppercase;
           letter-spacing: 0.8px;
           color: var(--color-text3);
-          padding: 4px 10px;
+          padding: 8px 10px 6px 10px;
         }
         .msp-th-right {
           text-align: right;
