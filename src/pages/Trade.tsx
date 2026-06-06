@@ -561,11 +561,11 @@ export default function Trade() {
           }
           .trade-positions {
             height: auto;
-            min-height: auto;
+            min-height: 400px; /* Space to scroll */
             flex-shrink: 0;
             display: block !important;
             overflow: visible;
-            /* Restoring inherited desktop card styles (border and bg1) */
+            /* Inherits desktop card styles (border and bg1) */
           }
           .action-btn {
             padding: 10px 8px;
