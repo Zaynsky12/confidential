@@ -111,7 +111,14 @@ export function usePythCandles(pythSymbol: string, timeframe: string) {
       const now = Math.floor(Date.now() / 1000)
       const lastCandle = candlesRef.current[candlesRef.current.length - 1]
 
-      if (lastCandle && now - lastCandle.time < intervalSec) {
+      // Align 'now' to the exact grid boundary
+      let currentBucket = Math.floor(now / intervalSec) * intervalSec;
+      if (intervalSec === 604800) {
+        // Pyth Weekly candles start on Monday. Unix epoch was Thursday. Offset is 4 days = 345600s
+        currentBucket = Math.floor((now - 345600) / intervalSec) * intervalSec + 345600;
+      }
+
+      if (lastCandle && lastCandle.time === currentBucket) {
         // Update existing candle
         const updated: CandleData = {
           ...lastCandle,
@@ -123,10 +130,10 @@ export function usePythCandles(pythSymbol: string, timeframe: string) {
         candlesRef.current[candlesRef.current.length - 1] = updated
         return updated
       } else {
-        // New candle
+        // New candle, with perfectly aligned timestamp
         const open = lastCandle?.close ?? currentPrice
         const newCandle: CandleData = {
-          time: now,
+          time: currentBucket,
           open,
           high: Math.max(open, currentPrice),
           low: Math.min(open, currentPrice),

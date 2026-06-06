@@ -12,6 +12,28 @@ const NAV_LINKS = [
   { to: '/leaderboard', label: 'Leaderboard' },
 ]
 
+const getAssetLogo = (pair: string) => {
+  const base = pair.split('/')[0].toLowerCase()
+  const map: Record<string, string> = {
+    btc: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+    eth: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+    sol: 'https://cryptologos.cc/logos/solana-sol-logo.png',
+    link: 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+    arb: 'https://cryptologos.cc/logos/arbitrum-arb-logo.png',
+    doge: 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+    eur: 'https://flagcdn.com/w40/eu.png',
+    gbp: 'https://flagcdn.com/w40/gb.png',
+    usdjpy: 'https://flagcdn.com/w40/jp.png',
+    aapl: 'https://ui-avatars.com/api/?name=Apple&background=000000&color=fff&rounded=true&bold=true',
+    tsla: 'https://ui-avatars.com/api/?name=Tesla&background=cc0000&color=fff&rounded=true&bold=true',
+    spy: 'https://ui-avatars.com/api/?name=SPY&background=003366&color=fff&rounded=true&bold=true',
+    gold: 'https://cryptologos.cc/logos/pax-gold-paxg-logo.png',
+    silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
+    nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true'
+  }
+  return map[base] || ''
+}
+
 export default function Topbar() {
   const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
   const { setWalletModalOpen, markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
@@ -113,20 +135,15 @@ export default function Topbar() {
               <button 
                 className="market-selector-trigger"
                 onClick={() => setMarketSelectorOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', marginLeft: 0 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', marginLeft: 0, maxWidth: '100%' }}
               >
-                {activeMarket && activeMarket.pair.includes('BTC') ? (
-                  <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="16" fill="#F7931A"/>
-                    <path d="M21.9 14.1c.3-2.1-1.3-3.2-3.5-4l.7-2.9-1.8-.4-.7 2.8c-.5-.1-.9-.2-1.4-.4l.7-2.8-1.8-.4-.7 2.9c-1.6-.3-3.1-.7-4.3-1.6l-1 2.2s.8.6 1.8 1.1c-.2.7-1 4.2-1.2 4.9-1.4.3-2.5 0-2.5 0l-1.1 2.4c1.1.5 2.1.8 3.2.8l-.7 3 1.8.5.7-3c.5.1.9.3 1.4.4l-.7 3 1.8.4.7-3c2.4.5 4.5.4 5.9-1.7 1.1-1.7.7-3 .2-3.8 1.2-.2 2.1-.9 2.5-2.5zm-3.5 5.5c-.5 1.9-3.7.9-4.8.6l.8-3.4c1.1.3 4.6 1 4 2.8zm.5-5c-.4 1.7-2.9.8-3.7.6l.7-3c.8.2 3.3.6 3 2.4z" fill="#fff"/>
-                  </svg>
-                ) : (
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#627EEA' }} />
+                {activeMarket && getAssetLogo(activeMarket.pair) && (
+                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
                 )}
-                <span className="font-mono" style={{ fontWeight: 600, fontSize: 16 }}>
+                <span className="font-mono" style={{ fontWeight: 600, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>
                   {activeMarket ? activeMarket.pair : 'Trade'}
                 </span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
@@ -385,20 +402,35 @@ export default function Topbar() {
                       >
                         <td className="msp-td msp-td-pair">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <svg 
-                              width="14" height="14" viewBox="0 0 24 24" 
-                              fill={watchlist.includes(m.id) ? '#F7931A' : 'none'} 
-                              stroke={watchlist.includes(m.id) ? '#F7931A' : 'currentColor'} 
-                              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
-                              style={{ color: 'var(--color-text3)', cursor: 'pointer' }}
+                            <button
                               onClick={(e) => {
+                                e.preventDefault();
                                 e.stopPropagation();
                                 toggleWatchlist(m.id);
                               }}
+                              style={{ 
+                                background: 'none', border: 'none', 
+                                padding: '12px', margin: '-12px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                cursor: 'pointer', zIndex: 10
+                              }}
                             >
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                            </svg>
-                            <span style={{ fontWeight: 600 }}>{m.pair}</span>
+                              <svg 
+                                width="14" height="14" viewBox="0 0 24 24" 
+                                fill={watchlist.includes(m.id) ? '#F7931A' : 'none'} 
+                                stroke={watchlist.includes(m.id) ? '#F7931A' : 'currentColor'} 
+                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+                                style={{ color: 'var(--color-text3)' }}
+                              >
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                              </svg>
+                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {getAssetLogo(m.pair) && (
+                                <img src={getAssetLogo(m.pair)} alt={m.pair} style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'contain', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                              )}
+                              <span style={{ fontWeight: 600 }}>{m.pair}</span>
+                            </div>
                             <span style={{ fontSize: '9px', padding: '1px 3px', background: 'rgba(247, 147, 26, 0.1)', color: '#F7931A', borderRadius: '4px', fontWeight: 600 }}>{leverage}</span>
                           </div>
                         </td>
@@ -657,7 +689,7 @@ export default function Topbar() {
         }
         .market-selector-panel {
           width: 100%;
-          max-width: 550px;
+          max-width: 680px;
           height: 100%;
           background-color: var(--color-bg0);
           display: flex;

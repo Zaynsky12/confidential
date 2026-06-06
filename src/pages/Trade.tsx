@@ -8,6 +8,28 @@ import Portfolio from './Portfolio'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
 
+const getAssetLogo = (pair: string) => {
+  const base = pair.split('/')[0].toLowerCase()
+  const map: Record<string, string> = {
+    btc: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+    eth: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+    sol: 'https://cryptologos.cc/logos/solana-sol-logo.png',
+    link: 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+    arb: 'https://cryptologos.cc/logos/arbitrum-arb-logo.png',
+    doge: 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+    eur: 'https://flagcdn.com/w40/eu.png',
+    gbp: 'https://flagcdn.com/w40/gb.png',
+    usdjpy: 'https://flagcdn.com/w40/jp.png',
+    aapl: 'https://ui-avatars.com/api/?name=Apple&background=000000&color=fff&rounded=true&bold=true',
+    tsla: 'https://ui-avatars.com/api/?name=Tesla&background=cc0000&color=fff&rounded=true&bold=true',
+    spy: 'https://ui-avatars.com/api/?name=SPY&background=003366&color=fff&rounded=true&bold=true',
+    gold: 'https://cryptologos.cc/logos/pax-gold-paxg-logo.png',
+    silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
+    nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true'
+  }
+  return map[base] || ''
+}
+
 export default function Trade() {
   const { isConnected } = useArcWallet()
   const { setWalletModalOpen, markets, activeMarketId, mobileNav, setMobileNav, setMarketSelectorOpen } = useTradeStore()
@@ -27,13 +49,16 @@ export default function Trade() {
             <button 
               className="desktop-only market-selector-trigger" 
               onClick={() => setMarketSelectorOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', maxWidth: '300px' }}
             >
-              <span style={{ fontSize: 18, fontWeight: 600 }}>{activeMarket.pair}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ marginTop: 2 }}>
+              {getAssetLogo(activeMarket.pair) && (
+                <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
+              )}
+              <span style={{ fontSize: 18, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>{activeMarket.pair}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: 'var(--color-text2)' }}>
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <span style={{ background: 'rgba(247, 147, 26, 0.15)', color: '#F7931A', padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, marginLeft: 6 }}>
+              <span style={{ background: 'rgba(247, 147, 26, 0.15)', color: '#F7931A', padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
                 {activeMarket.category === 'forex' ? '50x' : activeMarket.category === 'rwa' ? '10x' : '20x'}
               </span>
             </button>
@@ -55,12 +80,12 @@ export default function Trade() {
               </span>
             </div>
 
-            <div className="chart-stat-item chart-stat-mobile-col desktop-only">
+            <div className="chart-stat-item">
               <span className="chart-stat-label">24h Volume</span>
               <span className="font-mono chart-stat-value">${fvFull(activeMarket.volume24h)}</span>
             </div>
 
-            <div className="chart-stat-item chart-stat-mobile-col desktop-only">
+            <div className="chart-stat-item">
               <span className="chart-stat-label">Open Interest</span>
               <span className="font-mono chart-stat-value">${fvFull(activeMarket.openInterest)}</span>
             </div>
@@ -456,6 +481,9 @@ export default function Trade() {
 
         /* ═══ Mobile (<= 768px) — Hyperliquid Scrollable Layout ═══ */
         @media (max-width: 768px) {
+          .trade-middle-top, .trade-center {
+            width: 100%;
+          }
           .chart-header-stats {
             display: flex;
             flex-wrap: nowrap;
@@ -464,6 +492,12 @@ export default function Trade() {
             scrollbar-width: none;
             padding: 12px 16px;
             gap: 20px;
+            width: 100%;
+            box-sizing: border-box;
+          }
+          .chart-header-stats::after {
+            content: '';
+            padding-right: 16px;
           }
           .chart-header-stats::-webkit-scrollbar {
             display: none;
