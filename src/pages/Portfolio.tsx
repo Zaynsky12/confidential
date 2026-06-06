@@ -340,12 +340,7 @@ export default function Portfolio() {
             color: var(--color-text1);
             font-family: 'JetBrains Mono', monospace;
           }
-          .portfolio-bottom {
-            border: none;
-            border-radius: 0;
-            border-top: 1px solid var(--color-border);
-            background: transparent;
-          }
+          /* Retain default portfolio-bottom card styles (border and bg1) on mobile */
         }
 
         @media (max-width: 480px) {
