@@ -535,7 +535,7 @@ export default function Trade() {
             overflow-x: hidden;
             width: 100%;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 120px; /* Matches Account menu spacing */
+            padding-bottom: 80px; /* Unified bottom spacing */
           }
           .trade-sidebar {
             display: none;

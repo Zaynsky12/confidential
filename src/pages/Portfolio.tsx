@@ -315,7 +315,7 @@ export default function Portfolio() {
           .portfolio-container {
             padding: 16px 0;
             overflow-x: hidden;
-            padding-bottom: 20px;
+            padding-bottom: 0;
           }
           .mobile-account-overview-card {
             background: var(--color-bg1);
