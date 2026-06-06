@@ -23,8 +23,9 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const [price, setPrice] = useState('')
   const [size, setSize] = useState('')
   const [sizePercent, setSizePercent] = useState<number>(0)
-  const [leverage, setLeverage] = useState(5)
-  const [isCustomEditing, setIsCustomEditing] = useState(false)
+  const [leverage, setLeverage] = useState(10)
+  const [isLeverageModalOpen, setIsLeverageModalOpen] = useState(false)
+  const [tempLeverage, setTempLeverage] = useState<number | string>('')
   const [reduceOnly, setReduceOnly] = useState(false)
   const [inputCurrency, setInputCurrency] = useState<'BASE' | 'USD'>('BASE')
   const isCustomLeverage = ![1, 10, 20, 40].includes(leverage)
@@ -153,7 +154,10 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             <button key={l} onClick={()=>setLeverage(l)} style={{ flex:1, background:leverage===l?'var(--color-bg3)':'var(--color-bg2)', border:'1px solid', borderColor:leverage===l?'var(--color-border-strong)':'transparent', color:'#fff', padding:'6px 0', borderRadius:6, fontSize:13, fontWeight:500, cursor:'pointer' }}>{l}x</button>
           ))}
           <div 
-            onClick={() => setIsCustomEditing(true)}
+            onClick={() => {
+              setTempLeverage(leverage)
+              setIsLeverageModalOpen(true)
+            }}
             style={{ 
               flex: 1.2, 
               background: isCustomLeverage ? 'var(--color-bg3)' : 'var(--color-bg2)', 
@@ -166,25 +170,10 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
               cursor: 'pointer' 
             }}
           >
-             {isCustomEditing ? (
-               <input 
-                 autoFocus
-                 type="number"
-                 min="1" max="100"
-                 value={leverage}
-                 onChange={(e) => setLeverage(Math.min(100, Math.max(1, Number(e.target.value) || 1)))}
-                 onBlur={() => setIsCustomEditing(false)}
-                 onKeyDown={(e) => { if (e.key === 'Enter') setIsCustomEditing(false) }}
-                 style={{ width: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: 13, outline: 'none', textAlign: 'center' }}
-               />
-             ) : (
-               <>
-                 <span style={{ fontSize:13, color: isCustomLeverage ? '#fff' : '#8e8e93', fontWeight: isCustomLeverage ? 500 : 400 }}>
-                   {isCustomLeverage ? `${leverage}x` : 'Custom'}
-                 </span>
-                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-               </>
-             )}
+             <span style={{ fontSize:13, color: isCustomLeverage ? '#fff' : '#8e8e93', fontWeight: isCustomLeverage ? 500 : 400 }}>
+               {isCustomLeverage ? `${leverage}x` : 'Custom'}
+             </span>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
           </div>
         </div>
       </div>
@@ -272,6 +261,59 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Cross-margin Ratio</span><span>0.0000%</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Maintenance Margin</span><span>$0.00</span></div>
       </div>
+
+      {/* Adjust Leverage Modal */}
+      {isLeverageModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}>
+          <div className="animate-fade-in" style={{ background: '#121214', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '340px', border: '1px solid #2c2c2e', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Adjust Leverage</h3>
+            
+            <div style={{ background: '#000', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', border: '1px solid #2c2c2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <input 
+                type="number"
+                min="1" max="40"
+                value={tempLeverage}
+                onChange={(e) => setTempLeverage(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '15px', outline: 'none', width: '32px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}
+              />
+              <span style={{ color: '#8e8e93', fontSize: '15px', fontWeight: 500, marginLeft: '2px' }}>x</span>
+            </div>
+
+            <div style={{ marginBottom: '32px', position: 'relative' }}>
+              <input 
+                type="range" 
+                min="1" max="40" 
+                value={Number(tempLeverage) || 1} 
+                onChange={(e) => setTempLeverage(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#fbbf24', height: '4px', cursor: 'pointer' }} 
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8e8e93', marginTop: '12px', fontWeight: 500 }}>
+                <span>1x</span>
+                <span>40x</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setIsLeverageModalOpen(false)}
+                style={{ flex: 1, padding: '14px', background: '#3a3a3c', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  const val = Math.min(40, Math.max(1, Number(tempLeverage) || 1));
+                  setLeverage(val);
+                  setIsLeverageModalOpen(false);
+                }}
+                style={{ flex: 1, padding: '14px', background: '#fbbf24', color: '#000', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 768px) {

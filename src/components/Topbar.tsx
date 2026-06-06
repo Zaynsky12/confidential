@@ -129,10 +129,12 @@ export default function Topbar() {
 
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
-              <button className="btn" onClick={() => !isConnected && setWalletModalOpen(true)} style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'rgba(46, 189, 133, 0.1)', color: 'var(--color-green)', border: '1px solid rgba(46, 189, 133, 0.2)' }}>Deposit</button>
-              <button className="btn" onClick={() => !isConnected && setWalletModalOpen(true)} style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'transparent', color: 'var(--color-text2)', border: '1px solid var(--color-border)' }}>Withdraw</button>
-            </div>
+            {isConnected && (
+              <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
+                <button className="btn" style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'rgba(46, 189, 133, 0.1)', color: 'var(--color-green)', border: '1px solid rgba(46, 189, 133, 0.2)' }}>Deposit</button>
+                <button className="btn" style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'transparent', color: 'var(--color-text2)', border: '1px solid var(--color-border)' }}>Withdraw</button>
+              </div>
+            )}
 
             {!isConnected ? (
               <button

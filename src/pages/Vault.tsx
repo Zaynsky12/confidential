@@ -70,12 +70,6 @@ export default function Vault() {
 
   return (
     <div className="vault-container">
-      {/* Breadcrumbs */}
-      <div className="vault-breadcrumbs">
-        <Link to="/vault" style={{ color:'var(--color-text3)', textDecoration:'none' }}>Vaults</Link>
-        <span style={{ margin:'0 8px', color:'var(--color-text3)' }}>/</span>
-        <span style={{ color:'var(--color-text1)' }}>USDC Yield Vault</span>
-      </div>
 
       <div className="vault-header">
         <h1 style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>USDC Yield Vault</h1>
@@ -409,6 +403,8 @@ export default function Vault() {
           display: flex;
           justify-content: space-between;
           margin-bottom: 8px;
+          flex-wrap: wrap;
+          gap: 4px;
         }
         .input-box {
           display: flex;
@@ -429,6 +425,8 @@ export default function Vault() {
           color: var(--color-text1);
           font-size: 20px;
           outline: none;
+          min-width: 0;
+          width: 100%;
         }
         .max-btn {
           background: var(--color-bg2);
@@ -439,6 +437,7 @@ export default function Vault() {
           padding: 4px 8px;
           border-radius: 4px;
           cursor: pointer;
+          flex-shrink: 0;
         }
         .est-yield {
           display: flex;
@@ -448,6 +447,8 @@ export default function Vault() {
           margin-bottom: 24px;
           padding-top: 16px;
           border-top: 1px dashed var(--color-border);
+          flex-wrap: wrap;
+          gap: 4px;
         }
         .submit-btn {
           width: 100%;
@@ -591,8 +592,17 @@ export default function Vault() {
           .overview-list-grid {
             grid-template-columns: 1fr;
           }
+          .tabs-row {
+            gap: 16px;
+            padding: 0 12px;
+          }
+          .pt-tab {
+            font-size: 13px;
+            padding: 12px 0;
+          }
         }
       `}</style>
     </div>
   )
 }
+

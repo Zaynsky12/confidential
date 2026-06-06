@@ -138,8 +138,8 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
         }
         .ob-tab {
           flex: 1;
-          padding: 8px;
-          font-size: 12px;
+          padding: 12px 8px;
+          font-size: 13px;
           font-weight: 500;
           color: var(--color-text3);
           cursor: pointer;
