@@ -4,16 +4,22 @@ import type { Market, Order, Position, RecentTrade, VaultDeposit, OrderBookEntry
 
 const INITIAL_MARKETS: Market[] = [
   // Crypto Perps
-  { id: 'btc-usdc', pair: 'BTC/USDC', baseAsset: 'BTC', quoteAsset: 'USDC', category: 'crypto', price: 67432.50, prevPrice: 67432.50, change24h: 2.34, volume24h: 1_284_500_000, high24h: 68100, low24h: 66200, openInterest: 425_000_000 },
-  { id: 'eth-usdc', pair: 'ETH/USDC', baseAsset: 'ETH', quoteAsset: 'USDC', category: 'crypto', price: 3542.80, prevPrice: 3542.80, change24h: 1.87, volume24h: 842_300_000, high24h: 3620, low24h: 3480, openInterest: 312_000_000 },
-  { id: 'sol-usdc', pair: 'SOL/USDC', baseAsset: 'SOL', quoteAsset: 'USDC', category: 'crypto', price: 178.45, prevPrice: 178.45, change24h: -0.92, volume24h: 324_100_000, high24h: 183, low24h: 175.2, openInterest: 98_000_000 },
-  { id: 'link-usdc', pair: 'LINK/USDC', baseAsset: 'LINK', quoteAsset: 'USDC', category: 'crypto', price: 18.72, prevPrice: 18.72, change24h: 3.41, volume24h: 45_600_000, high24h: 19.2, low24h: 17.9, openInterest: 28_000_000 },
-  { id: 'arb-usdc', pair: 'ARB/USDC', baseAsset: 'ARB', quoteAsset: 'USDC', category: 'crypto', price: 1.24, prevPrice: 1.24, change24h: -1.56, volume24h: 18_200_000, high24h: 1.28, low24h: 1.21, openInterest: 12_000_000 },
+  { id: 'btc-usdc', pair: 'BTC/USDC', baseAsset: 'BTC', quoteAsset: 'USDC', category: 'crypto', pythPriceId: 'e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43', pythSymbol: 'Crypto.BTC/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 1284500000, high24h: 0, low24h: 0, openInterest: 425000000 },
+  { id: 'eth-usdc', pair: 'ETH/USDC', baseAsset: 'ETH', quoteAsset: 'USDC', category: 'crypto', pythPriceId: 'ff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace', pythSymbol: 'Crypto.ETH/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 842300000, high24h: 0, low24h: 0, openInterest: 312000000 },
+  { id: 'sol-usdc', pair: 'SOL/USDC', baseAsset: 'SOL', quoteAsset: 'USDC', category: 'crypto', pythPriceId: 'ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d', pythSymbol: 'Crypto.SOL/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 324100000, high24h: 0, low24h: 0, openInterest: 98000000 },
+  { id: 'link-usdc', pair: 'LINK/USDC', baseAsset: 'LINK', quoteAsset: 'USDC', category: 'crypto', pythPriceId: '8ac0c70fff57e9aefdf5edf44b51d62c2d433653cbb2cf5cc06bb115af04d221', pythSymbol: 'Crypto.LINK/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 45600000, high24h: 0, low24h: 0, openInterest: 28000000 },
+  { id: 'arb-usdc', pair: 'ARB/USDC', baseAsset: 'ARB', quoteAsset: 'USDC', category: 'crypto', pythPriceId: '3fa4252848f9f0a1480be62745a4629d9eb1322aebab8a791e344b3b9c1adcf5', pythSymbol: 'Crypto.ARB/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 18200000, high24h: 0, low24h: 0, openInterest: 12000000 },
   // RWA Perps
-  { id: 'aapl-usdc', pair: 'AAPL/USDC', baseAsset: 'AAPL', quoteAsset: 'USDC', category: 'rwa', price: 198.50, prevPrice: 198.50, change24h: 0.75, volume24h: 52_000_000, high24h: 200.1, low24h: 196.8, openInterest: 35_000_000 },
-  { id: 'tsla-usdc', pair: 'TSLA/USDC', baseAsset: 'TSLA', quoteAsset: 'USDC', category: 'rwa', price: 245.30, prevPrice: 245.30, change24h: -2.18, volume24h: 68_000_000, high24h: 252, low24h: 242.5, openInterest: 42_000_000 },
-  { id: 'gold-usdc', pair: 'GOLD/USDC', baseAsset: 'GOLD', quoteAsset: 'USDC', category: 'rwa', price: 2345.60, prevPrice: 2345.60, change24h: 0.45, volume24h: 120_000_000, high24h: 2360, low24h: 2330, openInterest: 85_000_000 },
-  { id: 'spy-usdc', pair: 'SPY/USDC', baseAsset: 'SPY', quoteAsset: 'USDC', category: 'rwa', price: 528.40, prevPrice: 528.40, change24h: 0.62, volume24h: 95_000_000, high24h: 531, low24h: 526, openInterest: 62_000_000 },
+  { id: 'aapl-usdc', pair: 'AAPL/USDC', baseAsset: 'AAPL', quoteAsset: 'USDC', category: 'rwa', pythPriceId: '49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688', pythSymbol: 'Equity.US.AAPL/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 52000000, high24h: 0, low24h: 0, openInterest: 35000000 },
+  { id: 'tsla-usdc', pair: 'TSLA/USDC', baseAsset: 'TSLA', quoteAsset: 'USDC', category: 'rwa', pythPriceId: '16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1', pythSymbol: 'Equity.US.TSLA/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 68000000, high24h: 0, low24h: 0, openInterest: 42000000 },
+  { id: 'gold-usdc', pair: 'GOLD/USDC', baseAsset: 'GOLD', quoteAsset: 'USDC', category: 'rwa', pythPriceId: '765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2', pythSymbol: 'Metal.XAU/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 120000000, high24h: 0, low24h: 0, openInterest: 85000000 },
+  { id: 'silver-usdc', pair: 'SILVER/USDC', baseAsset: 'SILVER', quoteAsset: 'USDC', category: 'rwa', pythPriceId: 'f2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e', pythSymbol: 'Metal.XAG/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 64000000, high24h: 0, low24h: 0, openInterest: 32000000 },
+  { id: 'spy-usdc', pair: 'SPY/USDC', baseAsset: 'SPY', quoteAsset: 'USDC', category: 'rwa', pythPriceId: '19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5', pythSymbol: 'Equity.US.SPY/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 95000000, high24h: 0, low24h: 0, openInterest: 62000000 },
+  { id: 'nvda-usdc', pair: 'NVDA/USDC', baseAsset: 'NVDA', quoteAsset: 'USDC', category: 'rwa', pythPriceId: 'b1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593', pythSymbol: 'Equity.US.NVDA/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 145000000, high24h: 0, low24h: 0, openInterest: 95000000 },
+  // Forex Perps
+  { id: 'eur-usdc', pair: 'EUR/USDC', baseAsset: 'EUR', quoteAsset: 'USDC', category: 'forex', pythPriceId: 'a995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b', pythSymbol: 'FX.EUR/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 310000000, high24h: 0, low24h: 0, openInterest: 180000000 },
+  { id: 'gbp-usdc', pair: 'GBP/USDC', baseAsset: 'GBP', quoteAsset: 'USDC', category: 'forex', pythPriceId: '84c2dde9633d93d1bcad84e7dc41c9d56578b7ec52fabedc1f335d673df0a7c1', pythSymbol: 'FX.GBP/USD', price: 0, prevPrice: 0, change24h: 0, volume24h: 240000000, high24h: 0, low24h: 0, openInterest: 110000000 },
+  { id: 'usdjpy-usdc', pair: 'USDJPY/USDC', baseAsset: 'USDJPY', quoteAsset: 'USDC', category: 'forex', pythPriceId: 'ef2c98c804ba503c6a707e38be4dfbb16683775f195b091252bf24693042fd52', pythSymbol: 'FX.USD/JPY', price: 0, prevPrice: 0, change24h: 0, volume24h: 420000000, high24h: 0, low24h: 0, openInterest: 260000000 },
 ]
 
 function generateOrderBook(midPrice: number): { bids: OrderBookEntry[]; asks: OrderBookEntry[] } {
@@ -45,28 +51,15 @@ function generateOrderBook(midPrice: number): { bids: OrderBookEntry[]; asks: Or
   return { bids, asks }
 }
 
-function generateRecentTrades(price: number): RecentTrade[] {
-  const trades: RecentTrade[] = []
-  const now = Date.now()
-  for (let i = 0; i < 20; i++) {
-    const side = Math.random() > 0.5 ? 'buy' : 'sell'
-    const tradePrice = price + (Math.random() - 0.5) * price * 0.001
-    trades.push({
-      id: `trade-${now}-${i}`,
-      time: now - i * 3000 - Math.random() * 2000,
-      side,
-      price: +tradePrice.toFixed(2),
-      size: +(Math.random() * 2 + 0.01).toFixed(4),
-    })
-  }
-  return trades
-}
+
 
 interface TradeStore {
   // Markets
   markets: Market[]
   activeMarketId: string
+  watchlist: string[]
   setActiveMarket: (id: string) => void
+  toggleWatchlist: (id: string) => void
   updateMarketPrice: (id: string, price: number) => void
 
   // Order Book
@@ -115,168 +108,192 @@ export const useTradeStore = create<TradeStore>()(
     (set, get) => ({
       // Markets
       markets: INITIAL_MARKETS,
-  activeMarketId: 'btc-usdc',
-  setActiveMarket: (id) => {
-    set({ activeMarketId: id })
-    get().refreshOrderBook()
-  },
-  updateMarketPrice: (id, price) => {
-    set((state) => ({
-      markets: state.markets.map((m) =>
-        m.id === id
-          ? {
-              ...m,
-              prevPrice: m.price,
-              price,
-              change24h: +((price - m.low24h) / m.low24h * 100 - 50 + m.change24h * 0.95).toFixed(2),
-              high24h: Math.max(m.high24h, price),
-              low24h: Math.min(m.low24h, price),
-            }
-          : m
-      ),
-    }))
-  },
+      activeMarketId: 'btc-usdc',
+      watchlist: [],
+      setActiveMarket: (id) => {
+        set({ activeMarketId: id })
+        get().refreshOrderBook()
+      },
+      toggleWatchlist: (id) => set((state) => ({
+        watchlist: state.watchlist.includes(id) 
+          ? state.watchlist.filter(w => w !== id) 
+          : [...state.watchlist, id]
+      })),
+      updateMarketPrice: (id, price) => {
+        set((state) => ({
+          markets: state.markets.map((m) =>
+            m.id === id
+              ? {
+                  ...m,
+                  prevPrice: m.price,
+                  price,
+                  change24h: m.price > 0 ? +(((price - m.price) / m.price) * 100 + m.change24h).toFixed(2) : 0,
+                  high24h: Math.max(m.high24h, price),
+                  low24h: Math.min(m.low24h, price),
+                }
+              : m
+          ),
+        }))
+      },
 
-  // Order Book
-  orderBook: generateOrderBook(67432.50),
-  refreshOrderBook: () => {
-    const market = get().markets.find((m) => m.id === get().activeMarketId)
-    if (market) {
-      set({ orderBook: generateOrderBook(market.price) })
-    }
-  },
+      // Order Book
+      orderBook: generateOrderBook(100),  // Placeholder — refreshed when Pyth prices load
+      refreshOrderBook: () => {
+        const market = get().markets.find((m) => m.id === get().activeMarketId)
+        if (market) {
+          set({ orderBook: generateOrderBook(market.price) })
+        }
+      },
 
-  // Recent Trades
-  recentTrades: generateRecentTrades(67432.50),
-  addRecentTrade: (trade) => {
-    set((state) => ({
-      recentTrades: [trade, ...state.recentTrades.slice(0, 19)],
-    }))
-  },
+      // Recent Trades
+      recentTrades: [],  // Populated when Pyth prices start streaming
+      addRecentTrade: (trade) => {
+        set((state) => ({
+          recentTrades: [trade, ...state.recentTrades.slice(0, 19)],
+        }))
+      },
 
-  // Orders
-  orders: [],
-  placeOrder: (orderData) => {
-    const id = `order-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const order: Order = {
-      ...orderData,
-      id,
-      status: orderData.type === 'market' ? 'filled' : 'open',
-      timestamp: Date.now(),
-      filledAt: orderData.type === 'market' ? Date.now() : undefined,
-    }
-    set((state) => ({ orders: [order, ...state.orders] }))
+      // Orders
+      orders: [],
+      placeOrder: (orderData) => {
+        const id = `order-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const order: Order = {
+          ...orderData,
+          id,
+          status: orderData.type === 'market' ? 'filled' : 'open',
+          timestamp: Date.now(),
+          filledAt: orderData.type === 'market' ? Date.now() : undefined,
+        }
+        set((state) => ({ orders: [order, ...state.orders] }))
 
-    // For market orders, auto-create position
-    if (order.type === 'market') {
-      const market = get().markets.find((m) => m.id === order.marketId)
-      if (market) {
-        const collateral = (order.price * order.size) / order.leverage
-        const liqMultiplier = order.side === 'long' ? 1 - 0.9 / order.leverage : 1 + 0.9 / order.leverage
-        get().addPosition({
-          marketId: order.marketId,
-          pair: order.pair,
-          side: order.side,
-          size: order.size,
-          entryPrice: order.price,
-          markPrice: order.price,
-          leverage: order.leverage,
-          liquidationPrice: +(order.price * liqMultiplier).toFixed(2),
-          pnl: 0,
-          pnlPercent: 0,
-          collateral: +collateral.toFixed(2),
-        })
-      }
-    }
-  },
-  cancelOrder: (id) => {
-    set((state) => ({
-      orders: state.orders.map((o) => (o.id === id ? { ...o, status: 'cancelled' as const } : o)),
-    }))
-  },
+        // For market orders, auto-create position
+        if (order.type === 'market') {
+          const market = get().markets.find((m) => m.id === order.marketId)
+          if (market) {
+            const collateral = (order.price * order.size) / order.leverage
+            const liqMultiplier = order.side === 'long' ? 1 - 0.9 / order.leverage : 1 + 0.9 / order.leverage
+            get().addPosition({
+              marketId: order.marketId,
+              pair: order.pair,
+              side: order.side,
+              size: order.size,
+              entryPrice: order.price,
+              markPrice: order.price,
+              leverage: order.leverage,
+              liquidationPrice: +(order.price * liqMultiplier).toFixed(2),
+              pnl: 0,
+              pnlPercent: 0,
+              collateral: +collateral.toFixed(2),
+            })
+          }
+        }
+      },
+      cancelOrder: (id) => {
+        set((state) => ({
+          orders: state.orders.map((o) => (o.id === id ? { ...o, status: 'cancelled' as const } : o)),
+        }))
+      },
 
-  // Positions
-  positions: [],
-  addPosition: (posData) => {
-    const id = `pos-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const position: Position = {
-      ...posData,
-      id,
-      status: 'open',
-      openedAt: Date.now(),
-    }
-    set((state) => ({ positions: [position, ...state.positions] }))
-  },
-  closePosition: (id) => {
-    set((state) => ({
-      positions: state.positions.map((p) =>
-        p.id === id ? { ...p, status: 'closed' as const, closedAt: Date.now() } : p
-      ),
-    }))
-  },
-  updatePositionPnl: () => {
-    const markets = get().markets
-    set((state) => ({
-      positions: state.positions.map((p) => {
-        if (p.status === 'closed') return p
-        const market = markets.find((m) => m.id === p.marketId)
-        if (!market) return p
-        const markPrice = market.price
-        const pnl = p.side === 'long'
-          ? (markPrice - p.entryPrice) * p.size
-          : (p.entryPrice - markPrice) * p.size
-        const pnlPercent = (pnl / p.collateral) * 100
-        return { ...p, markPrice, pnl: +pnl.toFixed(2), pnlPercent: +pnlPercent.toFixed(2) }
+      // Positions
+      positions: [],
+      addPosition: (posData) => {
+        const id = `pos-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const position: Position = {
+          ...posData,
+          id,
+          status: 'open',
+          openedAt: Date.now(),
+        }
+        set((state) => ({ positions: [position, ...state.positions] }))
+      },
+      closePosition: (id) => {
+        set((state) => ({
+          positions: state.positions.map((p) =>
+            p.id === id ? { ...p, status: 'closed' as const, closedAt: Date.now() } : p
+          ),
+        }))
+      },
+      updatePositionPnl: () => {
+        const markets = get().markets
+        set((state) => ({
+          positions: state.positions.map((p) => {
+            if (p.status === 'closed') return p
+            const market = markets.find((m) => m.id === p.marketId)
+            if (!market) return p
+            const markPrice = market.price
+            const pnl = p.side === 'long'
+              ? (markPrice - p.entryPrice) * p.size
+              : (p.entryPrice - markPrice) * p.size
+            const pnlPercent = (pnl / p.collateral) * 100
+            return { ...p, markPrice, pnl: +pnl.toFixed(2), pnlPercent: +pnlPercent.toFixed(2) }
+          }),
+        }))
+      },
+
+      // Vault
+      vaultDeposits: [],
+      vaultBalance: 0,
+      vaultTVL: 12_450_000,
+      vaultAPY: 8.42,
+      depositToVault: (amount) => {
+        const deposit: VaultDeposit = {
+          id: `vd-${Date.now()}`,
+          action: 'deposit',
+          amount,
+          timestamp: Date.now(),
+          txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+        }
+        set((state) => ({
+          vaultDeposits: [deposit, ...state.vaultDeposits],
+          vaultBalance: state.vaultBalance + amount,
+          vaultTVL: state.vaultTVL + amount,
+          mockBalance: state.mockBalance - amount,
+        }))
+      },
+      withdrawFromVault: (amount) => {
+        const withdrawal: VaultDeposit = {
+          id: `vd-${Date.now()}`,
+          action: 'withdraw',
+          amount,
+          timestamp: Date.now(),
+          txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+        }
+        set((state) => ({
+          vaultDeposits: [withdrawal, ...state.vaultDeposits],
+          vaultBalance: Math.max(0, state.vaultBalance - amount),
+          vaultTVL: state.vaultTVL - amount,
+          mockBalance: state.mockBalance + amount,
+        }))
+      },
+
+      // UI State
+      isWalletModalOpen: false,
+      setWalletModalOpen: (open) => set({ isWalletModalOpen: open }),
+      isMarketSelectorOpen: false,
+      setMarketSelectorOpen: (open) => set({ isMarketSelectorOpen: open }),
+      selectedTimeframe: '1h',
+      setSelectedTimeframe: (tf) => set({ selectedTimeframe: tf }),
+      mobileNav: 'markets',
+      setMobileNav: (nav) => set({ mobileNav: nav }),
+
+      // Mock wallet balance
+      mockBalance: 1200,
+    }), {
+      name: 'arc-trade-storage',
+      version: 8,
+      partialize: (state) => ({
+        // Only persist user-specific data, NOT live market data
+        activeMarketId: state.activeMarketId,
+        watchlist: state.watchlist,
+        orders: state.orders,
+        positions: state.positions,
+        vaultDeposits: state.vaultDeposits,
+        vaultBalance: state.vaultBalance,
+        mockBalance: state.mockBalance,
+        selectedTimeframe: state.selectedTimeframe,
       }),
-    }))
-  },
-
-  // Vault
-  vaultDeposits: [],
-  vaultBalance: 0,
-  vaultTVL: 12_450_000,
-  vaultAPY: 8.42,
-  depositToVault: (amount) => {
-    const deposit: VaultDeposit = {
-      id: `vd-${Date.now()}`,
-      action: 'deposit',
-      amount,
-      timestamp: Date.now(),
-      txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
-    }
-    set((state) => ({
-      vaultDeposits: [deposit, ...state.vaultDeposits],
-      vaultBalance: state.vaultBalance + amount,
-      vaultTVL: state.vaultTVL + amount,
-      mockBalance: state.mockBalance - amount,
-    }))
-  },
-  withdrawFromVault: (amount) => {
-    const withdrawal: VaultDeposit = {
-      id: `vd-${Date.now()}`,
-      action: 'withdraw',
-      amount,
-      timestamp: Date.now(),
-      txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
-    }
-    set((state) => ({
-      vaultDeposits: [withdrawal, ...state.vaultDeposits],
-      vaultBalance: Math.max(0, state.vaultBalance - amount),
-      vaultTVL: state.vaultTVL - amount,
-      mockBalance: state.mockBalance + amount,
-    }))
-  },
-
-  // UI State
-  isWalletModalOpen: false,
-  setWalletModalOpen: (open) => set({ isWalletModalOpen: open }),
-  isMarketSelectorOpen: false,
-  setMarketSelectorOpen: (open) => set({ isMarketSelectorOpen: open }),
-  selectedTimeframe: '1h',
-  setSelectedTimeframe: (tf) => set({ selectedTimeframe: tf }),
-  mobileNav: 'markets',
-  setMobileNav: (nav) => set({ mobileNav: nav }),
-
-  // Mock wallet balance
-  mockBalance: 1200,
-}), { name: 'arc-trade-storage' }))
+      migrate: () => {
+        // v8: Add watchlist state
+        return {}
+      },
+}))

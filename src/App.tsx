@@ -4,10 +4,10 @@ import WalletModal from './components/WalletModal'
 import Trade from './pages/Trade'
 import Vault from './pages/Vault'
 import Portfolio from './pages/Portfolio'
-import { useMockPrices } from './hooks/useMockPrices'
+import { usePythPrices } from './hooks/usePythPrices'
 
 export default function App() {
-  useMockPrices()
+  usePythPrices()
 
   const DummyPage = ({ title }: { title: string }) => (
     <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--color-text3)' }}>

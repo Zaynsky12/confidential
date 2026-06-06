@@ -1,4 +1,4 @@
-export type MarketCategory = 'crypto' | 'rwa';
+export type MarketCategory = 'crypto' | 'rwa' | 'forex';
 export type OrderSide = 'long' | 'short';
 export type OrderType = 'limit' | 'market' | 'twap' | 'stop market' | 'stop limit';
 export type OrderStatus = 'open' | 'filled' | 'cancelled';
@@ -10,6 +10,8 @@ export interface Market {
   baseAsset: string;
   quoteAsset: string;
   category: MarketCategory;
+  pythPriceId: string;
+  pythSymbol: string;
   price: number;
   prevPrice: number;
   change24h: number;

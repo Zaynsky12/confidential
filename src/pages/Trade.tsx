@@ -14,8 +14,8 @@ export default function Trade() {
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [mobileView, setMobileView] = useState<'chart' | 'orderbook' | 'trades'>('chart')
   
-  const fp = (p: number) => p >= 10000 ? p.toLocaleString('en-US', { maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
-  const fv = (v: number) => v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(2)}K`
+  const fp = (p: number) => p >= 1000 ? p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
+  const fvFull = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
     <div className="trade-layout">
@@ -37,7 +37,7 @@ export default function Trade() {
             </button>
             
             <div className="chart-stat-item">
-              <span className="chart-stat-label">Mark</span>
+              <span className="chart-stat-label">Mark Price</span>
               <span className="font-mono chart-stat-value" style={{ color: 'var(--color-accent)' }}>{fp(activeMarket.price)}</span>
             </div>
 
@@ -49,24 +49,25 @@ export default function Trade() {
             <div className="chart-stat-item">
               <span className="chart-stat-label">24h Change</span>
               <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
-                {activeMarket.change24h >= 0 ? '+' : ''}{(activeMarket.price * (activeMarket.change24h / 100)).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})} / {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
+                {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
               </span>
             </div>
 
-            <div className="chart-stat-item chart-stat-mobile-col">
+            <div className="chart-stat-item chart-stat-mobile-col desktop-only">
               <span className="chart-stat-label">24h Volume</span>
-              <span className="font-mono chart-stat-value">${fv(activeMarket.volume24h)}</span>
+              <span className="font-mono chart-stat-value">${fvFull(activeMarket.volume24h)}</span>
             </div>
 
-            <div className="chart-stat-item chart-stat-mobile-col">
+            <div className="chart-stat-item chart-stat-mobile-col desktop-only">
               <span className="chart-stat-label">Open Interest</span>
-              <span className="font-mono chart-stat-value">${fv(activeMarket.openInterest)}</span>
+              <span className="font-mono chart-stat-value">${fvFull(activeMarket.openInterest)}</span>
             </div>
 
             <div className="chart-stat-item chart-stat-mobile-col">
               <span className="chart-stat-label">Funding / Countdown</span>
-              <span className="font-mono chart-stat-value" style={{ color: 'var(--color-text1)' }}>
-                -0.0001%
+              <span className="font-mono chart-stat-value" style={{ color: 'var(--color-text1)', display: 'flex', flexDirection: 'row', gap: '6px', alignItems: 'center' }}>
+                <span style={{ color: 'var(--color-accent)' }}>0.0010%</span>
+                <span style={{ color: 'var(--color-text3)' }}>00:47:11</span>
               </span>
             </div>
           </div>
@@ -228,13 +229,13 @@ export default function Trade() {
         }
         .chart-stat-label {
           color: var(--color-text3);
-          font-size: 11px;
+          font-size: 10px;
           margin-bottom: 2px;
           white-space: nowrap;
         }
         .chart-stat-value {
           font-weight: 500;
-          font-size: 13px;
+          font-size: 12px;
           white-space: nowrap;
         }
         .market-selector-trigger {
@@ -469,12 +470,12 @@ export default function Trade() {
             align-items: flex-start;
           }
           .chart-stat-label {
-            font-size: 11px;
+            font-size: 10px;
             margin-bottom: 4px;
             color: var(--color-text3);
           }
           .chart-stat-value {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--color-text1);
           }
 
@@ -521,8 +522,8 @@ export default function Trade() {
           .tm-tab {
             flex: 1;
             text-align: center;
-            padding: 14px 0;
-            font-size: 14px;
+            padding: 10px 0;
+            font-size: 13px;
             font-weight: 500;
             color: var(--color-text3);
             border: none;

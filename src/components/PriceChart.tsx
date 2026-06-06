@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createChart, ColorType, CrosshairMode, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
 import type { IChartApi, ISeriesApi, CandlestickData, Time, MouseEventParams } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
-import { useMockCandles } from '../hooks/useMockCandles'
+import { usePythCandles } from '../hooks/usePythCandles'
 
 const TIMEFRAMES = ['5m', '15m', '1h', '4h', 'D', 'W']
 const BOTTOM_TFS = ['5y', '1y', '6m', '3m', '1m', '5d', '1d']
@@ -17,8 +17,8 @@ export default function PriceChart() {
   type HoveredCandleData = CandlestickData & { volume?: number }
   const [hoveredCandle, setHoveredCandle] = useState<HoveredCandleData | null>(null)
 
-  const basePrice = activeMarket?.price ?? 67000
-  const { initialCandles, appendCandle } = useMockCandles(basePrice, selectedTimeframe)
+  const pythSymbol = activeMarket?.pythSymbol ?? 'Crypto.BTC/USD'
+  const { initialCandles, appendCandle, loading } = usePythCandles(pythSymbol, selectedTimeframe)
 
 
 

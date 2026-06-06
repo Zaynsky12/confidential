@@ -14,11 +14,12 @@ const NAV_LINKS = [
 
 export default function Topbar() {
   const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
-  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen } = useTradeStore()
+  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [marketSearch, setMarketSearch] = useState('')
+  const [marketTab, setMarketTab] = useState<'all' | 'crypto' | 'rwa' | 'forex' | 'watchlist'>('all')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -31,15 +32,32 @@ export default function Topbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const filteredMarkets = markets.filter((m) =>
-    m.pair.toLowerCase().includes(marketSearch.toLowerCase())
-  )
+  const filteredMarkets = markets.filter((m) => {
+    const matchesSearch = m.pair.toLowerCase().includes(marketSearch.toLowerCase())
+    const matchesTab = marketTab === 'all' 
+      ? true 
+      : marketTab === 'watchlist' 
+        ? watchlist.includes(m.id)
+        : m.category === marketTab
+    return matchesSearch && matchesTab
+  })
 
   const formatPrice = (price: number) => {
-    if (price >= 10000) return price.toFixed(1)
-    if (price >= 100) return price.toFixed(2)
-    if (price >= 1) return price.toFixed(3)
-    return price.toFixed(4)
+    if (price >= 10000) return price.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    if (price >= 100) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    if (price >= 1) return price.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+    return price.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+  }
+
+  const formatVol = (v: number) => {
+    if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}b`
+    if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}m`
+    if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}k`
+    return `$${v.toFixed(2)}`
+  }
+
+  const formatOI = (v: number) => {
+    return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   return (
@@ -305,19 +323,56 @@ export default function Topbar() {
               </div>
             </div>
 
+            {/* Category Tabs */}
+            <div className="msp-tabs">
+              <button 
+                className={`msp-tab ${marketTab === 'all' ? 'active' : ''}`} 
+                onClick={() => setMarketTab('all')}
+              >
+                All
+              </button>
+              <button 
+                className={`msp-tab ${marketTab === 'crypto' ? 'active' : ''}`} 
+                onClick={() => setMarketTab('crypto')}
+              >
+                Crypto
+              </button>
+              <button 
+                className={`msp-tab ${marketTab === 'rwa' ? 'active' : ''}`} 
+                onClick={() => setMarketTab('rwa')}
+              >
+                TradFi (RWA)
+              </button>
+              <button 
+                className={`msp-tab ${marketTab === 'forex' ? 'active' : ''}`} 
+                onClick={() => setMarketTab('forex')}
+              >
+                Forex
+              </button>
+              <button 
+                className={`msp-tab ${marketTab === 'watchlist' ? 'active' : ''}`} 
+                onClick={() => setMarketTab('watchlist')}
+              >
+                Watchlist
+              </button>
+            </div>
+
             {/* Table */}
             <div className="msp-table-wrapper">
               <table className="msp-table">
                 <thead className="msp-thead">
                   <tr>
-                    <th className="msp-th">Pair</th>
+                    <th className="msp-th">Symbol</th>
                     <th className="msp-th msp-th-right">Price</th>
-                    <th className="msp-th msp-th-right">24h</th>
+                    <th className="msp-th msp-th-right">24h Change</th>
+                    <th className="msp-th msp-th-right desktop-col">24h Vol</th>
+                    <th className="msp-th msp-th-right desktop-col">Open Interest</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredMarkets.map((m) => {
                     const isActive = m.id === activeMarketId
+                    const leverage = m.category === 'crypto' ? '20x' : m.category === 'forex' ? '50x' : '10x'
                     return (
                       <tr
                         key={m.id}
@@ -328,11 +383,31 @@ export default function Topbar() {
                           setMarketSearch('')
                         }}
                       >
-                        <td className="msp-td msp-td-pair">{m.pair}</td>
+                        <td className="msp-td msp-td-pair">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <svg 
+                              width="14" height="14" viewBox="0 0 24 24" 
+                              fill={watchlist.includes(m.id) ? '#F7931A' : 'none'} 
+                              stroke={watchlist.includes(m.id) ? '#F7931A' : 'currentColor'} 
+                              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+                              style={{ color: 'var(--color-text3)', cursor: 'pointer' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleWatchlist(m.id);
+                              }}
+                            >
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            <span style={{ fontWeight: 600 }}>{m.pair}</span>
+                            <span style={{ fontSize: '9px', padding: '1px 3px', background: 'rgba(247, 147, 26, 0.1)', color: '#F7931A', borderRadius: '4px', fontWeight: 600 }}>{leverage}</span>
+                          </div>
+                        </td>
                         <td className="msp-td msp-td-price font-mono">{formatPrice(m.price)}</td>
                         <td className={`msp-td msp-td-change font-mono ${m.change24h >= 0 ? 'text-green' : 'text-red'}`}>
                           {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
                         </td>
+                        <td className="msp-td msp-td-vol font-mono desktop-col">{formatVol(m.volume24h)}</td>
+                        <td className="msp-td msp-td-oi font-mono desktop-col">{formatOI(m.openInterest)}</td>
                       </tr>
                     )
                   })}
@@ -404,6 +479,7 @@ export default function Topbar() {
           justify-content: center;
           flex: 1;
         }
+
         .mobile-only {
           display: none;
         }
@@ -567,27 +643,29 @@ export default function Topbar() {
           border-top: 1px solid var(--color-border);
         }
 
-        /* ═══ Mobile Market Selector — Slide-in Panel ═══ */
+        /* ═══ Wide Market Selector Modal ═══ */
         .market-selector-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.5);
+          background: rgba(0, 0, 0, 0.7);
           backdrop-filter: blur(4px);
-          z-index: 1000;
+          z-index: 1200;
           display: flex;
+          align-items: center;
           justify-content: flex-start;
           animation: fadeIn 200ms ease;
         }
         .market-selector-panel {
-          width: 85%;
-          max-width: 360px;
+          width: 100%;
+          max-width: 550px;
           height: 100%;
           background-color: var(--color-bg0);
           display: flex;
           flex-direction: column;
-          border-right: 1px solid var(--color-border);
+          border-right: 1px solid var(--color-border-strong);
           animation: slideInLeft 250ms cubic-bezier(0.23, 1, 0.32, 1);
-          box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4);
+          box-shadow: 8px 0 48px rgba(0, 0, 0, 0.4);
+          overflow: hidden;
         }
 
         /* Panel Header */
@@ -630,6 +708,32 @@ export default function Topbar() {
           color: var(--color-text3);
         }
 
+        /* Tabs */
+        .msp-tabs {
+          display: flex;
+          gap: 16px;
+          padding: 0 16px;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .msp-tab {
+          background: transparent;
+          border: none;
+          color: var(--color-text3);
+          font-size: 13px;
+          font-weight: 500;
+          padding: 10px 4px;
+          cursor: pointer;
+          transition: all 0.2s;
+          border-bottom: 2px solid transparent;
+        }
+        .msp-tab:hover {
+          color: var(--color-text1);
+        }
+        .msp-tab.active {
+          color: #ffffff;
+          border-bottom-color: #ffffff;
+        }
+
         /* Table */
         .msp-table-wrapper {
           flex: 1;
@@ -649,12 +753,12 @@ export default function Topbar() {
           border-bottom: 1px solid var(--color-border);
         }
         .msp-th {
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.8px;
           color: var(--color-text3);
-          padding: 6px 12px;
+          padding: 4px 10px;
         }
         .msp-th-right {
           text-align: right;
@@ -672,8 +776,9 @@ export default function Topbar() {
           border-left-color: var(--color-accent);
         }
         .msp-td {
-          padding: 12px;
-          font-size: 13px;
+          padding: 8px 10px;
+          font-size: 12px;
+          border-bottom: 1px solid rgba(255,255,255,0.02);
         }
         .msp-td-pair {
           font-weight: 500;
@@ -682,11 +787,35 @@ export default function Topbar() {
         .msp-td-price {
           text-align: right;
           color: var(--color-text1);
-          font-size: 13px;
+          font-weight: 500;
         }
         .msp-td-change {
           text-align: right;
-          font-size: 13px;
+          font-weight: 500;
+        }
+        .msp-td-vol {
+          text-align: right;
+          color: var(--color-text2);
+        }
+        .msp-td-oi {
+          text-align: right;
+          color: var(--color-text1);
+        }
+        
+        @media (max-width: 768px) {
+          .desktop-col {
+            display: none;
+          }
+          .market-selector-panel {
+            height: 100%;
+            max-height: 100vh;
+            border-radius: 0;
+            border: none;
+            width: 100%;
+          }
+          .market-selector-backdrop {
+            padding: 0;
+          }
         }
 
         /* ═══ Tablet Responsiveness (769px — 1024px) ═══ */
