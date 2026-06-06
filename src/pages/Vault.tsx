@@ -3,7 +3,7 @@ import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
-import { Link } from 'react-router-dom'
+
 
 export default function Vault() {
   const { vaultBalance, vaultTVL, vaultAPY, vaultDeposits, depositToVault, withdrawFromVault, setWalletModalOpen } = useTradeStore()
