@@ -422,9 +422,8 @@ export default function Trade() {
             box-sizing: border-box;
             background-color: var(--color-bg0);
             border-top: 1px solid var(--color-border);
-            padding: 12px;
-            padding-bottom: 24px;
-            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            padding: 8px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
             gap: 12px;
             z-index: 90;
             justify-content: center;
@@ -558,10 +557,12 @@ export default function Trade() {
           }
           .trade-positions {
             height: auto;
-            min-height: 400px; /* Increased to allow comfortable scrolling past the action bar */
+            min-height: 300px; /* Balanced height for comfortable scroll */
             flex-shrink: 0;
             display: block !important;
             overflow: visible;
+            background-color: var(--color-bg0);
+            border: none;
           }
           .action-btn {
             padding: 10px 8px;
@@ -582,8 +583,8 @@ export default function Trade() {
             box-sizing: border-box;
             background-color: var(--color-bg0);
             border-top: 1px solid var(--color-border);
-            padding: 12px 16px;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            padding: 8px 16px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
             gap: 12px;
             z-index: 900;
             justify-content: center;
@@ -595,7 +596,7 @@ export default function Trade() {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 3px;
             background: none;
             border: none;
             color: var(--color-text3);
@@ -605,8 +606,8 @@ export default function Trade() {
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           }
           .mobile-nav-btn svg {
-            width: 22px;
-            height: 22px;
+            width: 20px;
+            height: 20px;
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
           }
           .mobile-nav-btn.active {

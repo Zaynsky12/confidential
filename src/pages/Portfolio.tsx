@@ -3,18 +3,15 @@ import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
-
+import Positions from '../components/Positions'
 export default function Portfolio() {
   const { positions } = useTradeStore()
-  const { isConnected, balance } = useArcWallet()
+  const { balance } = useArcWallet()
   const chartRef = useRef<HTMLDivElement>(null)
   const chartApiRef = useRef<IChartApi | null>(null)
 
-  const [activeTab, setActiveTab] = useState('Positions')
   const [chartMetric, setChartMetric] = useState('PnL')
   const [chartTimeframe, setChartTimeframe] = useState('30d')
-
-  const tabs = ['Balances', 'Collateral', 'Positions', 'Open Orders', 'TWAPs', 'TWAP History', 'Trade History', 'Funding History', 'Order History', 'Transfers']
 
   const openPos = positions.filter(p=>p.status==='open')
   const totalPnl = positions.reduce((s,p)=>s+p.pnl,0)
@@ -153,61 +150,7 @@ export default function Portfolio() {
 
       {/* BOTTOM SECTION: TABS & TABLES */}
       <div className="portfolio-bottom">
-        <div className="tab-scroll-container">
-          <div className="tabs-row">
-            {tabs.map(tab => (
-              <button 
-                key={tab} 
-                className={`pt-tab ${activeTab === tab ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div className="tab-content">
-          {!isConnected ? (
-            <div className="empty-state">
-              <div style={{ color: 'var(--color-text3)', fontSize:14 }}>Connect an account first</div>
-            </div>
-          ) : activeTab === 'Positions' ? (
-            <div style={{ overflowX:'auto' }}>
-              <table className="portfolio-table">
-                <thead>
-                  <tr>
-                    {['Market','Side','Size','Entry','Mark','PnL','Leverage','Status'].map(h=>(
-                      <th key={h}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {positions.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No positions yet</td>
-                    </tr>
-                  ) : positions.map(p=>(
-                    <tr key={p.id}>
-                      <td style={{ fontWeight:500 }}>{p.pair}</td>
-                      <td><span className={p.side==='long'?'badge badge-green':'badge badge-red'} style={{ fontSize:9,padding:'2px 6px' }}>{p.side.toUpperCase()}</span></td>
-                      <td className="font-mono">{p.size.toFixed(4)}</td>
-                      <td className="font-mono">{p.entryPrice.toFixed(2)}</td>
-                      <td className="font-mono">{p.markPrice.toFixed(2)}</td>
-                      <td className={`font-mono ${p.pnl>=0?'text-green':'text-red'}`} style={{ fontWeight:500 }}>{p.pnl>=0?'+':''}{p.pnl.toFixed(2)}</td>
-                      <td className="font-mono">{p.leverage}x</td>
-                      <td><span className="badge" style={{ fontSize:9,padding:'2px 6px' }}>{p.status.toUpperCase()}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div style={{ color: 'var(--color-text3)', fontSize:14 }}>No data yet</div>
-            </div>
-          )}
-        </div>
+        <Positions />
       </div>
 
       <style>{`
@@ -341,73 +284,15 @@ export default function Portfolio() {
           padding-top: 16px;
         }
 
-        /* Bottom Section */
         .portfolio-bottom {
           border: 1px solid var(--color-border);
           border-radius: 8px;
           background: var(--color-bg1);
           overflow: hidden;
         }
-        .tab-scroll-container {
-          overflow-x: auto;
-          scrollbar-width: none;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .tab-scroll-container::-webkit-scrollbar {
-          display: none;
-        }
-        .tabs-row {
-          display: flex;
-          padding: 0 16px;
-          gap: 24px;
-        }
-        .pt-tab {
+        .portfolio-bottom .positions-container {
+          border-top: none;
           background: transparent;
-          border: none;
-          color: var(--color-text3);
-          font-size: 14px;
-          font-weight: 500;
-          padding: 16px 0;
-          cursor: pointer;
-          border-bottom: 2px solid transparent;
-          white-space: nowrap;
-          transition: all 0.2s;
-        }
-        .pt-tab:hover {
-          color: var(--color-text2);
-        }
-        .pt-tab.active {
-          color: var(--color-text1);
-          border-bottom-color: #ffffff;
-        }
-
-        /* Tables & Empty States */
-        .tab-content {
-          min-height: 200px;
-        }
-        .empty-state {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 200px;
-        }
-        .portfolio-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 13px;
-        }
-        .portfolio-table th {
-          text-align: left;
-          padding: 14px 20px;
-          color: var(--color-text3);
-          font-weight: 500;
-          border-bottom: 1px solid var(--color-border);
-          white-space: nowrap;
-        }
-        .portfolio-table td {
-          padding: 12px 20px;
-          border-bottom: 1px solid var(--color-border);
-          white-space: nowrap;
         }
 
         .portfolio-mobile-only {
@@ -430,7 +315,7 @@ export default function Portfolio() {
           .portfolio-container {
             padding: 16px 0;
             overflow-x: hidden;
-            padding-bottom: 100px; /* Leave space for mobile action bar */
+            padding-bottom: 20px;
           }
           .mobile-account-overview-card {
             background: var(--color-bg1);
@@ -459,33 +344,7 @@ export default function Portfolio() {
             border: none;
             border-radius: 0;
             border-top: 1px solid var(--color-border);
-          }
-          .tab-scroll-container {
-            -webkit-overflow-scrolling: touch;
-            border-top: 2px solid var(--color-border);
-            background: var(--color-bg1);
-          }
-          .tabs-row {
-            padding: 0 8px;
-            gap: 8px;
-          }
-          .pt-tab {
-            padding: 10px 12px;
-            font-size: 12px;
-          }
-          .tab-content > div {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-          }
-          .portfolio-table {
-            font-size: 12px;
-          }
-          .portfolio-table th {
-            padding: 8px 12px;
-            font-size: 11px;
-          }
-          .portfolio-table td {
-            padding: 8px 12px;
+            background: transparent;
           }
         }
 
