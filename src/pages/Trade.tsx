@@ -243,13 +243,13 @@ export default function Trade() {
         .trade-positions {
           flex: 1;
           overflow: hidden;
+          background-color: transparent; /* Move card styles to mobile query or inner */
+        }
+        .trade-positions .positions-container {
           border: 1px solid var(--color-border);
           border-radius: 8px;
           background-color: var(--color-bg1);
-        }
-        .trade-positions .positions-container {
-          border-top: none;
-          background: transparent;
+          height: 100%;
         }
         .trade-orderbook-col {
           width: 260px;
@@ -560,12 +560,16 @@ export default function Trade() {
             display: none !important;
           }
           .trade-positions {
-            height: auto;
-            min-height: 400px; /* Space to scroll */
+            min-height: 400px; /* Provides scroll space without extending the gray box */
             flex-shrink: 0;
             display: block !important;
-            overflow: visible;
-            /* Inherits desktop card styles (border and bg1) */
+            background: transparent;
+            border: none;
+          }
+          .trade-positions .positions-container {
+            height: auto;
+            overflow: hidden;
+            /* Inner container naturally limits the gray background to its content */
           }
           .action-btn {
             padding: 10px 8px;
