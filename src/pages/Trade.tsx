@@ -247,6 +247,10 @@ export default function Trade() {
           border-radius: 8px;
           background-color: var(--color-bg1);
         }
+        .trade-positions .positions-container {
+          border-top: none;
+          background: transparent;
+        }
         .trade-orderbook-col {
           width: 260px;
           flex-shrink: 0;
