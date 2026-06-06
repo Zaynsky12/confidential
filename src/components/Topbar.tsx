@@ -14,11 +14,10 @@ const NAV_LINKS = [
 
 export default function Topbar() {
   const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
-  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket, mobileNav } = useTradeStore()
+  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false)
   const [marketSearch, setMarketSearch] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -86,7 +85,7 @@ export default function Topbar() {
         </div>
 
         {/* Center — Active Market (Mobile Only) */}
-        <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 2 }}>
+        <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 2, marginTop: '-4px' }}>
           {mobileNav === 'account' ? (
             <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Portfolio</span>
           ) : mobileNav === 'vaults' ? (
@@ -94,8 +93,9 @@ export default function Topbar() {
           ) : (
             <>
               <button 
-                onClick={() => setIsMarketSelectorOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
+                className="market-selector-trigger"
+                onClick={() => setMarketSelectorOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', marginLeft: 0 }}
               >
                 {activeMarket && activeMarket.pair.includes('BTC') ? (
                   <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
@@ -113,7 +113,7 @@ export default function Topbar() {
                 </svg>
               </button>
               {activeMarket && (
-                <span className="font-mono" style={{ fontSize: 13, color: 'var(--color-text2)', fontWeight: 500 }}>
+                <span className="font-mono" style={{ fontSize: 13, color: 'var(--color-text2)', fontWeight: 500, marginTop: '-6px' }}>
                   ${formatPrice(activeMarket.price)}
                 </span>
               )}
@@ -265,11 +265,11 @@ export default function Topbar() {
         </div>
       )}
 
-      {/* Mobile Market Selector — Slide-in Panel from Right */}
+      {/* Market Selector — Slide-in Panel from Right */}
       {isMarketSelectorOpen && (
         <div
-          className="market-selector-backdrop mobile-only"
-          onClick={() => setIsMarketSelectorOpen(false)}
+          className="market-selector-backdrop"
+          onClick={() => setMarketSelectorOpen(false)}
         >
           <div
             className="market-selector-panel"
@@ -280,7 +280,7 @@ export default function Topbar() {
               <span className="msp-title">Markets</span>
               <button
                 className="mobile-close-btn"
-                onClick={() => setIsMarketSelectorOpen(false)}
+                onClick={() => setMarketSelectorOpen(false)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -324,7 +324,7 @@ export default function Topbar() {
                         className={`msp-row ${isActive ? 'msp-row-active' : ''}`}
                         onClick={() => {
                           setActiveMarket(m.id)
-                          setIsMarketSelectorOpen(false)
+                          setMarketSelectorOpen(false)
                           setMarketSearch('')
                         }}
                       >
@@ -575,7 +575,7 @@ export default function Topbar() {
           backdrop-filter: blur(4px);
           z-index: 1000;
           display: flex;
-          justify-content: flex-end;
+          justify-content: flex-start;
           animation: fadeIn 200ms ease;
         }
         .market-selector-panel {
@@ -585,13 +585,9 @@ export default function Topbar() {
           background-color: var(--color-bg0);
           display: flex;
           flex-direction: column;
-          border-left: 1px solid var(--color-border);
-          animation: slideInRight 250ms cubic-bezier(0.23, 1, 0.32, 1);
-          box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
-        }
-        @keyframes slideInRight {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+          border-right: 1px solid var(--color-border);
+          animation: slideInLeft 250ms cubic-bezier(0.23, 1, 0.32, 1);
+          box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4);
         }
 
         /* Panel Header */
@@ -720,7 +716,6 @@ export default function Topbar() {
         @media (max-width: 768px) {
           .topbar {
             height: 60px;
-            padding-top: 4px;
           }
           .topbar-inner {
             padding: 0 16px;

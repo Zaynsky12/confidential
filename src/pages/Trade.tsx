@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import MarketSidebar from '../components/MarketSidebar'
+
 import PriceChart from '../components/PriceChart'
 import OrderBook from '../components/OrderBook'
 import OrderForm from '../components/OrderForm'
@@ -10,7 +10,7 @@ import { useTradeStore } from '../store/useTradeStore'
 
 export default function Trade() {
   const { isConnected } = useArcWallet()
-  const { setWalletModalOpen, markets, activeMarketId, mobileNav, setMobileNav } = useTradeStore()
+  const { setWalletModalOpen, markets, activeMarketId, mobileNav, setMobileNav, setMarketSelectorOpen } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [mobileView, setMobileView] = useState<'chart' | 'orderbook' | 'trades'>('chart')
   
@@ -19,18 +19,22 @@ export default function Trade() {
 
   return (
     <div className="trade-layout">
-      <div className="trade-sidebar">
-        <MarketSidebar />
-      </div>
       <div className={`trade-middle ${mobileNav !== 'markets' ? 'mobile-hidden' : ''}`}>
         <div className="trade-middle-top">
           <div className="trade-center">
         {activeMarket && (
           <div className="chart-header-stats">
-            <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button 
+              className="desktop-only market-selector-trigger" 
+              onClick={() => setMarketSelectorOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer' }}
+            >
               <span style={{ fontSize: 18, fontWeight: 600 }}>{activeMarket.pair}</span>
-              <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600 }}>40x</span>
-            </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ marginTop: 2 }}>
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, marginLeft: 6 }}>40x</span>
+            </button>
             
             <div className="chart-stat-item">
               <span className="chart-stat-label">Mark</span>
@@ -166,7 +170,7 @@ export default function Trade() {
       <style>{`
         .trade-layout {
           display: grid;
-          grid-template-columns: 200px 1fr 300px;
+          grid-template-columns: 1fr 300px;
           min-height: calc(100vh - 60px);
           padding: 0 12px 12px 12px;
           gap: 12px;
@@ -184,14 +188,7 @@ export default function Trade() {
           min-width: 0;
           gap: 12px;
         }
-        .trade-sidebar {
-          position: sticky;
-          top: 60px;
-          height: calc(100vh - 72px);
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-        }
+
         .trade-center {
           display: flex;
           flex-direction: column;
@@ -239,6 +236,19 @@ export default function Trade() {
           font-weight: 500;
           font-size: 13px;
           white-space: nowrap;
+        }
+        .market-selector-trigger {
+          padding: 6px 8px;
+          margin-left: -8px;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+        }
+        .market-selector-trigger:hover {
+          background-color: var(--color-bg2) !important;
+        }
+        .market-selector-trigger:active {
+          transform: scale(0.96);
+          opacity: 0.8;
         }
         .trade-positions {
           flex: 1;

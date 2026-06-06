@@ -99,6 +99,8 @@ interface TradeStore {
   // UI State
   isWalletModalOpen: boolean
   setWalletModalOpen: (open: boolean) => void
+  isMarketSelectorOpen: boolean
+  setMarketSelectorOpen: (open: boolean) => void
   selectedTimeframe: string
   setSelectedTimeframe: (tf: string) => void
   mobileNav: 'markets' | 'trade' | 'vaults' | 'account'
@@ -268,6 +270,8 @@ export const useTradeStore = create<TradeStore>()(
   // UI State
   isWalletModalOpen: false,
   setWalletModalOpen: (open) => set({ isWalletModalOpen: open }),
+  isMarketSelectorOpen: false,
+  setMarketSelectorOpen: (open) => set({ isMarketSelectorOpen: open }),
   selectedTimeframe: '1h',
   setSelectedTimeframe: (tf) => set({ selectedTimeframe: tf }),
   mobileNav: 'markets',

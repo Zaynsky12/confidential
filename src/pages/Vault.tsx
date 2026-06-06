@@ -142,9 +142,19 @@ export default function Vault() {
         {/* RIGHT COLUMN (ACTION CARD) */}
         <div className="vault-right">
           <div className="action-card sticky-card">
-            <div className="action-tabs">
-              <button className={`action-tab ${activeAction==='Deposit'?'active':''}`} onClick={()=>{setActiveAction('Deposit'); setAmt('')}}>Deposit</button>
-              <button className={`action-tab ${activeAction==='Withdraw'?'active':''}`} onClick={()=>{setActiveAction('Withdraw'); setAmt('')}}>Withdraw</button>
+            <div style={{ display: 'flex', background: 'var(--color-bg0)', borderRadius: 8, padding: 4, margin: '20px 20px 0', border: '1px solid var(--color-border)' }}>
+              <button 
+                onClick={()=>{setActiveAction('Deposit'); setAmt('')}}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 6, border: 'none', background: activeAction === 'Deposit' ? 'var(--color-accent)' : 'transparent', color: activeAction === 'Deposit' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}
+              >
+                Deposit
+              </button>
+              <button 
+                onClick={()=>{setActiveAction('Withdraw'); setAmt('')}}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 6, border: 'none', background: activeAction === 'Withdraw' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Withdraw' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}
+              >
+                Withdraw
+              </button>
             </div>
             
             <div className="action-body">
@@ -356,28 +366,8 @@ export default function Vault() {
           background: var(--color-bg1);
           overflow: hidden;
         }
-        .action-tabs {
-          display: flex;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .action-tab {
-          flex: 1;
-          background: var(--color-bg0);
-          border: none;
-          color: var(--color-text3);
-          padding: 16px 0;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .action-tab.active {
-          background: var(--color-bg1);
-          color: var(--color-text1);
-          box-shadow: inset 0 2px 0 0 #ffffff;
-        }
         .action-body {
-          padding: 24px;
+          padding: 20px;
         }
         .warning-banner {
           display: flex;
@@ -455,7 +445,7 @@ export default function Vault() {
           background: var(--color-text1);
           color: var(--color-bg0);
           border: none;
-          border-radius: 6px;
+          border-radius: 12px;
           padding: 16px 0;
           font-size: 16px;
           font-weight: 600;
