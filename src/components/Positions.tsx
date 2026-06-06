@@ -51,214 +51,252 @@ export default function Positions() {
       <div className="pos-content">
         {tab === 'positions' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header">
-              <span>Market</span>
-              <span>Side</span>
-              <span>Size</span>
-              <span>Entry Price</span>
-              <span>Mark Price</span>
-              <span>Liq. Price</span>
-              <span>Margin</span>
-              <span>PnL</span>
-              <span></span>
-            </div>
             {!isConnected ? (
               <div className="pos-empty">Please connect wallet to view positions</div>
-            ) : openPositions.length === 0 ? (
-              <div className="pos-empty">No open positions</div>
             ) : (
-              openPositions.map((p) => (
-                <div key={p.id} className="pos-row">
-                  <span style={{ fontWeight: 600 }}>{p.pair}</span>
-                  <span className={p.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
-                    {p.side} {p.leverage}x
-                  </span>
-                  <span className="font-mono">{p.size.toFixed(4)}</span>
-                  <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
-                  <span className="font-mono">${p.markPrice.toFixed(2)}</span>
-                  <span className="font-mono" style={{ color: 'var(--color-text2)' }}>${p.liquidationPrice.toFixed(2)}</span>
-                  <span className="font-mono">${p.collateral.toFixed(2)}</span>
-                  <span className={`font-mono ${p.pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
-                    {p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)} ({p.pnl >= 0 ? '+' : ''}{p.pnlPercent.toFixed(2)}%)
-                  </span>
-                  <button onClick={() => closePosition(p.id)} className="btn-close">
-                    Close
-                  </button>
+              <>
+                <div className="pos-header">
+                  <span>Market</span>
+                  <span>Side</span>
+                  <span>Size</span>
+                  <span>Entry Price</span>
+                  <span>Mark Price</span>
+                  <span>Liq. Price</span>
+                  <span>Margin</span>
+                  <span>PnL</span>
+                  <span></span>
                 </div>
-              ))
+                {openPositions.length === 0 ? (
+                  <div className="pos-empty">No open positions</div>
+                ) : (
+                  openPositions.map((p) => (
+                    <div key={p.id} className="pos-row">
+                      <span style={{ fontWeight: 600 }}>{p.pair}</span>
+                      <span className={p.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                        {p.side} {p.leverage}x
+                      </span>
+                      <span className="font-mono">{p.size.toFixed(4)}</span>
+                      <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
+                      <span className="font-mono">${p.markPrice.toFixed(2)}</span>
+                      <span className="font-mono" style={{ color: 'var(--color-text2)' }}>${p.liquidationPrice.toFixed(2)}</span>
+                      <span className="font-mono">${p.collateral.toFixed(2)}</span>
+                      <span className={`font-mono ${p.pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
+                        {p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)} ({p.pnl >= 0 ? '+' : ''}{p.pnlPercent.toFixed(2)}%)
+                      </span>
+                      <button onClick={() => closePosition(p.id)} className="btn-close">
+                        Close
+                      </button>
+                    </div>
+                  ))
+                )}
+              </>
             )}
           </div>
         ) : tab === 'orders' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr auto' }}>
-              <span>Time</span>
-              <span>Market</span>
-              <span>Side</span>
-              <span>Type</span>
-              <span>Size</span>
-              <span>Price</span>
-              <span>Filled</span>
-              <span></span>
-            </div>
             {!isConnected ? (
               <div className="pos-empty">Please connect wallet to view open orders</div>
-            ) : openOrders.length === 0 ? (
-              <div className="pos-empty">No open orders</div>
             ) : (
-              openOrders.map((o) => (
-                <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr auto' }}>
-                  <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.timestamp)}</span>
-                  <span style={{ fontWeight: 600 }}>{o.pair}</span>
-                  <span className={o.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
-                    {o.side}
-                  </span>
-                  <span style={{ textTransform: 'capitalize' }}>{o.type}</span>
-                  <span className="font-mono">{o.size.toFixed(4)}</span>
-                  <span className="font-mono">${o.price.toFixed(2)}</span>
-                  <span className="font-mono">0.00%</span>
-                  <button onClick={() => cancelOrder(o.id)} className="btn-close">
-                    Cancel
-                  </button>
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr auto' }}>
+                  <span>Time</span>
+                  <span>Market</span>
+                  <span>Side</span>
+                  <span>Type</span>
+                  <span>Size</span>
+                  <span>Price</span>
+                  <span>Filled</span>
+                  <span></span>
                 </div>
-              ))
+                {openOrders.length === 0 ? (
+                  <div className="pos-empty">No open orders</div>
+                ) : (
+                  openOrders.map((o) => (
+                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr auto' }}>
+                      <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.timestamp)}</span>
+                      <span style={{ fontWeight: 600 }}>{o.pair}</span>
+                      <span className={o.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                        {o.side}
+                      </span>
+                      <span style={{ textTransform: 'capitalize' }}>{o.type}</span>
+                      <span className="font-mono">{o.size.toFixed(4)}</span>
+                      <span className="font-mono">${o.price.toFixed(2)}</span>
+                      <span className="font-mono">0.00%</span>
+                      <button onClick={() => cancelOrder(o.id)} className="btn-close">
+                        Cancel
+                      </button>
+                    </div>
+                  ))
+                )}
+              </>
             )}
           </div>
         ) : tab === 'balances' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
-              <span>Asset</span>
-              <span>Total</span>
-              <span>Available</span>
-              <span>Value (USD)</span>
-            </div>
             {!isConnected ? (
               <div className="pos-empty">Please connect wallet to view balances</div>
             ) : (
-              <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#2775ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold' }}>U</div>
-                  <span style={{ fontWeight: 600 }}>USDC</span>
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+                  <span>Asset</span>
+                  <span>Total</span>
+                  <span>Available</span>
+                  <span>Value (USD)</span>
                 </div>
-                <span className="font-mono">{balance.toFixed(2)}</span>
-                <span className="font-mono">{balance.toFixed(2)}</span>
-                <span className="font-mono">${balance.toFixed(2)}</span>
-              </div>
+                <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#2775ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold' }}>U</div>
+                    <span style={{ fontWeight: 600 }}>USDC</span>
+                  </div>
+                  <span className="font-mono">{balance.toFixed(2)}</span>
+                  <span className="font-mono">{balance.toFixed(2)}</span>
+                  <span className="font-mono">${balance.toFixed(2)}</span>
+                </div>
+              </>
             )}
           </div>
         ) : tab === 'trade_history' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-              <span>Time Closed</span>
-              <span>Market</span>
-              <span>Side</span>
-              <span>Size</span>
-              <span>Entry Price</span>
-              <span>Close Price</span>
-              <span>Realized PnL</span>
-            </div>
             {!isConnected ? (
               <div className="pos-empty">Please connect wallet to view history</div>
-            ) : closedPositions.length === 0 ? (
-              <div className="pos-empty">No trade history</div>
             ) : (
-              closedPositions.map((p) => (
-                <div key={p.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                  <span style={{ color: 'var(--color-text3)' }}>{p.closedAt ? formatTime(p.closedAt) : '—'}</span>
-                  <span style={{ fontWeight: 600 }}>{p.pair}</span>
-                  <span className={p.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
-                    {p.side}
-                  </span>
-                  <span className="font-mono">{p.size.toFixed(4)}</span>
-                  <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
-                  <span className="font-mono">${p.markPrice.toFixed(2)}</span>
-                  <span className={`font-mono ${p.pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
-                    {p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)}
-                  </span>
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                  <span>Time Closed</span>
+                  <span>Market</span>
+                  <span>Side</span>
+                  <span>Size</span>
+                  <span>Entry Price</span>
+                  <span>Close Price</span>
+                  <span>Realized PnL</span>
                 </div>
-              ))
+                {closedPositions.length === 0 ? (
+                  <div className="pos-empty">No trade history</div>
+                ) : (
+                  closedPositions.map((p) => (
+                    <div key={p.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                      <span style={{ color: 'var(--color-text3)' }}>{p.closedAt ? formatTime(p.closedAt) : '—'}</span>
+                      <span style={{ fontWeight: 600 }}>{p.pair}</span>
+                      <span className={p.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                        {p.side}
+                      </span>
+                      <span className="font-mono">{p.size.toFixed(4)}</span>
+                      <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
+                      <span className="font-mono">${p.markPrice.toFixed(2)}</span>
+                      <span className={`font-mono ${p.pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
+                        {p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </>
             )}
           </div>
         ) : tab === 'twaps' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.5fr 1fr 1fr' }}>
-              <span>Created</span>
-              <span>Coin</span>
-              <span>Total Size</span>
-              <span>Filled</span>
-              <span>Time to Next Order</span>
-              <span>Reduce Only</span>
-              <span>Cancel</span>
-            </div>
-            <div className="pos-empty">
-              {!isConnected ? 'Please connect wallet to view TWAPs' : 'No results found'}
-            </div>
+            {!isConnected ? (
+              <div className="pos-empty">Please connect wallet to view TWAPs</div>
+            ) : (
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.5fr 1fr 1fr' }}>
+                  <span>Created</span>
+                  <span>Coin</span>
+                  <span>Total Size</span>
+                  <span>Filled</span>
+                  <span>Time to Next Order</span>
+                  <span>Reduce Only</span>
+                  <span>Cancel</span>
+                </div>
+                <div className="pos-empty">No results found</div>
+              </>
+            )}
           </div>
         ) : tab === 'collateral' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
-              <span>Asset</span>
-              <span>Type</span>
-              <span>Total</span>
-              <span>Value (USD)</span>
-            </div>
-            <div className="pos-empty">
-              {!isConnected ? 'Please connect wallet to view Collateral' : 'No results found'}
-            </div>
+            {!isConnected ? (
+              <div className="pos-empty">Please connect wallet to view Collateral</div>
+            ) : (
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+                  <span>Asset</span>
+                  <span>Type</span>
+                  <span>Total</span>
+                  <span>Value (USD)</span>
+                </div>
+                <div className="pos-empty">No results found</div>
+              </>
+            )}
           </div>
         ) : tab === 'twap_history' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
-              <span>Time</span>
-              <span>Coin</span>
-              <span>Total Size</span>
-              <span>Filled Price</span>
-              <span>Status</span>
-            </div>
-            <div className="pos-empty">
-              {!isConnected ? 'Please connect wallet to view TWAP History' : 'No results found'}
-            </div>
+            {!isConnected ? (
+              <div className="pos-empty">Please connect wallet to view TWAP History</div>
+            ) : (
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
+                  <span>Time</span>
+                  <span>Coin</span>
+                  <span>Total Size</span>
+                  <span>Filled Price</span>
+                  <span>Status</span>
+                </div>
+                <div className="pos-empty">No results found</div>
+              </>
+            )}
           </div>
         ) : tab === 'funding_history' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
-              <span>Time</span>
-              <span>Market</span>
-              <span>Payment</span>
-              <span>Funding Rate</span>
-              <span>Position Size</span>
-            </div>
-            <div className="pos-empty">
-              {!isConnected ? 'Please connect wallet to view Funding History' : 'No results found'}
-            </div>
+            {!isConnected ? (
+              <div className="pos-empty">Please connect wallet to view Funding History</div>
+            ) : (
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
+                  <span>Time</span>
+                  <span>Market</span>
+                  <span>Payment</span>
+                  <span>Funding Rate</span>
+                  <span>Position Size</span>
+                </div>
+                <div className="pos-empty">No results found</div>
+              </>
+            )}
           </div>
         ) : tab === 'order_history' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-              <span>Time</span>
-              <span>Market</span>
-              <span>Side</span>
-              <span>Type</span>
-              <span>Size</span>
-              <span>Price</span>
-              <span>Status</span>
-            </div>
-            <div className="pos-empty">
-              {!isConnected ? 'Please connect wallet to view Order History' : 'No results found'}
-            </div>
+            {!isConnected ? (
+              <div className="pos-empty">Please connect wallet to view Order History</div>
+            ) : (
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                  <span>Time</span>
+                  <span>Market</span>
+                  <span>Side</span>
+                  <span>Type</span>
+                  <span>Size</span>
+                  <span>Price</span>
+                  <span>Status</span>
+                </div>
+                <div className="pos-empty">No results found</div>
+              </>
+            )}
           </div>
         ) : tab === 'transfers' ? (
           <div className="pos-table-wrapper">
-            <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-              <span>Time</span>
-              <span>Asset</span>
-              <span>Amount</span>
-              <span>Type</span>
-              <span>Status</span>
-              <span>Tx</span>
-            </div>
-            <div className="pos-empty">
-              {!isConnected ? 'Please connect wallet to view Transfers' : 'No results found'}
-            </div>
+            {!isConnected ? (
+              <div className="pos-empty">Please connect wallet to view Transfers</div>
+            ) : (
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                  <span>Time</span>
+                  <span>Asset</span>
+                  <span>Amount</span>
+                  <span>Type</span>
+                  <span>Status</span>
+                  <span>Tx</span>
+                </div>
+                <div className="pos-empty">No results found</div>
+              </>
+            )}
           </div>
         ) : null}
       </div>

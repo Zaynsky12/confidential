@@ -121,14 +121,14 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       </div>
 
       {/* Long / Short */}
-      <div style={{ display:'flex', background:'var(--color-bg2)', borderRadius:8, padding:2, marginTop: 4 }}>
+      <div style={{ display:'flex', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:8, padding:2, marginTop: 4 }}>
         <button onClick={()=>setSide('long')} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'none', background:side==='long'?'var(--color-green)':'transparent', color:side==='long'?'#000':'#8e8e93', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>Long</button>
         <button onClick={()=>setSide('short')} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'none', background:side==='short'?'#e55f48':'transparent', color:side==='short'?'#fff':'#8e8e93', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>Short</button>
       </div>
 
       {/* Margin & Order Type Dropdowns */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-        <div style={{ background:'var(--color-bg2)', borderRadius:6, padding:'6px 12px', display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
+        <div style={{ background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:6, padding:'6px 12px', display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
           <span style={{ fontSize:11, color:'#8e8e93' }}>Margin</span>
           <select value={marginMode} onChange={e=>setMarginMode(e.target.value as any)} style={{ background:'transparent', border:'none', color:'#fff', fontSize:13, fontWeight:500, outline:'none', appearance:'none', padding:0, cursor:'pointer', width:'100%' }}>
             <option value="cross" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Cross</option>
@@ -136,7 +136,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           </select>
           <svg style={{ position:'absolute', right:12, top:'50%', pointerEvents:'none' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
         </div>
-        <div style={{ background:'var(--color-bg2)', borderRadius:6, padding:'6px 12px', display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
+        <div style={{ background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:6, padding:'6px 12px', display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
           <span style={{ fontSize:11, color:'#8e8e93' }}>Order Type</span>
           <select value={orderType} onChange={e=>setOrderType(e.target.value as any)} style={{ background:'transparent', border:'none', color:'#fff', fontSize:13, fontWeight:500, outline:'none', appearance:'none', padding:0, cursor:'pointer', width:'100%' }}>
             <option value="market" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Market</option>
@@ -154,7 +154,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <span style={{ fontSize:12, color:'#8e8e93', fontWeight:500 }}>Leverage</span>
         <div style={{ display:'flex', gap:4 }}>
           {[1, 10, 20, 40].map(l => (
-            <button key={l} onClick={()=>setLeverage(l)} style={{ flex:1, background:leverage===l?'var(--color-bg3)':'var(--color-bg2)', border:'1px solid', borderColor:leverage===l?'var(--color-border-strong)':'transparent', color:'#fff', padding:'6px 0', borderRadius:6, fontSize:13, fontWeight:500, cursor:'pointer' }}>{l}x</button>
+            <button key={l} onClick={()=>setLeverage(l)} style={{ flex:1, background:leverage===l?'var(--color-bg3)':'var(--color-bg2)', border:'1px solid', borderColor:leverage===l?'var(--color-border-strong)':'var(--color-border)', color:'#fff', padding:'6px 0', borderRadius:6, fontSize:13, fontWeight:500, cursor:'pointer' }}>{l}x</button>
           ))}
           <div 
             onClick={() => {
@@ -169,7 +169,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
               alignItems: 'center', 
               justifyContent: 'space-between', 
               padding: '0 8px', 
-              border: isCustomLeverage ? '1px solid var(--color-border-strong)' : '1px solid transparent', 
+              border: isCustomLeverage ? '1px solid var(--color-border-strong)' : '1px solid var(--color-border)', 
               cursor: 'pointer' 
             }}
           >
@@ -245,7 +245,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         {!isConnected ? 'Connect Wallet' : `Place ${activeMarket.baseAsset} Order`}
       </button>
       {/* Summary Stats */}
-      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>
+      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Leverage</span><span style={{ color:'#60a5fa' }}>{leverage}x</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Order Value</span><span style={{ color:'#60a5fa' }}>{baseSize ? baseSize.toFixed(4) : 0} {activeMarket.baseAsset} / {orderSummary?.notional || 0} USD</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Liq. Price</span><span style={{ borderBottom:'1px dashed #555' }}>N/A</span></div>
