@@ -125,7 +125,7 @@ export default function Topbar() {
         </div>
 
         {/* Center — Active Market (Mobile Only) */}
-        <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 2, marginTop: '-4px' }}>
+        <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 0, justifyContent: 'center' }}>
           {mobileNav === 'account' ? (
             <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Portfolio</span>
           ) : mobileNav === 'vaults' ? (
@@ -135,20 +135,20 @@ export default function Topbar() {
               <button 
                 className="market-selector-trigger"
                 onClick={() => setMarketSelectorOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', marginLeft: 0, maxWidth: '100%' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', marginLeft: 0, maxWidth: '100%', padding: '2px 0', minHeight: 0 }}
               >
                 {activeMarket && getAssetLogo(activeMarket.pair) && (
-                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
                 )}
-                <span className="font-mono" style={{ fontWeight: 600, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>
+                <span className="font-mono" style={{ fontWeight: 600, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1, lineHeight: 1 }}>
                   {activeMarket ? activeMarket.pair : 'Trade'}
                 </span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
               {activeMarket && (
-                <span className="font-mono" style={{ fontSize: 13, color: 'var(--color-text2)', fontWeight: 500, marginTop: '-6px' }}>
+                <span className="font-mono" style={{ fontSize: 12, color: 'var(--color-text2)', fontWeight: 500, lineHeight: 1, marginTop: '2px' }}>
                   ${formatPrice(activeMarket.price)}
                 </span>
               )}
