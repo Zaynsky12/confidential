@@ -130,7 +130,7 @@ export default function Trade() {
         {!isConnected ? (
           <button 
             className="btn btn-connect-unified animate-fade-in" 
-            style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 600, borderRadius: '8px' }}
+            style={{ width: '100%', padding: '10px', fontSize: '15px', fontWeight: 600, borderRadius: '8px' }}
             onClick={() => setWalletModalOpen(true)}
           >
             Connect Wallet
