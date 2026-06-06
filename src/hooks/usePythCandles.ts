@@ -54,8 +54,10 @@ export function usePythCandles(pythSymbol: string, timeframe: string) {
       const resolution = TIMEFRAME_TO_RESOLUTION[timeframe] || '60'
       const now = Math.floor(Date.now() / 1000)
       const intervalSec = TIMEFRAME_SECONDS[timeframe] || 3600
-      // Fetch ~500 candles worth of history
-      const from = now - intervalSec * 500
+      // Fetch ~500 candles worth of history, but Pyth limits max range to 1 year
+      const maxRangeSec = 31536000 // 1 year
+      const requestedRangeSec = intervalSec * 500
+      const from = now - Math.min(requestedRangeSec, maxRangeSec)
 
       const url = `${BENCHMARKS_URL}?symbol=${encodeURIComponent(pythSymbol)}&resolution=${resolution}&from=${from}&to=${now}`
 

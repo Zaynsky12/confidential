@@ -33,7 +33,9 @@ export default function Trade() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ marginTop: 2 }}>
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <span className="badge-accent" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, marginLeft: 6 }}>40x</span>
+              <span style={{ background: 'rgba(247, 147, 26, 0.15)', color: '#F7931A', padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, marginLeft: 6 }}>
+                {activeMarket.category === 'forex' ? '50x' : activeMarket.category === 'rwa' ? '10x' : '20x'}
+              </span>
             </button>
             
             <div className="chart-stat-item">

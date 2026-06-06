@@ -18,7 +18,7 @@ export default function PriceChart() {
   const [hoveredCandle, setHoveredCandle] = useState<HoveredCandleData | null>(null)
 
   const pythSymbol = activeMarket?.pythSymbol ?? 'Crypto.BTC/USD'
-  const { initialCandles, appendCandle, loading } = usePythCandles(pythSymbol, selectedTimeframe)
+  const { initialCandles, appendCandle } = usePythCandles(pythSymbol, selectedTimeframe)
 
 
 
@@ -65,20 +65,6 @@ export default function PriceChart() {
       wickDownColor: '#E05252',
     })
 
-    const chartData: CandlestickData[] = initialCandles.map((c) => ({
-      time: c.time as Time,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }))
-
-    const volumeData = initialCandles.map((c) => ({
-      time: c.time as Time,
-      value: c.volume,
-      color: c.close >= c.open ? 'rgba(63, 176, 106, 0.4)' : 'rgba(224, 82, 82, 0.4)',
-    }))
-
     const volumeSeries = chart.addSeries(HistogramSeries, {
       color: 'rgba(255,255,255,0.1)',
       priceFormat: { type: 'volume' },
@@ -89,13 +75,10 @@ export default function PriceChart() {
       scaleMargins: { top: 0.8, bottom: 0 },
     })
 
-    series.setData(chartData)
-    volumeSeries.setData(volumeData)
-    chart.timeScale().scrollToPosition(0, false)
-
     chartRef.current = chart
     seriesRef.current = series
     ;(seriesRef as any).currentVolume = volumeSeries
+
 
     chart.subscribeCrosshairMove((param: MouseEventParams) => {
       if (param.time && param.seriesData.size > 0) {
@@ -124,6 +107,35 @@ export default function PriceChart() {
       seriesRef.current = null
     }
   }, [activeMarketId, selectedTimeframe])
+
+  // Set historical data when it arrives
+  useEffect(() => {
+    if (!seriesRef.current || initialCandles.length === 0) return
+
+    const chartData: CandlestickData[] = initialCandles.map((c) => ({
+      time: c.time as Time,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+    }))
+
+    const volumeData = initialCandles.map((c) => ({
+      time: c.time as Time,
+      value: c.volume,
+      color: c.close >= c.open ? 'rgba(63, 176, 106, 0.4)' : 'rgba(224, 82, 82, 0.4)',
+    }))
+
+    seriesRef.current.setData(chartData)
+    if ((seriesRef as any).currentVolume) {
+      ;(seriesRef as any).currentVolume.setData(volumeData)
+    }
+
+    // Only scroll to the latest candle if we just loaded the market or timeframe
+    if (chartRef.current) {
+      chartRef.current.timeScale().scrollToPosition(0, false)
+    }
+  }, [initialCandles])
 
   // Live candle updates
   useEffect(() => {

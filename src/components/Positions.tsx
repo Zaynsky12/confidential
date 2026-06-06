@@ -145,7 +145,7 @@ export default function Positions() {
                 </div>
                 <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#2775ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold' }}>U</div>
+                    <img src="/usdc.png" alt="USDC" style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0 }} />
                     <span style={{ fontWeight: 600 }}>USDC</span>
                   </div>
                   <span className="font-mono">{balance.toFixed(2)}</span>

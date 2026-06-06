@@ -26,12 +26,31 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const [leverage, setLeverage] = useState(10)
   const [isLeverageModalOpen, setIsLeverageModalOpen] = useState(false)
   const [tempLeverage, setTempLeverage] = useState<number | string>('')
+  
+  // Dynamic leverage presets based on market category
+  const leveragePresets = useMemo(() => {
+    if (!activeMarket) return [1, 5, 10, 20]
+    switch (activeMarket.category) {
+      case 'forex': return [1, 10, 25, 50]
+      case 'rwa': return [1, 3, 5, 10]
+      case 'crypto':
+      default: return [1, 5, 10, 20]
+    }
+  }, [activeMarket?.category])
+
+  useEffect(() => {
+    if (activeMarket) {
+      // Default to the max leverage of the new category
+      setLeverage(leveragePresets[leveragePresets.length - 1])
+    }
+  }, [activeMarket?.category, leveragePresets])
   const [reduceOnly, setReduceOnly] = useState(false)
   const [showTpSl, setShowTpSl] = useState(false)
   const [takeProfit, setTakeProfit] = useState('')
   const [stopLoss, setStopLoss] = useState('')
   const [inputCurrency, setInputCurrency] = useState<'BASE' | 'USD'>('BASE')
-  const isCustomLeverage = ![1, 10, 20, 40].includes(leverage)
+  const isCustomLeverage = !leveragePresets.includes(leverage)
+  const maxLeverage = leveragePresets[leveragePresets.length - 1]
 
   const effectivePrice = orderType === 'market' ? (activeMarket?.price ?? 0) : Number(price) || 0
   const sizeNum = Number(size) || 0
@@ -156,7 +175,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
         <span style={{ fontSize:12, color:'#8e8e93', fontWeight:500 }}>Leverage</span>
         <div style={{ display:'flex', gap:4 }}>
-          {[1, 10, 20, 40].map(l => (
+          {leveragePresets.map(l => (
             <button key={l} onClick={()=>setLeverage(l)} style={{ flex:1, background:leverage===l?'var(--color-bg3)':'var(--color-bg2)', border:'1px solid', borderColor:leverage===l?'var(--color-border-strong)':'var(--color-border)', color:'#fff', padding:'6px 0', borderRadius:6, fontSize:13, fontWeight:500, cursor:'pointer' }}>{l}x</button>
           ))}
           <div 
@@ -297,7 +316,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             <div style={{ background: '#000', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', border: '1px solid #2c2c2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <input 
                 type="number"
-                min="1" max="40"
+                min="1" max={maxLeverage}
                 value={tempLeverage}
                 onChange={(e) => setTempLeverage(e.target.value)}
                 style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '15px', outline: 'none', width: '32px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}
@@ -308,14 +327,14 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             <div style={{ marginBottom: '32px', position: 'relative' }}>
               <input 
                 type="range" 
-                min="1" max="40" 
+                min="1" max={maxLeverage} 
                 value={Number(tempLeverage) || 1} 
                 onChange={(e) => setTempLeverage(Number(e.target.value))}
                 style={{ width: '100%', accentColor: '#fbbf24', height: '4px', cursor: 'pointer' }} 
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8e8e93', marginTop: '12px', fontWeight: 500 }}>
                 <span>1x</span>
-                <span>40x</span>
+                <span>{maxLeverage}x</span>
               </div>
             </div>
 
@@ -328,7 +347,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
               </button>
               <button 
                 onClick={() => {
-                  const val = Math.min(40, Math.max(1, Number(tempLeverage) || 1));
+                  const val = Math.min(maxLeverage, Math.max(1, Number(tempLeverage) || 1));
                   setLeverage(val);
                   setIsLeverageModalOpen(false);
                 }}
