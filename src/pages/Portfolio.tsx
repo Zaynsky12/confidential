@@ -460,6 +460,33 @@ export default function Portfolio() {
             border-radius: 0;
             border-top: 1px solid var(--color-border);
           }
+          .tab-scroll-container {
+            -webkit-overflow-scrolling: touch;
+            border-top: 2px solid var(--color-border);
+            background: var(--color-bg1);
+          }
+          .tabs-row {
+            padding: 0 8px;
+            gap: 8px;
+          }
+          .pt-tab {
+            padding: 10px 12px;
+            font-size: 12px;
+          }
+          .tab-content > div {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          .portfolio-table {
+            font-size: 12px;
+          }
+          .portfolio-table th {
+            padding: 8px 12px;
+            font-size: 11px;
+          }
+          .portfolio-table td {
+            padding: 8px 12px;
+          }
         }
 
         @media (max-width: 480px) {
