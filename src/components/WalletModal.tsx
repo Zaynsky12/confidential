@@ -54,7 +54,7 @@ export default function WalletModal() {
 
   return (
     <div onClick={()=>setWalletModalOpen(false)}
-      style={{ position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 150ms ease' }}>
+      style={{ position:'fixed',inset:0,zIndex:2000,background:'rgba(0,0,0,0.75)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 150ms ease' }}>
       <div onClick={e=>e.stopPropagation()} className="wallet-modal-content animate-fade-in-up">
         {/* Header */}
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 24px 0' }}>
@@ -151,8 +151,10 @@ export default function WalletModal() {
         .wallet-modal-content {
           width: 420px;
           max-height: 90vh;
-          background: var(--color-bg1);
-          border: 1px solid var(--color-border-strong);
+          background: var(--color-bg2);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid var(--color-border);
           border-radius: 14px;
           box-shadow: var(--shadow-modal);
           overflow: hidden;

@@ -635,7 +635,9 @@ export default function Trade() {
             width: 100%;
             margin-top: 0;
             box-sizing: border-box;
-            background-color: var(--color-bg0);
+            background: rgba(11, 16, 22, 0.98) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
             border-top: 1px solid var(--color-border);
             padding: 8px 16px;
             padding-bottom: calc(8px + env(safe-area-inset-bottom));

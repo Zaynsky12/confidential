@@ -220,11 +220,31 @@ export default function Topbar() {
             )}
           </div>
 
-          <button className="favorite-btn mobile-only" style={{ background: 'none', border: 'none', color: 'var(--color-text3)', cursor: 'pointer', padding: '4px' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-          </button>
+          {activeMarket && (
+            <button 
+              className="favorite-btn mobile-only" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWatchlist(activeMarket.id);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWatchlist(activeMarket.id);
+              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', zIndex: 10 }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" 
+                fill={watchlist.includes(activeMarket.id) ? '#F7931A' : 'none'} 
+                stroke={watchlist.includes(activeMarket.id) ? '#F7931A' : 'currentColor'} 
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: 'var(--color-text3)' }}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -408,7 +428,14 @@ export default function Topbar() {
                                 e.stopPropagation();
                                 toggleWatchlist(m.id);
                               }}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onTouchEnd={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleWatchlist(m.id);
+                              }}
                               style={{ 
+                                position: 'relative',
                                 background: 'none', border: 'none', 
                                 padding: '12px', margin: '-12px',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', 
@@ -606,11 +633,14 @@ export default function Topbar() {
           top: calc(100% + 8px);
           right: 0;
           width: 240px;
-          background-color: var(--color-bg1);
+          background-color: var(--color-bg2);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
           border: 1px solid var(--color-border-strong);
           border-radius: var(--radius-xl);
           box-shadow: var(--shadow-modal);
           overflow: hidden;
+          z-index: 1000;
         }
 
         /* Mobile Drawer */
