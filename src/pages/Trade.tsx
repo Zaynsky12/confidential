@@ -624,12 +624,9 @@ export default function Trade() {
           .trade-mobile-tab-view {
             display: flex;
             flex-direction: column;
-            flex: 1;
             width: 100%;
             min-width: 0;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
+            /* removed nested scroll to inherit parent scroll and padding */
           }
           .mobile-hidden {
             display: none !important;
