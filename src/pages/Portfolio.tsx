@@ -188,7 +188,7 @@ export default function Portfolio() {
           margin-bottom: 8px;
         }
         .stat-value {
-          font-size: 24px;
+          font-size: 18px;
           font-weight: 600;
         }
 
