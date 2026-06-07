@@ -43,6 +43,8 @@ export default function PriceChart() {
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const [showFullscreenBtn, setShowFullscreenBtn] = useState(false)
+  
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   useEffect(() => {
     if (!activeMarket || !chartContainerRef.current) return;
@@ -69,19 +71,21 @@ export default function PriceChart() {
           gridColor: "rgba(255, 255, 255, 0.04)",
           hide_top_toolbar: false,
           hide_legend: false,
-          save_image: true,
+          save_image: !isMobile,
           hide_side_toolbar: false,
-          allow_symbol_change: true,
+          allow_symbol_change: false, // We disable this so the header search is gone
           withdateranges: true,
           container_id: "tv_chart_container",
           favorites: {
-            intervals: ["5", "30", "D", "M"]
+            intervals: ["5", "60", "D", "W"]
           },
-          timeframes: [
-            { text: "5m", resolution: "5", description: "5 Minutes" },
-            { text: "30m", resolution: "30", description: "30 Minutes" },
-            { text: "1d", resolution: "D", description: "1 Day" },
-            { text: "1M", resolution: "M", description: "1 Month" }
+          disabled_features: [
+            "header_symbol_search",
+            "header_compare",
+            "header_undo_redo",
+            "header_saveload",
+            "header_settings",
+            "header_screenshot"
           ],
           studies_overrides: {
             "volume.volume.color.0": "rgba(224, 82, 82, 0.4)",
@@ -119,7 +123,7 @@ export default function PriceChart() {
       setTimeout(() => setShowFullscreenBtn(true), 3500)
     });
 
-  }, [activeMarket?.pythSymbol]);
+  }, [activeMarket?.pythSymbol, isMobile]);
 
   if (!activeMarket) return null
 
@@ -140,7 +144,7 @@ export default function PriceChart() {
         style={{
           position: 'absolute',
           top: '3px',
-          right: '44px',
+          right: isMobile ? '12px' : '44px',
           width: '34px',
           height: '34px',
           background: 'transparent',
