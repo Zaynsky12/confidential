@@ -45,8 +45,8 @@ export default function Trade() {
         <div className="trade-middle-top">
           <div className="trade-center">
         {activeMarket && (
-          <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingRight: '16px' }}>
-            <div className="chart-header-stats" style={{ flex: 1, borderBottom: 'none', paddingRight: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--color-border)' }}>
+            <div className="chart-header-stats" style={{ flex: 1, borderBottom: 'none' }}>
               <button 
                 className="market-selector-trigger trade-desktop-only" 
                 onClick={() => setMarketSelectorOpen(true)}
@@ -502,10 +502,6 @@ export default function Trade() {
             gap: 20px;
             width: 100%;
             box-sizing: border-box;
-          }
-          .chart-header-stats::after {
-            content: '';
-            padding-right: 16px;
           }
           .chart-header-stats::-webkit-scrollbar {
             display: none;
