@@ -5,14 +5,19 @@ import { arcTestnet } from '../config/chain'
 import { useTradeStore } from '../store/useTradeStore'
 
 export function useArcWallet() {
-  const { address, isConnected, chainId } = useAccount()
+  const { address: wagmiAddress, isConnected: wagmiConnected, chainId } = useAccount()
   const { disconnect: wagmiDisconnect } = useDisconnect()
-  const { logout: privyLogout } = usePrivy()
+  const { authenticated, user, logout: privyLogout } = usePrivy()
   const { mockBalance, setWalletModalOpen } = useTradeStore()
+
+  const privyAddress = user?.wallet?.address
+  const privyEmail = user?.email?.address
+  const address = wagmiAddress || privyAddress
+  const isConnected = wagmiConnected || authenticated
 
   // Balance from chain
   const { data: balanceData } = useBalance({
-    address: address,
+    address: address as any,
     chainId: arcTestnet.id,
   })
 
@@ -23,7 +28,9 @@ export function useArcWallet() {
 
   const truncatedAddress = address
     ? `${address.slice(0, 6)}…${address.slice(-4)}`
-    : ''
+    : privyEmail
+      ? privyEmail.length > 15 ? `${privyEmail.slice(0, 12)}...` : privyEmail
+      : 'Loading...'
 
   const connect = () => {
     setWalletModalOpen(true)
