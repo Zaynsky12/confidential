@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 import { useConnect } from 'wagmi'
+import { useLoginWithEmail } from '@privy-io/react-auth'
 
 type Tab = 'wallet' | 'email'
 type EmailStep = 'input' | 'otp' | 'loading'
 
 const WALLETS = [
-  { id:'arc', name:'Arc Wallet', desc:'Recommended for Arc L1', featured:true,
-    icon: <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#0052FF"/><path d="M16 6L6 11.5l10 5.5 10-5.5L16 6z" fill="#fff"/><path d="M6 20.5l10 5.5 10-5.5" stroke="#fff" strokeWidth="2" fill="none" opacity="0.6"/><path d="M6 16l10 5.5L26 16" stroke="#fff" strokeWidth="2" fill="none" opacity="0.8"/></svg> },
   { id:'metamask', name:'MetaMask', desc:'Connect using MetaMask', featured:false,
     icon: <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#1a1a2e"/><path d="M24 8l-7 5.2 1.3-3L24 8z" fill="#E2761B"/><path d="M8 8l6.9 5.3L13.7 10.2 8 8z" fill="#E4761B"/><path d="M22 20.8l-1.9 2.9 4-1.1 1.1-3.9-3.2 2.1zM6.8 18.7l1.1 3.9 4 1.1-1.9-2.9-3.2-2.1z" fill="#E4761B"/></svg> },
   { id:'rabby', name:'Rabby Wallet', desc:'Multi-chain DeFi wallet', featured:false,
@@ -26,6 +25,22 @@ export default function WalletModal() {
   const [otp, setOtp] = useState(['','','','','',''])
   const otpRefs = useRef<(HTMLInputElement|null)[]>([])
   const { connectors, connect } = useConnect()
+
+  const { sendCode, loginWithCode } = useLoginWithEmail({
+    onComplete: () => {
+      setWalletModalOpen(false)
+      setTimeout(() => {
+        setActiveTab('wallet')
+        setEmailStep('input')
+        setEmail('')
+        setOtp(['','','','','',''])
+      }, 300)
+    },
+    onError: (error) => {
+      console.error('Privy Login Error:', error)
+      setEmailStep('input') // Fallback on error
+    }
+  })
 
   useEffect(()=>{
     if(!isWalletModalOpen){ setActiveTab('wallet'); setEmailStep('input'); setEmail(''); setOtp(['','','','','','']) }
@@ -99,50 +114,56 @@ export default function WalletModal() {
           )}
 
           {activeTab==='email' && emailStep==='input' && (
-            <div style={{ display:'flex',flexDirection:'column' }}>
-              <p style={{ fontSize:14,color:'var(--color-text2)',marginBottom:20,lineHeight:1.5 }}>
-                Sign in with email. A smart wallet on Arc is created automatically.
+            <div style={{ display:'flex',flexDirection:'column', gap:'16px' }}>
+              <p style={{ fontSize:16, fontWeight: 'normal', color:'var(--color-text1)' }}>
+                Log in or sign up
               </p>
-              <input type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoFocus
-                style={{ width:'100%',padding:'10px 14px',background:'var(--color-bg2)',border:'1px solid var(--color-border-strong)',borderRadius:8,fontSize:14,color:'var(--color-text1)',marginBottom:16 }} />
-              <button className="btn btn-primary" style={{ width:'100%',padding:10,opacity:email.includes('@')?1:0.4 }} onClick={()=>email.includes('@')&&setEmailStep('otp')}>
-                Send Login Code
+              <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} autoFocus
+                style={{ width:'100%',padding:'12px 16px',background:'transparent',border:'1px solid var(--color-border-strong)',borderRadius:12,fontSize:15,color:'var(--color-text1)', outline: 'none' }} 
+              />
+              <button className="btn btn-primary" style={{ width:'100%',padding:'12px',borderRadius:12,fontSize:15,fontWeight:600,background:'var(--color-text1)',color:'var(--color-bg0)',opacity:email.includes('@')?1:0.5, border:'none', cursor:email.includes('@')?'pointer':'not-allowed' }} onClick={async ()=>{ if(email.includes('@')){ setEmailStep('loading'); try { await sendCode({email}); setEmailStep('otp'); } catch(e) { /* error handled by onError */ } } }}>
+                Continue with email
               </button>
+              <div style={{ textAlign:'center', marginTop: '8px' }}>
+                 <span style={{ fontSize: 12, color: 'var(--color-text3)' }}>By continuing, you agree to our Terms of Service.</span>
+              </div>
             </div>
           )}
 
           {activeTab==='email' && emailStep==='otp' && (
             <div className="animate-slide-in-right" style={{ display:'flex',flexDirection:'column' }}>
-              <p style={{ fontSize:14,color:'var(--color-text2)',marginBottom:4 }}>Enter the 6-digit code sent to</p>
-              <p style={{ fontSize:14,fontWeight:500,marginBottom:20 }}>{email}</p>
-              <div style={{ display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:8,marginBottom:20 }}>
+              <p style={{ fontSize:20,fontWeight:600,color:'var(--color-text1)',marginBottom:8 }}>Check your email</p>
+              <p style={{ fontSize:14,color:'var(--color-text2)',marginBottom:24,lineHeight:1.5 }}>
+                We sent a verification code to <strong>{email}</strong>
+              </p>
+              <div style={{ display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:8,marginBottom:24 }}>
                 {otp.map((d,i)=>(
                   <input key={i} ref={el=>{otpRefs.current[i]=el}} type="text" inputMode="numeric" maxLength={1} value={d}
                     onChange={e=>handleOtpChange(i,e.target.value)}
                     onKeyDown={e=>{ if(e.key==='Backspace'&&!otp[i]&&i>0) otpRefs.current[i-1]?.focus() }}
                     className="font-mono" autoFocus={i===0}
-                    style={{ width:'100%',height:48,textAlign:'center',fontSize:20,background:'var(--color-bg2)',border:'1px solid var(--color-border-strong)',borderRadius:8,color:'var(--color-text1)' }} />
+                    style={{ width:'100%',height:48,textAlign:'center',fontSize:20,background:'transparent',border:'1px solid var(--color-border-strong)',borderRadius:12,color:'var(--color-text1)', outline:'none' }} />
                 ))}
               </div>
-              <button className="btn btn-primary" style={{ width:'100%',padding:10,marginBottom:12,opacity:otp.every(d=>d)?1:0.4 }}
-                onClick={()=>{ setEmailStep('loading'); setTimeout(()=>setWalletModalOpen(false),2000) }}>
-                Verify & Connect
+              <button className="btn btn-primary" style={{ width:'100%',padding:'12px',borderRadius:12,fontSize:15,fontWeight:600,background:'var(--color-text1)',color:'var(--color-bg0)',marginBottom:16,opacity:otp.every(d=>d)?1:0.5, border:'none' }}
+                onClick={()=>{ if(otp.every(d=>d)){ setEmailStep('loading'); loginWithCode({code: otp.join('')}); } }}>
+                Submit
               </button>
-              <button className="btn btn-ghost" style={{ width:'100%',fontSize:13 }} onClick={()=>setEmailStep('input')}>Resend code</button>
+              <button className="btn btn-ghost" style={{ width:'100%',fontSize:13, color:'var(--color-text2)' }} onClick={async ()=>{ setEmailStep('loading'); try { await sendCode({email}); setEmailStep('otp'); } catch(e) { } }}>Resend code</button>
             </div>
           )}
 
           {activeTab==='email' && emailStep==='loading' && (
             <div style={{ textAlign:'center',padding:'40px 20px' }}>
-              <div style={{ width:40,height:40,border:'3px solid var(--color-bg3)',borderTopColor:'var(--color-accent)',borderRadius:'50%',margin:'0 auto',animation:'spin 0.8s linear infinite' }} />
-              <p style={{ fontSize:14,color:'var(--color-text2)',marginTop:16 }}>Creating your Arc smart wallet...</p>
+              <div style={{ width:40,height:40,border:'3px solid var(--color-border-strong)',borderTopColor:'var(--color-text1)',borderRadius:'50%',margin:'0 auto',animation:'spin 0.8s linear infinite' }} />
+              <p style={{ fontSize:15,fontWeight:500,color:'var(--color-text1)',marginTop:20 }}>Logging in...</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div style={{ padding:'12px 24px',borderTop:'1px solid var(--color-border)',textAlign:'center',fontSize:11,color:'var(--color-text3)',letterSpacing:0.5 }}>
-          Arc L1 · Chain ID 5042002 · Testnet
+          Confidential L1 · Chain ID 5042002 · Testnet
         </div>
       </div>
 

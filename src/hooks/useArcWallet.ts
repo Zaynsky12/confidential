@@ -1,4 +1,5 @@
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
+import { usePrivy } from '@privy-io/react-auth'
 import { formatUnits } from 'viem'
 import { arcTestnet } from '../config/chain'
 import { useTradeStore } from '../store/useTradeStore'
@@ -6,6 +7,7 @@ import { useTradeStore } from '../store/useTradeStore'
 export function useArcWallet() {
   const { address, isConnected, chainId } = useAccount()
   const { disconnect: wagmiDisconnect } = useDisconnect()
+  const { logout: privyLogout } = usePrivy()
   const { mockBalance, setWalletModalOpen } = useTradeStore()
 
   // Balance from chain
@@ -29,6 +31,7 @@ export function useArcWallet() {
 
   const disconnect = async () => {
     wagmiDisconnect()
+    await privyLogout()
   }
 
   return {

@@ -527,7 +527,7 @@ export default function Topbar() {
           gap: 8px;
         }
         .topbar-brand {
-          font-size: 16px;
+          font-size: 20px;
           font-weight: 600;
           letter-spacing: -0.02em;
           color: var(--color-text1);

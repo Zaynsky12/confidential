@@ -2,7 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { WagmiProvider } from 'wagmi'
+import { PrivyProvider } from '@privy-io/react-auth'
+import { WagmiProvider } from '@privy-io/wagmi'
 import { http, createConfig } from 'wagmi'
 import { arcTestnet } from './config/chain'
 import App from './App'
@@ -10,9 +11,6 @@ import './index.css'
 
 const queryClient = new QueryClient()
 
-// Use wagmi directly (without Privy wrapper) so the app works 
-// even without a valid Privy App ID. When Privy is configured,
-// swap to @privy-io/wagmi imports.
 const wagmiConfig = createConfig({
   chains: [arcTestnet],
   transports: {
@@ -20,14 +18,33 @@ const wagmiConfig = createConfig({
   },
 })
 
+const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || 'insert-your-privy-app-id-here'
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WagmiProvider config={wagmiConfig}>
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        loginMethods: ['email', 'wallet'],
+        appearance: {
+          theme: 'dark',
+          accentColor: '#0052FF',
+          logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png', // Temporary logo
+        },
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: 'users-without-wallets',
+          }
+        },
+      }}
+    >
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <WagmiProvider config={wagmiConfig}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </WagmiProvider>
       </QueryClientProvider>
-    </WagmiProvider>
+    </PrivyProvider>
   </React.StrictMode>,
 )
