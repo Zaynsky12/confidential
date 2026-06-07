@@ -104,7 +104,7 @@ export default function Topbar() {
                 <path d="M2 17l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.5"/>
                 <path d="M2 12l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.75"/>
               </svg>
-              <span className="topbar-brand">ArcTrade</span>
+              <span className="topbar-brand">Confidential</span>
             </div>
           </div>
 
@@ -259,7 +259,7 @@ export default function Topbar() {
                   <path d="M2 17l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.5"/>
                   <path d="M2 12l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.75"/>
                 </svg>
-                <span className="topbar-brand">ArcTrade</span>
+                <span className="topbar-brand">Confidential</span>
               </div>
               <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

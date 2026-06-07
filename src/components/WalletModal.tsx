@@ -58,7 +58,7 @@ export default function WalletModal() {
       <div onClick={e=>e.stopPropagation()} className="wallet-modal-content animate-fade-in-up">
         {/* Header */}
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 24px 0' }}>
-          <h2 style={{ fontSize:18,fontWeight:600 }}>Connect to ArcTrade</h2>
+          <h2 style={{ fontSize:18,fontWeight:600 }}>Connect to Confidential</h2>
           <button onClick={()=>setWalletModalOpen(false)} style={{ width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6,cursor:'pointer',color:'var(--color-text3)',transition:'all 200ms',background:'none',border:'none' }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
           </button>
