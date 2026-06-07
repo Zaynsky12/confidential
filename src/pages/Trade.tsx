@@ -48,7 +48,7 @@ export default function Trade() {
           <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingRight: '16px' }}>
             <div className="chart-header-stats" style={{ flex: 1, borderBottom: 'none', paddingRight: '16px' }}>
               <button 
-                className="market-selector-trigger" 
+                className="market-selector-trigger trade-desktop-only" 
                 onClick={() => setMarketSelectorOpen(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', maxWidth: '300px' }}
               >
