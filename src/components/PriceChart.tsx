@@ -144,10 +144,10 @@ export default function PriceChart() {
         style={{
           position: 'absolute',
           top: '3px',
-          right: isMobile ? '12px' : '44px',
-          width: '34px',
+          right: isMobile ? '2px' : '44px',
+          width: '36px',
           height: '34px',
-          background: 'transparent',
+          background: isMobile ? '#131722' : 'transparent',
           border: 'none',
           color: '#a3a6af',
           cursor: 'pointer',
@@ -158,6 +158,7 @@ export default function PriceChart() {
           transition: 'opacity 0.5s ease, color 0.2s',
           opacity: showFullscreenBtn ? 1 : 0,
           pointerEvents: showFullscreenBtn ? 'auto' : 'none',
+          boxShadow: isMobile ? '-8px 0 12px 2px #131722' : 'none',
           padding: 0
         }}
         onMouseEnter={(e) => e.currentTarget.style.color = '#d1d4dc'}
