@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 
 let tvScriptLoadingPromise: Promise<void> | null = null
@@ -42,11 +42,13 @@ export default function PriceChart() {
   const { markets, activeMarketId } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const chartContainerRef = useRef<HTMLDivElement>(null)
+  const [showFullscreenBtn, setShowFullscreenBtn] = useState(false)
 
   useEffect(() => {
     if (!activeMarket || !chartContainerRef.current) return;
 
     const tvSymbol = getTVSymbol(activeMarket.pythSymbol)
+    setShowFullscreenBtn(false);
 
     const createWidget = () => {
       // Clear container before recreating
@@ -64,7 +66,6 @@ export default function PriceChart() {
           style: "1",
           locale: "en",
           enable_publishing: false,
-          backgroundColor: "#0b1016",
           gridColor: "rgba(255, 255, 255, 0.04)",
           hide_top_toolbar: false,
           hide_legend: false,
@@ -73,7 +74,6 @@ export default function PriceChart() {
           allow_symbol_change: true,
           withdateranges: true,
           container_id: "tv_chart_container",
-          toolbar_bg: "#0b1016",
           favorites: {
             intervals: ["5", "30", "D", "M"]
           },
@@ -94,7 +94,6 @@ export default function PriceChart() {
             "mainSeriesProperties.candleStyle.borderDownColor": "#E05252",
             "mainSeriesProperties.candleStyle.wickUpColor": "#3FB06A",
             "mainSeriesProperties.candleStyle.wickDownColor": "#E05252",
-            "paneProperties.background": "#0b1016",
             "paneProperties.vertGridProperties.color": "rgba(255, 255, 255, 0)",
             "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.02)",
             "scalesProperties.textColor": "rgba(255, 255, 255, 0.4)",
@@ -115,7 +114,10 @@ export default function PriceChart() {
       });
     }
 
-    tvScriptLoadingPromise.then(() => createWidget());
+    tvScriptLoadingPromise.then(() => {
+      createWidget()
+      setTimeout(() => setShowFullscreenBtn(true), 3500)
+    });
 
   }, [activeMarket?.pythSymbol]);
 
@@ -123,6 +125,45 @@ export default function PriceChart() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg1)', position: 'relative' }}>
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          const elem = document.querySelector('.trade-center');
+          if (elem) {
+            if (!document.fullscreenElement) {
+              elem.requestFullscreen().catch(() => {});
+            } else {
+              document.exitFullscreen();
+            }
+          }
+        }}
+        style={{
+          position: 'absolute',
+          top: '3px',
+          right: '44px',
+          width: '34px',
+          height: '34px',
+          background: 'transparent',
+          border: 'none',
+          color: '#a3a6af',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10,
+          transition: 'opacity 0.5s ease, color 0.2s',
+          opacity: showFullscreenBtn ? 1 : 0,
+          pointerEvents: showFullscreenBtn ? 'auto' : 'none',
+          padding: 0
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = '#d1d4dc'}
+        onMouseLeave={(e) => e.currentTarget.style.color = '#a3a6af'}
+        title="Toggle Fullscreen"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+        </svg>
+      </button>
       <div id="tv_chart_container" ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
     </div>
   )

@@ -45,57 +45,59 @@ export default function Trade() {
         <div className="trade-middle-top">
           <div className="trade-center">
         {activeMarket && (
-          <div className="chart-header-stats">
-            <button 
-              className="desktop-only market-selector-trigger" 
-              onClick={() => setMarketSelectorOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', maxWidth: '300px' }}
-            >
-              {getAssetLogo(activeMarket.pair) && (
-                <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
-              )}
-              <span style={{ fontSize: 18, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>{activeMarket.pair}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: 'var(--color-text2)' }}>
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span style={{ background: 'rgba(247, 147, 26, 0.15)', color: '#F7931A', padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
-                {activeMarket.category === 'forex' ? '50x' : activeMarket.category === 'rwa' ? '10x' : '20x'}
-              </span>
-            </button>
-            
-            <div className="chart-stat-item">
-              <span className="chart-stat-label">Mark Price</span>
-              <span className="font-mono chart-stat-value" style={{ color: 'var(--color-accent)' }}>{fp(activeMarket.price)}</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingRight: '16px' }}>
+            <div className="chart-header-stats" style={{ flex: 1, borderBottom: 'none', paddingRight: '16px' }}>
+              <button 
+                className="market-selector-trigger" 
+                onClick={() => setMarketSelectorOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', maxWidth: '300px' }}
+              >
+                {getAssetLogo(activeMarket.pair) && (
+                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                )}
+                <span style={{ fontSize: 18, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>{activeMarket.pair}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: 'var(--color-text2)' }}>
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ background: 'rgba(247, 147, 26, 0.15)', color: '#F7931A', padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
+                  {activeMarket.category === 'forex' ? '50x' : activeMarket.category === 'rwa' ? '10x' : '20x'}
+                </span>
+              </button>
+              
+              <div className="chart-stat-item">
+                <span className="chart-stat-label">Mark Price</span>
+                <span className="font-mono chart-stat-value" style={{ color: 'var(--color-accent)' }}>{fp(activeMarket.price)}</span>
+              </div>
 
-            <div className="chart-stat-item">
-              <span className="chart-stat-label">Oracle</span>
-              <span className="font-mono chart-stat-value">{fp(activeMarket.price * 1.0001)}</span>
-            </div>
+              <div className="chart-stat-item">
+                <span className="chart-stat-label">Oracle</span>
+                <span className="font-mono chart-stat-value">{fp(activeMarket.price * 1.0001)}</span>
+              </div>
 
-            <div className="chart-stat-item">
-              <span className="chart-stat-label">24h Change</span>
-              <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
-                {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
-              </span>
-            </div>
+              <div className="chart-stat-item">
+                <span className="chart-stat-label">24h Change</span>
+                <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
+                  {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
+                </span>
+              </div>
 
-            <div className="chart-stat-item">
-              <span className="chart-stat-label">24h Volume</span>
-              <span className="font-mono chart-stat-value">${fvFull(activeMarket.volume24h)}</span>
-            </div>
+              <div className="chart-stat-item">
+                <span className="chart-stat-label">24h Volume</span>
+                <span className="font-mono chart-stat-value">${fvFull(activeMarket.volume24h)}</span>
+              </div>
 
-            <div className="chart-stat-item">
-              <span className="chart-stat-label">Open Interest</span>
-              <span className="font-mono chart-stat-value">${fvFull(activeMarket.openInterest)}</span>
-            </div>
+              <div className="chart-stat-item">
+                <span className="chart-stat-label">Open Interest</span>
+                <span className="font-mono chart-stat-value">${fvFull(activeMarket.openInterest)}</span>
+              </div>
 
-            <div className="chart-stat-item chart-stat-mobile-col">
-              <span className="chart-stat-label">Funding / Countdown</span>
-              <span className="font-mono chart-stat-value" style={{ color: 'var(--color-text1)', display: 'flex', flexDirection: 'row', gap: '6px', alignItems: 'center' }}>
-                <span style={{ color: 'var(--color-accent)' }}>0.0010%</span>
-                <span style={{ color: 'var(--color-text3)' }}>00:47:11</span>
-              </span>
+              <div className="chart-stat-item chart-stat-mobile-col">
+                <span className="chart-stat-label">Funding / Countdown</span>
+                <span className="font-mono chart-stat-value" style={{ color: 'var(--color-text1)', display: 'flex', flexDirection: 'row', gap: '6px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-accent)' }}>0.0010%</span>
+                  <span style={{ color: 'var(--color-text3)' }}>00:47:11</span>
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -227,6 +229,12 @@ export default function Trade() {
           border: 1px solid var(--color-border);
           border-radius: 8px;
           background-color: var(--color-bg1);
+        }
+        .trade-center:fullscreen {
+          background-color: var(--color-bg0);
+          border: none;
+          border-radius: 0;
+          padding: 12px;
         }
         .trade-chart {
           flex: 1;
