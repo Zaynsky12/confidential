@@ -71,7 +71,7 @@ export default function PriceChart() {
           gridColor: "rgba(255, 255, 255, 0.04)",
           hide_top_toolbar: false,
           hide_legend: false,
-          save_image: !isMobile,
+          save_image: true,
           hide_side_toolbar: false,
           allow_symbol_change: false, // We disable this so the header search is gone
           withdateranges: true,
