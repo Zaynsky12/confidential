@@ -7,7 +7,10 @@ const getTVSymbol = (pythSymbol: string) => {
   if (pythSymbol.startsWith('Crypto.')) {
     const parts = pythSymbol.split('.')
     const cleanPair = parts[parts.length - 1].replace('/', '')
-    return `PYTH:${cleanPair}`
+    if (cleanPair.endsWith('USD')) {
+      return `BINANCE:${cleanPair}T`
+    }
+    return `BINANCE:${cleanPair}`
   }
   
   if (pythSymbol.startsWith('Equity.US.')) {
