@@ -68,7 +68,10 @@ export default function PriceChart() {
           gridColor: "rgba(255, 255, 255, 0.04)",
           hide_top_toolbar: false,
           hide_legend: false,
-          save_image: false,
+          save_image: true,
+          hide_side_toolbar: false,
+          allow_symbol_change: true,
+          withdateranges: true,
           container_id: "tv_chart_container",
           toolbar_bg: "#0b1016",
           favorites: {
@@ -79,10 +82,6 @@ export default function PriceChart() {
             { text: "30m", resolution: "30", description: "30 Minutes" },
             { text: "1d", resolution: "D", description: "1 Day" },
             { text: "1M", resolution: "M", description: "1 Month" }
-          ],
-          disabled_features: [
-            "header_symbol_search",
-            "header_compare"
           ],
           studies_overrides: {
             "volume.volume.color.0": "rgba(224, 82, 82, 0.4)",
