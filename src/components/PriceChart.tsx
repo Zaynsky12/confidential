@@ -129,46 +129,48 @@ export default function PriceChart() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg1)', position: 'relative' }}>
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          const elem = document.querySelector('.trade-center');
-          if (elem) {
-            if (!document.fullscreenElement) {
-              elem.requestFullscreen().catch(() => {});
-            } else {
-              document.exitFullscreen();
+      {!isMobile && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const elem = document.querySelector('.trade-center');
+            if (elem) {
+              if (!document.fullscreenElement) {
+                elem.requestFullscreen().catch(() => {});
+              } else {
+                document.exitFullscreen();
+              }
             }
-          }
-        }}
-        style={{
-          position: 'absolute',
-          top: '3px',
-          right: isMobile ? '2px' : '44px',
-          width: '36px',
-          height: '34px',
-          background: isMobile ? '#131722' : 'transparent',
-          border: 'none',
-          color: '#a3a6af',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          transition: 'opacity 0.5s ease, color 0.2s',
-          opacity: showFullscreenBtn ? 1 : 0,
-          pointerEvents: showFullscreenBtn ? 'auto' : 'none',
-          boxShadow: isMobile ? '-8px 0 12px 2px #131722' : 'none',
-          padding: 0
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.color = '#d1d4dc'}
-        onMouseLeave={(e) => e.currentTarget.style.color = '#a3a6af'}
-        title="Toggle Fullscreen"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-        </svg>
-      </button>
+          }}
+          style={{
+            position: 'absolute',
+            top: '3px',
+            right: '44px',
+            width: '36px',
+            height: '34px',
+            background: 'transparent',
+            border: 'none',
+            color: '#a3a6af',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            transition: 'opacity 0.5s ease, color 0.2s',
+            opacity: showFullscreenBtn ? 1 : 0,
+            pointerEvents: showFullscreenBtn ? 'auto' : 'none',
+            boxShadow: 'none',
+            padding: 0
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#d1d4dc'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#a3a6af'}
+          title="Toggle Fullscreen"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+        </button>
+      )}
       <div id="tv_chart_container" ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
     </div>
   )
