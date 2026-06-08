@@ -1,6 +1,7 @@
-import { useAccount, useBalance, useDisconnect } from 'wagmi'
+import { useAccount, useDisconnect, useReadContract } from 'wagmi'
 import { usePrivy } from '@privy-io/react-auth'
 import { formatUnits } from 'viem'
+import { CONTRACTS, ABIS } from '../config/contracts'
 import { arcTestnet } from '../config/chain'
 import { useTradeStore } from '../store/useTradeStore'
 
@@ -15,14 +16,16 @@ export function useArcWallet() {
   const address = wagmiAddress || privyAddress
   const isConnected = wagmiConnected || authenticated
 
-  // Balance from chain
-  const { data: balanceData } = useBalance({
-    address: address as any,
-    chainId: arcTestnet.id,
+  // Balance from chain (USDC)
+  const { data: balanceData } = useReadContract({
+    address: CONTRACTS.USDC as any,
+    abi: ABIS.USDC as any,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
   })
 
-  // Use chain balance if available, else mock
-  const balance = balanceData ? Number(formatUnits(balanceData.value, balanceData.decimals)) : isConnected ? mockBalance : mockBalance
+  // Use chain balance if available, else 0
+  const balance = typeof balanceData !== 'undefined' ? Number(formatUnits(balanceData as bigint, 6)) : 0
 
   const isWrongNetwork = isConnected && chainId !== arcTestnet.id
 
