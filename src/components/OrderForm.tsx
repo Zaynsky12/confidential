@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
+import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
 import type { OrderSide, OrderType } from '../types'
 
 interface OrderFormProps {
@@ -9,13 +10,17 @@ interface OrderFormProps {
 }
 
 export default function OrderForm({ initialSide = 'long', onClose }: OrderFormProps) {
-  const { markets, activeMarketId, placeOrder, setWalletModalOpen } = useTradeStore()
+  const { markets, activeMarketId, setWalletModalOpen } = useTradeStore()
   const { isConnected, balance } = useArcWallet()
+  const { openPosition, placeOrder, isTxPending } = useConfidentialTrading()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
 
   const [orderType, setOrderType] = useState<OrderType>('market')
+  const [isProDropdownOpen, setIsProDropdownOpen] = useState(false)
+  const [durationHours, setDurationHours] = useState('1')
+  const [durationMins, setDurationMins] = useState('0')
+  const [slippage, setSlippage] = useState('1.00')
   const [side, setSide] = useState<OrderSide>(initialSide)
-  const [marginMode, setMarginMode] = useState<'cross' | 'isolated'>('cross')
 
   useEffect(() => {
     setSide(initialSide)
@@ -29,12 +34,12 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   
   // Dynamic leverage presets based on market category
   const leveragePresets = useMemo(() => {
-    if (!activeMarket) return [1, 5, 10, 20]
+    if (!activeMarket) return [1, 10, 25, 50]
     switch (activeMarket.category) {
-      case 'forex': return [1, 10, 25, 50]
+      case 'forex': return [1, 25, 50, 100]
       case 'rwa': return [1, 3, 5, 10]
       case 'crypto':
-      default: return [1, 5, 10, 20]
+      default: return [1, 10, 25, 50]
     }
   }, [activeMarket?.category])
 
@@ -45,13 +50,11 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     }
   }, [activeMarket?.category, leveragePresets])
   const [reduceOnly, setReduceOnly] = useState(false)
-  const [postOnly, setPostOnly] = useState(false)
   const [showTpSl, setShowTpSl] = useState(false)
   const [takeProfit, setTakeProfit] = useState('')
   const [stopLoss, setStopLoss] = useState('')
   const [triggerPrice, setTriggerPrice] = useState('')
-  const [durationHours, setDurationHours] = useState('1')
-  const [durationMins, setDurationMins] = useState('0')
+
   const [inputCurrency, setInputCurrency] = useState<'BASE' | 'USD'>('BASE')
   const isCustomLeverage = !leveragePresets.includes(leverage)
   const maxLeverage = leveragePresets[leveragePresets.length - 1]
@@ -66,7 +69,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     if (!effectivePrice || !sizeNum) return null
     const notional = usdSize
     const collateral = notional / leverage
-    const fees = notional * 0.0005
+    const fees = notional * 0.0004
     const liqMul = side === 'long' ? 1 - 0.9 / leverage : 1 + 0.9 / leverage
     return {
       collateral: collateral.toFixed(2),
@@ -113,11 +116,35 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     else setSize(baseSize.toFixed(4))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isConnected) { setWalletModalOpen(true); return }
-    if (!activeMarket || !sizeNum) return
-    placeOrder({ marketId: activeMarket.id, pair: activeMarket.pair, side, type: orderType, price: effectivePrice, size: baseSize, leverage })
-    setSize(''); setPrice(''); setSizePercent(0)
+    if (!activeMarket || !sizeNum || !orderSummary) return
+    
+    try {
+      if (orderType === 'market') {
+        await openPosition(
+          activeMarket.pair, // e.g. "BTC/USDC"
+          side === 'long',
+          usdSize,
+          leverage,
+          Number(orderSummary.collateral)
+        )
+      } else {
+        await placeOrder(
+          activeMarket.pair,
+          side === 'long',
+          usdSize,
+          leverage,
+          Number(triggerPrice || price),
+          orderType === 'limit' ? 0 : 1,
+          reduceOnly
+        )
+      }
+      setSize(''); setPrice(''); setSizePercent(0)
+      onClose?.()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   if (!activeMarket) return null
@@ -152,26 +179,52 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <button onClick={()=>setSide('short')} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'none', background:side==='short'?'#e55f48':'transparent', color:side==='short'?'#fff':'#8e8e93', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>Short</button>
       </div>
 
-      {/* Margin & Order Type Dropdowns */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-        <div style={{ background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:6, padding:'6px 12px', display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
-          <span style={{ fontSize:11, color:'#8e8e93' }}>Margin</span>
-          <select value={marginMode} onChange={e=>setMarginMode(e.target.value as any)} style={{ background:'transparent', border:'none', color:'#fff', fontSize:13, fontWeight:500, outline:'none', appearance:'none', padding:0, cursor:'pointer', width:'100%' }}>
-            <option value="cross" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Cross</option>
-            <option value="isolated" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Isolated</option>
-          </select>
-          <svg style={{ position:'absolute', right:12, top:'50%', pointerEvents:'none' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div style={{ background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:6, padding:'6px 12px', display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
-          <span style={{ fontSize:11, color:'#8e8e93' }}>Order Type</span>
-          <select value={orderType} onChange={e=>setOrderType(e.target.value as any)} style={{ background:'transparent', border:'none', color:'#fff', fontSize:13, fontWeight:500, outline:'none', appearance:'none', padding:0, cursor:'pointer', width:'100%' }}>
-            <option value="market" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Market</option>
-            <option value="limit" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Limit</option>
-            <option value="twap" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>TWAP</option>
-            <option value="stop market" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Stop Market</option>
-            <option value="stop limit" style={{ background: 'var(--color-bg0)', color: 'var(--color-text1)' }}>Stop Limit</option>
-          </select>
-          <svg style={{ position:'absolute', right:12, top:'50%', pointerEvents:'none' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+      {/* Order Type Tabs */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+        <button 
+          onClick={() => { setOrderType('market'); setIsProDropdownOpen(false); }}
+          style={{ background: 'none', border: 'none', color: orderType === 'market' ? '#fff' : '#8e8e93', fontSize: '15px', fontWeight: orderType === 'market' ? 600 : 500, cursor: 'pointer', padding: 0, position: 'relative' }}
+        >
+          Market
+          {orderType === 'market' && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#60a5fa' }} />}
+        </button>
+
+        <button 
+          onClick={() => { setOrderType('limit'); setIsProDropdownOpen(false); }}
+          style={{ background: 'none', border: 'none', color: orderType === 'limit' ? '#fff' : '#8e8e93', fontSize: '15px', fontWeight: orderType === 'limit' ? 600 : 500, cursor: 'pointer', padding: 0, position: 'relative' }}
+        >
+          Limit
+          {orderType === 'limit' && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#60a5fa' }} />}
+        </button>
+
+        <div style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setIsProDropdownOpen(!isProDropdownOpen)}
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: (orderType !== 'market' && orderType !== 'limit') ? '#fff' : '#8e8e93', fontSize: '15px', fontWeight: (orderType !== 'market' && orderType !== 'limit') ? 600 : 500, cursor: 'pointer', padding: 0 }}
+          >
+            <span style={{ textTransform: 'capitalize' }}>
+              {(orderType !== 'market' && orderType !== 'limit') ? orderType : 'Pro'}
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isProDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
+            {(orderType !== 'market' && orderType !== 'limit') && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#60a5fa' }} />}
+          </button>
+
+          {isProDropdownOpen && (
+            <div className="animate-fade-in-up" style={{ position: 'absolute', top: '100%', left: 0, marginTop: '12px', background: '#121214', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '4px', zIndex: 10, minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '2px', animationDuration: '150ms' }}>
+              <button 
+                onClick={() => { setOrderType('stop market'); setIsProDropdownOpen(false); }}
+                style={{ background: orderType === 'stop market' ? 'var(--color-bg2)' : 'transparent', border: 'none', color: '#fff', padding: '8px 12px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
+              >
+                Stop Market
+              </button>
+              <button 
+                onClick={() => { setOrderType('twap'); setIsProDropdownOpen(false); }}
+                style={{ background: orderType === 'twap' ? 'var(--color-bg2)' : 'transparent', border: 'none', color: '#fff', padding: '8px 12px', textAlign: 'left', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
+              >
+                TWAP
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -218,7 +271,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       {/* Dynamic Order Settings */}
       {orderType !== 'market' && (
         <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, marginBottom: 4, animationDuration: '200ms' }}>
-          {(orderType === 'limit' || orderType === 'stop limit') && (
+          {orderType === 'limit' && (
             <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
               <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Limit Price</span>
               <input type="number" placeholder="0.00" value={price} onChange={e=>setPrice(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
@@ -226,7 +279,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             </div>
           )}
 
-          {(orderType === 'stop market' || orderType === 'stop limit') && (
+          {orderType === 'stop market' && (
             <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
               <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Trigger Price</span>
               <input type="number" placeholder="0.00" value={triggerPrice} onChange={e=>setTriggerPrice(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
@@ -289,13 +342,6 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             <input type="checkbox" checked={reduceOnly} onChange={()=>setReduceOnly(!reduceOnly)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
             <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Reduce Only</span>
           </label>
-          
-          {orderType === 'limit' && (
-            <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-              <input type="checkbox" checked={postOnly} onChange={()=>setPostOnly(!postOnly)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
-              <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Post Only</span>
-            </label>
-          )}
         </div>
         
         {(orderType === 'market' || orderType === 'limit') && !reduceOnly && (
@@ -328,23 +374,30 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       </div>
 
       {/* Submit Button */}
-      <button onClick={handleSubmit} style={{ 
+      <button onClick={handleSubmit} disabled={isTxPending || (!isConnected && sizeNum > 0)} style={{ 
         width:'100%', padding:'12px', borderRadius:8, border:'none', 
-        background: (!isConnected || !sizeNum) ? 'var(--color-bg3)' : (side === 'long' ? 'var(--color-green)' : 'var(--color-red)'), 
-        color: (!isConnected || !sizeNum) ? '#8e8e93' : (side === 'long' ? '#000' : '#fff'), 
-        fontSize:14, fontWeight:600, cursor:(!isConnected||!sizeNum)?'not-allowed':'pointer',
+        background: (!isConnected || !sizeNum || isTxPending) ? 'var(--color-bg3)' : (side === 'long' ? 'var(--color-green)' : 'var(--color-red)'), 
+        color: (!isConnected || !sizeNum || isTxPending) ? '#8e8e93' : (side === 'long' ? '#000' : '#fff'), 
+        fontSize:14, fontWeight:600, cursor:(!isConnected||!sizeNum||isTxPending)?'not-allowed':'pointer',
         marginTop: 4
       }}>
-        {!isConnected ? 'Connect Wallet' : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
+        {isTxPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
       </button>
       {/* Summary Stats */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Leverage</span><span style={{ color:'#60a5fa' }}>{leverage}x</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Order Value</span><span style={{ color:'#60a5fa' }}>{baseSize ? baseSize.toFixed(4) : 0} {activeMarket.baseAsset} / {orderSummary?.notional || 0} USD</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Liq. Price</span><span style={{ borderBottom:'1px dashed #555' }}>N/A</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Position Size</span><span style={{ color:'#60a5fa' }}>{baseSize ? baseSize.toFixed(4) : '0.00'} {activeMarket.baseAsset} / ${orderSummary?.notional || '0.00'}</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Liq. Price</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>{orderSummary?.liqPrice ? `$${orderSummary.liqPrice}` : 'N/A'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Margin Required</span><span>${orderSummary?.collateral || '0.00'}</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Slippage</span><span style={{ borderBottom:'1px dashed #555' }}>0.00% / 8%</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Fees</span><span style={{ borderBottom:'1px dashed #555' }}>0.034% / 0.011%</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Fee (0.04%)</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>${orderSummary?.fees || '0.00'}</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Price Impact</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>-0.01%</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ color:'#8e8e93' }}>Allowed Slippage</span>
+          <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg2)', padding:'2px 6px', borderRadius:'4px', border:'1px solid var(--color-border)' }}>
+            <input type="number" value={slippage} onChange={e=>setSlippage(e.target.value)} style={{ background:'transparent', border:'none', color:'#fff', width:'40px', textAlign:'right', fontSize:'11px', outline:'none', fontFamily:'var(--font-mono)' }} />
+            <span style={{ color:'#8e8e93', marginLeft:'2px' }}>%</span>
+          </div>
+        </div>
       </div>
       </div>
 
@@ -355,7 +408,6 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Balance</span><span>${balance.toFixed(2)}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>PnL (Unrealized)</span><span>$0.00</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Funding Cost (Unrealized)</span><span>$0.00</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Cross-margin Ratio</span><span>0.0000%</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Maintenance Margin</span><span>$0.00</span></div>
       </div>
 

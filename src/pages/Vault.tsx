@@ -3,11 +3,13 @@ import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
+import { useConfidentialVault } from '../hooks/useConfidentialVault'
 
 
 export default function Vault() {
-  const { vaultBalance, vaultTVL, vaultAPY, vaultDeposits, depositToVault, withdrawFromVault, setWalletModalOpen } = useTradeStore()
+  const { vaultAPY, vaultDeposits, setWalletModalOpen } = useTradeStore()
   const { isConnected, balance } = useArcWallet()
+  const { deposit, requestWithdrawal, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
   const [activeTab, setActiveTab] = useState('Activity')
@@ -18,33 +20,38 @@ export default function Vault() {
 
   const tabs = ['Activity', 'Positions', 'Trade History', 'Funding History']
 
-  const handleAction = () => {
+  const handleAction = async () => {
     if (!isConnected) { setWalletModalOpen(true); return }
     const amount = Number(amt)
-    if (activeAction === 'Deposit' && amount > 0 && amount <= balance) {
-      depositToVault(amount)
+    if (!amount || amount <= 0) return
+
+    try {
+      if (activeAction === 'Deposit') {
+        await deposit(amount)
+      } else {
+        await requestWithdrawal(amount)
+      }
       setAmt('')
-    } else if (activeAction === 'Withdraw' && amount > 0 && amount <= vaultBalance) {
-      withdrawFromVault(amount)
-      setAmt('')
+    } catch (e) {
+      console.error(e)
     }
   }
 
   const formatTime = (ts: number) => new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
-  // Mock 30-day Vault TVL data
+  // Mock 30-day Vault TVL data for chart based on real TVL
   const tvlData = useMemo(()=>{
     const data = []
     const now = Math.floor(Date.now()/1000)
-    let currentTVL = vaultTVL * 0.8 // start lower
+    let currentTVL = tvlUsd * 0.8 || 1000000 // default if 0
     for(let i=29;i>=0;i--){
-      currentTVL += (Math.random()-0.3)*100000 // generally goes up
+      currentTVL += (Math.random()-0.3)*10000 // generally goes up
       data.push({ time: (now - i*86400) as Time, value: +currentTVL.toFixed(2) })
     }
     // ensure last is current
-    data[data.length-1].value = vaultTVL
+    data[data.length-1].value = tvlUsd || currentTVL
     return data
-  },[vaultTVL])
+  },[tvlUsd])
 
   useEffect(()=>{
     if(!chartRef.current) return
@@ -82,7 +89,7 @@ export default function Vault() {
         <div className="mobile-only" style={{ marginTop: 24, padding: '16px', background: 'var(--color-bg1)', borderRadius: '8px', border: '1px solid var(--color-border)', justifyContent: 'space-between' }}>
            <div>
              <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Vault TVL</div>
-             <div className="font-mono" style={{ fontSize: 20, fontWeight: 600 }}>US${(vaultTVL / 1e6).toFixed(2)}M</div>
+             <div className="font-mono" style={{ fontSize: 20, fontWeight: 600 }}>US${(tvlUsd / 1e6).toFixed(2)}M</div>
            </div>
            <div style={{ textAlign: 'right' }}>
              <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Lockup Period</div>
@@ -101,7 +108,7 @@ export default function Vault() {
             <div className="chart-header">
               <div>
                 <div style={{ color:'var(--color-text2)', fontSize:13, marginBottom:4 }}>Vault TVL</div>
-                <div className="font-mono" style={{ fontSize:24, fontWeight:600 }}>US${(vaultTVL).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                <div className="font-mono" style={{ fontSize:24, fontWeight:600 }}>US${(tvlUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
               </div>
               <div className="chart-controls">
                 <div className="control-group">
@@ -119,7 +126,7 @@ export default function Vault() {
             <div className="panel-header">Performance Metrics</div>
             <div className="overview-list-grid">
               {[
-                ['TVL', `US$${(vaultTVL/1e6).toFixed(2)}M`, 'var(--color-text1)'],
+                ['TVL', `US$${(tvlUsd/1e6).toFixed(2)}M`, 'var(--color-text1)'],
                 ['APR (7-day)', `${vaultAPY}%`, 'var(--color-green)'],
                 ['All Time Return', '+14.2%', 'var(--color-green)'],
                 ['Max Drawdown', '-2.14%', 'var(--color-text1)'],
@@ -128,7 +135,7 @@ export default function Vault() {
                 ['Management Fee', '0.00%', 'var(--color-text1)'],
                 ['Performance Fee', '10.00%', 'var(--color-text1)'],
                 ['Lockup Period', '3 Days', 'var(--color-text1)'],
-                ['Your Deposit', `US$${vaultBalance.toFixed(2)}`, 'var(--color-accent)'],
+                ['Your Deposit', `US$${userCVault.toFixed(2)}`, 'var(--color-accent)'],
               ].map(([label, value, color]) => (
                 <div key={label} className="overview-item">
                   <span className="overview-label">{label}</span>
@@ -169,13 +176,13 @@ export default function Vault() {
                 <div className="input-header">
                   <span style={{ color:'var(--color-text2)', fontSize:13 }}>Amount</span>
                   <span style={{ color:'var(--color-text3)', fontSize:13 }}>
-                    {activeAction === 'Deposit' ? 'Wallet:' : 'Vault:'} <span className="font-mono text-white">{activeAction==='Deposit'?balance.toFixed(2):vaultBalance.toFixed(2)} USDC</span>
+                    {activeAction === 'Deposit' ? 'Wallet:' : 'Vault:'} <span className="font-mono text-white">{activeAction==='Deposit'?balance.toFixed(2):userCVault.toFixed(2)} USDC</span>
                   </span>
                 </div>
                 <div className="input-box">
                   <input type="number" placeholder="0.00" value={amt} onChange={e=>setAmt(e.target.value)} className="font-mono" />
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <button className="max-btn" onClick={()=>setAmt(activeAction==='Deposit'?String(balance):String(vaultBalance))}>MAX</button>
+                    <button className="max-btn" onClick={()=>setAmt(activeAction==='Deposit'?String(balance):String(userCVault))}>MAX</button>
                     <span style={{ fontWeight:600, fontSize:14 }}>USDC</span>
                   </div>
                 </div>
@@ -188,8 +195,8 @@ export default function Vault() {
                 </div>
               )}
 
-              <button className="submit-btn" onClick={handleAction}>
-                {!isConnected ? 'Connect Wallet' : activeAction}
+              <button className="submit-btn" disabled={isPending || !amt || Number(amt) <= 0} onClick={handleAction} style={{ opacity: (isPending || !amt) ? 0.5 : 1 }}>
+                {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : activeAction}
               </button>
             </div>
           </div>

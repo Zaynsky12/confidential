@@ -1,73 +1,73 @@
-# React + TypeScript + Vite
+# Confidential Perpetual DEX
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A decentralized, high-performance perpetual trading platform built on the Arc Network Testnet. Confidential offers a professional trading experience with 1-click trading (infinite approval), dynamic charting, and a dedicated yield vault.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- ⚡ **1-Click Trading**: Enjoy a seamless CEX-like experience. Approve USDC once and trade effortlessly without repeated Metamask pop-ups.
+- 📈 **Professional Charting**: Integrated TradingView Advanced Charts for real-time technical analysis.
+- 🏦 **Yield Vault**: Deposit USDC to provide liquidity to the platform and earn a portion of the trading fees.
+- 📱 **Mobile Optimized**: A fully responsive interface with native mobile navigation, optimized for touch interaction.
+- 🔐 **Secure & Decentralized**: Fully self-custodial, operating via audited smart contracts on Arc Network.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React, TypeScript, Vite
+- **Web3 Integration**: Wagmi v2, Viem, Privy (for Email/Wallet login)
+- **State Management**: Zustand
+- **Styling**: Vanilla CSS (Custom Design System)
+- **Smart Contracts**: Solidity, Foundry
+- **Oracle**: Pyth Network
 
-## Expanding the ESLint configuration
+## Quick Start
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
+- Node.js (v18+)
+- Foundry (for smart contract deployment)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Frontend Setup
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Clone the repository and install dependencies:
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2. Create a `.env` file in the root directory and add your Privy App ID:
+   ```env
+   VITE_PRIVY_APP_ID=your_privy_app_id
+   VITE_ARC_RPC=https://rpc.testnet.arc.io
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Smart Contract Setup
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Navigate to the `contracts` folder:
+   ```bash
+   cd contracts
+   ```
+
+2. Create a `.env` file for your deployment keys (NEVER commit this file):
+   ```env
+   PRIVATE_KEY=0x...
+   ARC_RPC_URL=https://rpc.testnet.arc.io
+   ```
+
+3. Deploy the contracts to Arc Testnet:
+   ```bash
+   forge script script/Deploy.s.sol:DeployScript --rpc-url $ARC_RPC_URL --broadcast
+   ```
+
+## Contract Addresses (Arc Testnet)
+
+- **ConfidentialCore**: `0xe7713624d3dd7d7c2e360de47114401c31f1dd76`
+- **ConfidentialTrading**: `0x6b6de0047bbddad1d8b3b18b34a115b482650e9c`
+- **ConfidentialVault**: `0xb38ed2873e8e74486cbbfeb646ddaf73238ec958`
+- **PythPriceOracle**: `0x04bdb3a7ea3bcf895c6e7e8495f8cf11602fc3f4`
+
+## Disclaimer
+
+This is a testnet application. Use only for testing and development purposes. Do not deposit real funds into these contracts.

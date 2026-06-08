@@ -1,16 +1,23 @@
 import { useState, useMemo } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
+import { usePositions } from '../hooks/usePositions'
+import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
 
 type Tab = 'balances' | 'positions' | 'orders' | 'trades'
 
 export default function Positions() {
-  const { positions, orders, closePosition, cancelOrder } = useTradeStore()
+  const { orders, cancelOrder } = useTradeStore()
   const { isConnected, balance } = useArcWallet()
   const [tab, setTab] = useState<Tab>('positions')
 
-  const openPositions = useMemo(() => positions.filter((p) => p.status === 'open'), [positions])
-  const closedPositions = useMemo(() => positions.filter((p) => p.status === 'closed'), [positions])
+  // Read from smart contract
+  const { activePositions } = usePositions()
+  const { closePosition } = useConfidentialTrading()
+
+  // Use on-chain positions for open positions tab
+  const openPositions = activePositions
+  const closedPositions: any[] = [] // History can be fetched via subgraph/events later
   const openOrders = useMemo(() => orders.filter((o) => o.status === 'open'), [orders])
 
   const formatTime = (ts: number) => {
@@ -87,25 +94,32 @@ export default function Positions() {
                 {openPositions.length === 0 ? (
                   <div className="pos-empty">No open positions</div>
                 ) : (
-                  openPositions.map((p) => (
-                    <div key={p.id} className="pos-row">
-                      <span style={{ fontWeight: 600 }}>{p.pair}</span>
-                      <span className={p.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
-                        {p.side} {p.leverage}x
-                      </span>
-                      <span className="font-mono">{p.size.toFixed(4)}</span>
-                      <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
-                      <span className="font-mono">${p.markPrice.toFixed(2)}</span>
-                      <span className="font-mono" style={{ color: 'var(--color-text2)' }}>${p.liquidationPrice.toFixed(2)}</span>
-                      <span className="font-mono">${p.collateral.toFixed(2)}</span>
-                      <span className={`font-mono ${p.pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
-                        {p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)} ({p.pnl >= 0 ? '+' : ''}{p.pnlPercent.toFixed(2)}%)
-                      </span>
-                      <button onClick={() => closePosition(p.id)} className="btn-close">
-                        Close
-                      </button>
-                    </div>
-                  ))
+                  openPositions.map((p) => {
+                    // Calculate PnL locally based on current price from oracle or store if needed
+                    // For now we use 0.00 since we need a multicall for getPositionPnl or calculate it here
+                    const markPrice = p.entryPrice // Placeholder, should get from pyth
+                    const pnl = 0
+                    const pnlPercent = 0
+                    return (
+                      <div key={p.id} className="pos-row">
+                        <span style={{ fontWeight: 600 }}>{p.pairId || 'Unknown'}</span>
+                        <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                          {p.isLong ? 'long' : 'short'} {p.leverage}x
+                        </span>
+                        <span className="font-mono">{p.sizeUsd.toFixed(2)}</span>
+                        <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
+                        <span className="font-mono">${markPrice.toFixed(2)}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-text2)' }}>${p.liquidationPrice.toFixed(2)}</span>
+                        <span className="font-mono">${p.collateral.toFixed(2)}</span>
+                        <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
+                          {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                        </span>
+                        <button onClick={() => closePosition(BigInt(p.id))} className="btn-close">
+                          Close
+                        </button>
+                      </div>
+                    )
+                  })
                 )}
               </>
             )}

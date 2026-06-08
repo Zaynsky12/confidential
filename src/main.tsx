@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { WagmiProvider } from '@privy-io/wagmi'
 import { http, createConfig } from 'wagmi'
+import { injected, walletConnect } from 'wagmi/connectors'
 import { arcTestnet } from './config/chain'
 import App from './App'
 import './index.css'
@@ -16,6 +17,10 @@ const wagmiConfig = createConfig({
   transports: {
     [arcTestnet.id]: http(import.meta.env.VITE_ARC_RPC || 'https://rpc.testnet.arc.io'),
   },
+  connectors: [
+    injected(),
+    walletConnect({ projectId: '3fcc6bba6f1de962d911bb5b5c3dba68' }) // placeholder public project ID
+  ]
 })
 
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || 'insert-your-privy-app-id-here'

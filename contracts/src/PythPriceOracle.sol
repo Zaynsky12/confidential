@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+/// @title IPyth — Minimal Pyth Network interface for on-chain price reads
+interface IPyth {
+    struct Price {
+        int64 price;
+        uint64 conf;
+        int32 expo;
+        uint256 publishTime;
+    }
+
+    function getPriceNoOlderThan(bytes32 id, uint256 age) external view returns (Price memory);
+    function updatePriceFeeds(bytes[] calldata updateData) external payable;
+    function getUpdateFee(bytes[] calldata updateData) external view returns (uint256);
+}
+
+/// @title PythPriceOracle — Oracle adapter for Confidential Perpetual DEX
+/// @notice Wraps the Pyth on-chain contract to provide validated price feeds
+contract PythPriceOracle {
+    // ──────────── State ────────────
+    IPyth public immutable pyth;
+    address public owner;
+    uint256 public maxStaleness = 60; // seconds
+
+    // pairId (e.g. keccak256("BTC/USDC")) => Pyth price feed ID
+    mapping(bytes32 => bytes32) public priceFeedIds;
+
+    // ──────────── Events ────────────
+    event PriceFeedSet(bytes32 indexed pairId, bytes32 pythFeedId);
+    event MaxStalenessUpdated(uint256 newMaxStaleness);
+    event OwnershipTransferred(address indexed prev, address indexed next);
+
+    // ──────────── Errors ────────────
+    error OnlyOwner();
+    error PriceFeedNotSet();
+    error StalePrice();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert OnlyOwner();
+        _;
+    }
+
+    constructor(address _pyth) {
+        pyth = IPyth(_pyth);
+        owner = msg.sender;
+    }
+
+    // ──────────── Admin ────────────
+
+    /// @notice Register a Pyth feed ID for a trading pair
+    function setPriceFeed(bytes32 pairId, bytes32 pythFeedId) external onlyOwner {
+        priceFeedIds[pairId] = pythFeedId;
+        emit PriceFeedSet(pairId, pythFeedId);
+    }
+
+    /// @notice Batch-register multiple feeds
+    function setPriceFeedsBatch(bytes32[] calldata pairIds, bytes32[] calldata pythFeedIds) external onlyOwner {
+        require(pairIds.length == pythFeedIds.length, "Length mismatch");
+        for (uint256 i; i < pairIds.length; i++) {
+            priceFeedIds[pairIds[i]] = pythFeedIds[i];
+            emit PriceFeedSet(pairIds[i], pythFeedIds[i]);
+        }
+    }
+
+    function setMaxStaleness(uint256 _seconds) external onlyOwner {
+        maxStaleness = _seconds;
+        emit MaxStalenessUpdated(_seconds);
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
+    // ──────────── Public reads ────────────
+
+    /// @notice Get the validated price for a pair (reverts if stale or missing)
+    /// @return price  Price scaled to 18 decimals (USD)
+    /// @return publishTime  Timestamp of the price update
+    function getPrice(bytes32 pairId) external view returns (uint256 price, uint256 publishTime) {
+        bytes32 feedId = priceFeedIds[pairId];
+        if (feedId == bytes32(0)) revert PriceFeedNotSet();
+
+        IPyth.Price memory p = pyth.getPriceNoOlderThan(feedId, maxStaleness);
+
+        // Convert Pyth price (int64 * 10^expo) to uint256 with 18 decimals
+        if (p.expo >= 0) {
+            price = uint256(uint64(p.price)) * (10 ** (18 + uint32(p.expo)));
+        } else {
+            uint32 absExpo = uint32(-p.expo);
+            if (absExpo <= 18) {
+                price = uint256(uint64(p.price)) * (10 ** (18 - absExpo));
+            } else {
+                price = uint256(uint64(p.price)) / (10 ** (absExpo - 18));
+            }
+        }
+
+        publishTime = p.publishTime;
+    }
+
+    /// @notice Check if the price for a pair is stale
+    function isPriceStale(bytes32 pairId) external view returns (bool) {
+        bytes32 feedId = priceFeedIds[pairId];
+        if (feedId == bytes32(0)) return true;
+
+        try pyth.getPriceNoOlderThan(feedId, maxStaleness) returns (IPyth.Price memory) {
+            return false;
+        } catch {
+            return true;
+        }
+    }
+
+    /// @notice Pass-through to update Pyth price feeds (called by frontend/keeper)
+    function updatePriceFeeds(bytes[] calldata updateData) external payable {
+        uint256 fee = pyth.getUpdateFee(updateData);
+        pyth.updatePriceFeeds{value: fee}(updateData);
+    }
+}
