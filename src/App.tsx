@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Topbar from './components/Topbar'
-import WalletModal from './components/WalletModal'
+
 import Trade from './pages/Trade'
 import Vault from './pages/Vault'
 import Portfolio from './pages/Portfolio'
@@ -37,7 +37,7 @@ export default function App() {
           <Route path="/leaderboard" element={<DummyPage title="Leaderboard" />} />
         </Routes>
       </main>
-      <WalletModal />
+
     </>
   )
 }

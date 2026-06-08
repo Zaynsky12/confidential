@@ -10,8 +10,8 @@ interface OrderFormProps {
 }
 
 export default function OrderForm({ initialSide = 'long', onClose }: OrderFormProps) {
-  const { markets, activeMarketId, setWalletModalOpen } = useTradeStore()
-  const { isConnected, balance } = useArcWallet()
+  const { markets, activeMarketId } = useTradeStore()
+  const { isConnected, balance, connect } = useArcWallet()
   const { openPosition, placeOrder, isTxPending } = useConfidentialTrading()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
 
@@ -117,7 +117,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   }
 
   const handleSubmit = async () => {
-    if (!isConnected) { setWalletModalOpen(true); return }
+    if (!isConnected) { connect(); return }
     if (!activeMarket || !sizeNum || !orderSummary) return
     
     try {

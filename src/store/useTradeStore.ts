@@ -99,8 +99,6 @@ interface TradeStore {
   withdrawFromVault: (amount: number) => void
 
   // UI State
-  isWalletModalOpen: boolean
-  setWalletModalOpen: (open: boolean) => void
   isMarketSelectorOpen: boolean
   setMarketSelectorOpen: (open: boolean) => void
   selectedTimeframe: string
@@ -276,8 +274,6 @@ export const useTradeStore = create<TradeStore>()(
       },
 
       // UI State
-      isWalletModalOpen: false,
-      setWalletModalOpen: (open) => set({ isWalletModalOpen: open }),
       isMarketSelectorOpen: false,
       setMarketSelectorOpen: (open) => set({ isMarketSelectorOpen: open }),
       selectedTimeframe: '1h',

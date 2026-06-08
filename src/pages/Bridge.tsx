@@ -12,8 +12,8 @@ const CHAINS = [
 interface MockBridge { id:string; from:string; to:string; amount:number; status:string; time:number; tx:string }
 
 export default function Bridge() {
-  const { isConnected } = useArcWallet()
-  const { setWalletModalOpen } = useTradeStore()
+  const { isConnected, connect } = useArcWallet()
+
   const [fromChain, setFromChain] = useState('ethereum')
   const [amount, setAmount] = useState('')
   const [bridges, setBridges] = useState<MockBridge[]>([])
@@ -23,7 +23,7 @@ export default function Bridge() {
   const estFee = '0.50'
 
   const handleBridge = () => {
-    if(!isConnected){ setWalletModalOpen(true); return }
+    if(!isConnected){ connect(); return }
     const amt = Number(amount)
     if(amt<=0) return
     setBridges(prev=>[{

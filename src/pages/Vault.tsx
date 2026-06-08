@@ -7,8 +7,8 @@ import { useConfidentialVault } from '../hooks/useConfidentialVault'
 
 
 export default function Vault() {
-  const { vaultAPY, vaultDeposits, setWalletModalOpen } = useTradeStore()
-  const { isConnected, balance } = useArcWallet()
+  const { vaultAPY, vaultDeposits } = useTradeStore()
+  const { isConnected, balance, connect } = useArcWallet()
   const { deposit, requestWithdrawal, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
@@ -21,7 +21,7 @@ export default function Vault() {
   const tabs = ['Activity', 'Positions', 'Trade History', 'Funding History']
 
   const handleAction = async () => {
-    if (!isConnected) { setWalletModalOpen(true); return }
+    if (!isConnected) { connect(); return }
     const amount = Number(amt)
     if (!amount || amount <= 0) return
 

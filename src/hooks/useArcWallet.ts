@@ -8,8 +8,8 @@ import { useTradeStore } from '../store/useTradeStore'
 export function useArcWallet() {
   const { address: wagmiAddress, isConnected: wagmiConnected, chainId } = useAccount()
   const { disconnect: wagmiDisconnect } = useDisconnect()
-  const { authenticated, user, logout: privyLogout } = usePrivy()
-  const { setWalletModalOpen } = useTradeStore()
+  const { authenticated, user, logout: privyLogout, login } = usePrivy()
+
 
   const privyAddress = user?.wallet?.address
   const privyEmail = user?.email?.address
@@ -36,7 +36,7 @@ export function useArcWallet() {
       : 'Loading...'
 
   const connect = () => {
-    setWalletModalOpen(true)
+    login()
   }
 
   const disconnect = async () => {

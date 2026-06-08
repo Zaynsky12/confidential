@@ -43,8 +43,8 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Topbar() {
-  const { isConnected, truncatedAddress, balance, disconnect } = useArcWallet()
-  const { setWalletModalOpen, markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
+  const { isConnected, truncatedAddress, balance, disconnect, connect } = useArcWallet()
+  const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -180,7 +180,7 @@ export default function Topbar() {
             {!isConnected ? (
               <button
                 className="btn btn-connect-unified desktop-only"
-                onClick={() => setWalletModalOpen(true)}
+                onClick={() => connect()}
               >
                 Connect Wallet
               </button>
@@ -296,7 +296,7 @@ export default function Topbar() {
                 <button
                   className="btn btn-connect-unified"
                   style={{ width: '100%', padding: '12px' }}
-                  onClick={() => { setWalletModalOpen(true); setIsMobileMenuOpen(false); }}
+                  onClick={() => { connect(); setIsMobileMenuOpen(false); }}
                 >
                   Connect Wallet
                 </button>
