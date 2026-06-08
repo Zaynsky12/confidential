@@ -8,21 +8,27 @@ export function usePositions() {
   const [activePositions, setActivePositions] = useState<any[]>([])
 
   // 1. Get position IDs
-  const { data: positionIds } = useReadContract({
+  const { data: positionIds, refetch: refetchIds } = useReadContract({
     address: CONTRACTS.TRADING,
     abi: ABIS.TRADING,
     functionName: 'getUserPositionIds',
     args: address ? [address] : undefined,
+    query: {
+      refetchInterval: 3000,
+    }
   })
 
   // 2. Fetch all position details
-  const { data: positionsData } = useReadContracts({
+  const { data: positionsData, refetch: refetchDetails } = useReadContracts({
     contracts: (positionIds as bigint[] || []).map((id) => ({
       address: CONTRACTS.TRADING as any,
       abi: ABIS.TRADING as any,
       functionName: 'getPosition',
       args: [id],
     })) as any,
+    query: {
+      refetchInterval: 3000,
+    }
   })
 
   useEffect(() => {
@@ -51,5 +57,10 @@ export function usePositions() {
     }
   }, [positionsData, positionIds])
 
-  return { activePositions }
+  const refetchAll = () => {
+    refetchIds()
+    refetchDetails()
+  }
+
+  return { activePositions, refetchPositions: refetchAll }
 }

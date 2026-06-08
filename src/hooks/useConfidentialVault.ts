@@ -26,19 +26,19 @@ export function useConfidentialVault() {
     functionName: 'totalAssets',
   })
 
-  // Read User cVAULT balance
-  const { data: cVaultBalance, refetch: refetchBalance } = useReadContract({
+  // Read User cVAULT shares
+  const { data: sharesData, refetch: refetchShares } = useReadContract({
     address: CONTRACTS.VAULT,
     abi: ABIS.VAULT,
-    functionName: 'balanceOf',
+    functionName: 'shares',
     args: address ? [address] : undefined,
   })
 
-  // Read user pending withdrawals
-  const { data: withdrawalInfo, refetch: refetchWithdrawal } = useReadContract({
+  // Read User balance in USDC value
+  const { data: underlyingBalance, refetch: refetchBalance } = useReadContract({
     address: CONTRACTS.VAULT,
     abi: ABIS.VAULT,
-    functionName: 'withdrawals',
+    functionName: 'balanceOfUnderlying',
     args: address ? [address] : undefined,
   })
 
@@ -55,7 +55,7 @@ export function useConfidentialVault() {
         address: CONTRACTS.VAULT as any,
         abi: ABIS.VAULT as any,
         functionName: 'deposit',
-        args: [amountUnits, address],
+        args: [amountUnits],
       } as any)
       toast.dismiss('deposit')
       return tx
@@ -66,55 +66,51 @@ export function useConfidentialVault() {
     }
   }
 
-  const requestWithdrawal = async (amountCVault: number) => {
+  const withdraw = async (amountUsdc: number) => {
     try {
-      toast.loading('Requesting Withdrawal...', { id: 'withdraw' })
-      const amountUnits = parseUnits(amountCVault.toString(), 6)
+      if (!underlyingBalance || !sharesData) throw new Error("Vault balances not loaded")
+      
+      const underlyingNum = Number(formatUnits(underlyingBalance as bigint, 6))
+      if (amountUsdc > underlyingNum) throw new Error("Insufficient vault balance")
+
+      toast.loading('Withdrawing from Vault...', { id: 'withdraw' })
+
+      let shareAmount: bigint
+      // If user is withdrawing MAX or close to MAX, burn all shares to avoid dust
+      if (amountUsdc >= underlyingNum * 0.999) {
+        shareAmount = sharesData as bigint
+      } else {
+        // Calculate proportional shares to burn
+        const ratio = amountUsdc / underlyingNum
+        shareAmount = (BigInt(sharesData as bigint) * BigInt(Math.floor(ratio * 1000000))) / 1000000n
+      }
 
       const tx = await writeContractAsync({
         address: CONTRACTS.VAULT as any,
         abi: ABIS.VAULT as any,
-        functionName: 'requestWithdrawal',
-        args: [amountUnits],
+        functionName: 'withdraw',
+        args: [shareAmount],
       } as any)
+      
       toast.dismiss('withdraw')
       return tx
     } catch (error: any) {
       toast.dismiss('withdraw')
-      toast.error(error.shortMessage || 'Failed to request withdrawal')
-      throw error
-    }
-  }
-
-  const completeWithdrawal = async () => {
-    try {
-      toast.loading('Completing Withdrawal...', { id: 'complete' })
-      const tx = await writeContractAsync({
-        address: CONTRACTS.VAULT as any,
-        abi: ABIS.VAULT as any,
-        functionName: 'completeWithdrawal',
-      } as any)
-      toast.dismiss('complete')
-      return tx
-    } catch (error: any) {
-      toast.dismiss('complete')
-      toast.error(error.shortMessage || 'Failed to complete withdrawal')
+      toast.error(error.shortMessage || 'Failed to withdraw')
       throw error
     }
   }
 
   return {
     deposit,
-    requestWithdrawal,
-    completeWithdrawal,
+    withdraw,
     tvlUsd: totalAssets ? Number(formatUnits(totalAssets as bigint, 6)) : 0,
-    userCVault: cVaultBalance ? Number(formatUnits(cVaultBalance as bigint, 6)) : 0,
-    withdrawalInfo: withdrawalInfo as any,
+    userCVault: underlyingBalance ? Number(formatUnits(underlyingBalance as bigint, 6)) : 0,
     isPending: isPending || isConfirming || isApproving,
     refetchAll: () => {
       refetchTvl()
+      refetchShares()
       refetchBalance()
-      refetchWithdrawal()
     }
   }
 }

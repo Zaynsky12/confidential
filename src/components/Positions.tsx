@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { keccak256, toHex } from 'viem'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { usePositions } from '../hooks/usePositions'
@@ -7,7 +8,7 @@ import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
 type Tab = 'balances' | 'positions' | 'orders' | 'trades'
 
 export default function Positions() {
-  const { orders, cancelOrder } = useTradeStore()
+  const { orders, cancelOrder, markets } = useTradeStore()
   const { isConnected, balance } = useArcWallet()
   const [tab, setTab] = useState<Tab>('positions')
 
@@ -95,14 +96,23 @@ export default function Positions() {
                   <div className="pos-empty">No open positions</div>
                 ) : (
                   openPositions.map((p) => {
-                    // Calculate PnL locally based on current price from oracle or store if needed
-                    // For now we use 0.00 since we need a multicall for getPositionPnl or calculate it here
-                    const markPrice = p.entryPrice // Placeholder, should get from pyth
-                    const pnl = 0
-                    const pnlPercent = 0
+                    // Match pairId (Hash) to actual market to get live price and pair name
+                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
+                    const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
+                    
+                    const markPrice = matchedMarket ? matchedMarket.price : p.entryPrice
+                    const sizeBaseAsset = p.sizeUsd / p.entryPrice // Calculate approx base asset size to calculate exact PnL
+                    
+                    // PnL Math
+                    const pnl = matchedMarket 
+                      ? (p.isLong ? (markPrice - p.entryPrice) * sizeBaseAsset : (p.entryPrice - markPrice) * sizeBaseAsset) 
+                      : 0
+                    
+                    const pnlPercent = p.collateral > 0 ? (pnl / p.collateral) * 100 : 0
+                    
                     return (
                       <div key={p.id} className="pos-row">
-                        <span style={{ fontWeight: 600 }}>{p.pairId || 'Unknown'}</span>
+                        <span style={{ fontWeight: 600 }}>{pairName}</span>
                         <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
                           {p.isLong ? 'long' : 'short'} {p.leverage}x
                         </span>

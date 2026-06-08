@@ -1,4 +1,4 @@
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
 import { parseUnits, maxUint256 } from 'viem'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import { useEffect } from 'react'
@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 
 export function useUSDCApproval(spenderAddress: `0x${string}`) {
   const { address, isConnected } = useAccount()
+  const publicClient = usePublicClient()
 
   // Read current allowance
   const { data: allowance, refetch } = useReadContract({
@@ -44,14 +45,21 @@ export function useUSDCApproval(spenderAddress: `0x${string}`) {
   // Request infinite approval
   const approveInfinite = async () => {
     try {
-      toast.loading('Requesting approval...', { id: 'approve' })
+      toast.loading('Approving USDC... Please sign in wallet', { id: 'approve' })
       const tx = await writeContractAsync({
-        address: CONTRACTS.USDC,
-        abi: ABIS.USDC,
+        address: CONTRACTS.USDC as any,
+        abi: ABIS.USDC as any,
         functionName: 'approve',
         args: [spenderAddress, maxUint256],
-      })
+      } as any)
+      
+      toast.loading('Waiting for blockchain confirmation...', { id: 'approve' })
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: tx })
+      }
+      
       toast.dismiss('approve')
+      refetch() // Fetch the updated allowance immediately
       return tx
     } catch (error) {
       toast.dismiss('approve')

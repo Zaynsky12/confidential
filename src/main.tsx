@@ -15,7 +15,7 @@ const queryClient = new QueryClient()
 const wagmiConfig = createConfig({
   chains: [arcTestnet],
   transports: {
-    [arcTestnet.id]: http(import.meta.env.VITE_ARC_RPC || 'https://rpc.testnet.arc.io'),
+    [arcTestnet.id]: http(import.meta.env.VITE_ARC_RPC || 'https://rpc.testnet.arc.network'),
   },
   connectors: [
     injected(),

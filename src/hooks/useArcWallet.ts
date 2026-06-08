@@ -3,6 +3,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { formatUnits } from 'viem'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import { arcTestnet } from '../config/chain'
+import { useEffect } from 'react'
 
 
 export function useArcWallet() {
@@ -16,27 +17,52 @@ export function useArcWallet() {
   const address = wagmiAddress || privyAddress
   const isConnected = wagmiConnected || authenticated
 
-  // Balance from chain (USDC)
-  const { data: balanceData } = useReadContract({
-    address: CONTRACTS.USDC as any,
-    abi: ABIS.USDC as any,
+  // Balance from chain (USDC ERC-20)
+  const { data: balanceData, error: balanceError, isLoading: balanceLoading, status: balanceStatus } = useReadContract({
+    address: CONTRACTS.USDC as `0x${string}`,
+    abi: ABIS.USDC,
     functionName: 'balanceOf',
-    args: address ? [address] : undefined,
+    args: address ? [address as `0x${string}`] : undefined,
+    chainId: arcTestnet.id,
+    query: {
+      enabled: !!address,
+      refetchInterval: 10_000, // Refresh every 10s
+    },
   })
 
   // Native balance (for debugging)
-  const { data: nativeBalance } = useBalance({ address: address as any })
+  const { data: nativeBalance } = useBalance({
+    address: address as `0x${string}` | undefined,
+    chainId: arcTestnet.id,
+  })
 
   // Use chain balance if available, else 0
-  const balance = typeof balanceData !== 'undefined' ? Number(formatUnits(balanceData as bigint, 6)) : 0
-  
-  if (address) {
-    const formattedNative = nativeBalance?.value !== undefined ? formatUnits(nativeBalance.value, nativeBalance.decimals) : '0'
-    console.log('[DEBUG] Native Balance:', formattedNative, nativeBalance?.symbol)
-    console.log('[DEBUG] ERC20 USDC Balance:', balance)
-  }
+  const balance = typeof balanceData !== 'undefined' && balanceData !== null
+    ? Number(formatUnits(balanceData as bigint, 6))
+    : 0
 
-  const isWrongNetwork = isConnected && chainId !== arcTestnet.id
+  // Debug logging
+  useEffect(() => {
+    if (address) {
+      console.log('[ArcWallet] Address:', address)
+      console.log('[ArcWallet] Chain ID:', chainId, '| Expected:', arcTestnet.id)
+      console.log('[ArcWallet] USDC Contract:', CONTRACTS.USDC)
+      console.log('[ArcWallet] Balance Status:', balanceStatus, '| Loading:', balanceLoading)
+      console.log('[ArcWallet] Balance Raw:', balanceData)
+      console.log('[ArcWallet] Balance Formatted:', balance)
+      if (balanceError) {
+        console.error('[ArcWallet] Balance Error:', balanceError.message)
+      }
+      const formattedNative = nativeBalance?.value !== undefined
+        ? formatUnits(nativeBalance.value, nativeBalance.decimals)
+        : '0'
+      console.log('[ArcWallet] Native Balance:', formattedNative, nativeBalance?.symbol)
+    }
+  }, [address, balanceData, balanceError, balanceStatus, balanceLoading, nativeBalance, chainId, balance])
+
+  // Only flag as wrong network if chainId is explicitly defined and incorrect.
+  // This prevents false positives when chainId is momentarily undefined during connection.
+  const isWrongNetwork = isConnected && chainId !== undefined && chainId !== arcTestnet.id
 
   const truncatedAddress = address
     ? `${address.slice(0, 6)}…${address.slice(-4)}`

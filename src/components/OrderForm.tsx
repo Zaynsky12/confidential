@@ -10,7 +10,7 @@ interface OrderFormProps {
 }
 
 export default function OrderForm({ initialSide = 'long', onClose }: OrderFormProps) {
-  const { markets, activeMarketId } = useTradeStore()
+  const { markets, activeMarketId, placeOrder: placeMockOrder } = useTradeStore()
   const { isConnected, balance, connect, isWrongNetwork } = useArcWallet()
   const { openPosition, placeOrder, isTxPending } = useConfidentialTrading()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
@@ -139,6 +139,16 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           orderType === 'limit' ? 0 : 1,
           reduceOnly
         )
+        // Sync to local store so it appears in the UI tab
+        placeMockOrder({
+          marketId: activeMarket.id,
+          pair: activeMarket.pair,
+          type: orderType,
+          side: side,
+          price: Number(triggerPrice || price),
+          size: baseSize,
+          leverage: leverage,
+        })
       }
       setSize(''); setPrice(''); setSizePercent(0)
       onClose?.()
