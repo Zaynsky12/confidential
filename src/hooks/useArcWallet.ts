@@ -3,7 +3,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { formatUnits } from 'viem'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import { arcTestnet } from '../config/chain'
-import { useTradeStore } from '../store/useTradeStore'
+
 
 export function useArcWallet() {
   const { address: wagmiAddress, isConnected: wagmiConnected, chainId } = useAccount()
@@ -31,7 +31,8 @@ export function useArcWallet() {
   const balance = typeof balanceData !== 'undefined' ? Number(formatUnits(balanceData as bigint, 6)) : 0
   
   if (address) {
-    console.log('[DEBUG] Native Balance:', nativeBalance?.formatted, nativeBalance?.symbol)
+    const formattedNative = nativeBalance?.value !== undefined ? formatUnits(nativeBalance.value, nativeBalance.decimals) : '0'
+    console.log('[DEBUG] Native Balance:', formattedNative, nativeBalance?.symbol)
     console.log('[DEBUG] ERC20 USDC Balance:', balance)
   }
 
