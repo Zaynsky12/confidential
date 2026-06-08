@@ -1,4 +1,4 @@
-import { useAccount, useDisconnect, useReadContract } from 'wagmi'
+import { useAccount, useDisconnect, useReadContract, useBalance } from 'wagmi'
 import { usePrivy } from '@privy-io/react-auth'
 import { formatUnits } from 'viem'
 import { CONTRACTS, ABIS } from '../config/contracts'
@@ -24,8 +24,16 @@ export function useArcWallet() {
     args: address ? [address] : undefined,
   })
 
+  // Native balance (for debugging)
+  const { data: nativeBalance } = useBalance({ address: address as any })
+
   // Use chain balance if available, else 0
   const balance = typeof balanceData !== 'undefined' ? Number(formatUnits(balanceData as bigint, 6)) : 0
+  
+  if (address) {
+    console.log('[DEBUG] Native Balance:', nativeBalance?.formatted, nativeBalance?.symbol)
+    console.log('[DEBUG] ERC20 USDC Balance:', balance)
+  }
 
   const isWrongNetwork = isConnected && chainId !== arcTestnet.id
 
