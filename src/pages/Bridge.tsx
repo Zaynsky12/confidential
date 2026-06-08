@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useArcWallet } from '../hooks/useArcWallet'
-import { useTradeStore } from '../store/useTradeStore'
+
 
 const CHAINS = [
   { id:'ethereum', name:'Ethereum', icon:'Ξ', color:'#627EEA' },
