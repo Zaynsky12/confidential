@@ -6,7 +6,7 @@ import { useTradeStore } from '../store/useTradeStore'
 const NAV_LINKS = [
   { to: '/', label: 'Trade' },
   { to: '/portfolio', label: 'Portfolio' },
-  { to: '/vault', label: 'Vaults' },
+  { to: '/vault', label: 'Vault' },
   { to: '/referrals', label: 'Referrals' },
   { to: '/points', label: 'Points' },
   { to: '/leaderboard', label: 'Leaderboard' },
@@ -29,7 +29,15 @@ const getAssetLogo = (pair: string) => {
     spy: 'https://ui-avatars.com/api/?name=SPY&background=003366&color=fff&rounded=true&bold=true',
     gold: 'https://cryptologos.cc/logos/pax-gold-paxg-logo.png',
     silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
-    nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true'
+    nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
+    pepe: 'https://cryptologos.cc/logos/pepe-pepe-logo.png',
+    wif: 'https://ui-avatars.com/api/?name=WIF&background=996633&color=fff&rounded=true&bold=true',
+    sui: 'https://cryptologos.cc/logos/sui-sui-logo.png',
+    apt: 'https://cryptologos.cc/logos/aptos-apt-logo.png',
+    avax: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+    bnb: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+    xrp: 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+    near: 'https://cryptologos.cc/logos/near-protocol-near-logo.png'
   }
   return map[base] || ''
 }
@@ -129,7 +137,7 @@ export default function Topbar() {
           {mobileNav === 'account' ? (
             <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Portfolio</span>
           ) : mobileNav === 'vaults' ? (
-            <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Yield Vaults</span>
+            <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Yield Vault</span>
           ) : (
             <>
               <button 
@@ -163,8 +171,9 @@ export default function Topbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isConnected && (
               <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
-                <button className="btn" style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'rgba(46, 189, 133, 0.1)', color: 'var(--color-green)', border: '1px solid rgba(46, 189, 133, 0.2)' }}>Deposit</button>
-                <button className="btn" style={{ padding: '6px 12px', fontSize: '13px', backgroundColor: 'transparent', color: 'var(--color-text2)', border: '1px solid var(--color-border)' }}>Withdraw</button>
+                <div className="font-mono" style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--color-text1)', display: 'flex', alignItems: 'center', backgroundColor: 'var(--color-bg2)', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                  {balance.toFixed(2)} USDC
+                </div>
               </div>
             )}
 
@@ -306,12 +315,8 @@ export default function Topbar() {
                       Disconnect
                     </button>
                   </div>
-                  <div className="font-mono" style={{ fontSize: '16px', color: 'var(--color-green)' }}>
-                    {balance.toFixed(2)} USDC
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                    <button className="btn" style={{ flex: 1, padding: '10px', fontSize: '13px', backgroundColor: 'var(--color-green)', color: '#070c18', border: 'none', fontWeight: 600 }}>Deposit</button>
-                    <button className="btn" style={{ flex: 1, padding: '10px', fontSize: '13px', backgroundColor: 'transparent', color: 'var(--color-text1)', border: '1px solid var(--color-border)' }}>Withdraw</button>
+                  <div className="font-mono" style={{ fontSize: '16px', color: 'var(--color-text1)', marginTop: '4px', padding: '12px', backgroundColor: 'var(--color-bg1)', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--color-border)' }}>
+                    Wallet Balance: <span style={{ color: 'var(--color-green)' }}>{balance.toFixed(2)} USDC</span>
                   </div>
                 </div>
               )}

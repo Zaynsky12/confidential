@@ -25,7 +25,15 @@ const getAssetLogo = (pair: string) => {
     spy: 'https://ui-avatars.com/api/?name=SPY&background=003366&color=fff&rounded=true&bold=true',
     gold: 'https://cryptologos.cc/logos/pax-gold-paxg-logo.png',
     silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
-    nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true'
+    nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
+    pepe: 'https://cryptologos.cc/logos/pepe-pepe-logo.png',
+    wif: 'https://ui-avatars.com/api/?name=WIF&background=996633&color=fff&rounded=true&bold=true',
+    sui: 'https://cryptologos.cc/logos/sui-sui-logo.png',
+    apt: 'https://cryptologos.cc/logos/aptos-apt-logo.png',
+    avax: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+    bnb: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+    xrp: 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+    near: 'https://cryptologos.cc/logos/near-protocol-near-logo.png'
   }
   return map[base] || ''
 }
@@ -37,7 +45,12 @@ export default function Trade() {
   const [mobileView, setMobileView] = useState<'chart' | 'orderbook' | 'trades'>('chart')
   
   const fp = (p: number) => p >= 1000 ? p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
-  const fvFull = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const fvCompact = (v: number) => {
+    if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B'
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M'
+    if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K'
+    return v.toFixed(2)
+  }
 
   return (
     <div className="trade-layout">
@@ -71,7 +84,7 @@ export default function Trade() {
 
               <div className="chart-stat-item">
                 <span className="chart-stat-label">Oracle</span>
-                <span className="font-mono chart-stat-value">{fp(activeMarket.price * 1.0001)}</span>
+                <span className="font-mono chart-stat-value">{fp(activeMarket.price)}</span>
               </div>
 
               <div className="chart-stat-item">
@@ -83,12 +96,12 @@ export default function Trade() {
 
               <div className="chart-stat-item">
                 <span className="chart-stat-label">24h Volume</span>
-                <span className="font-mono chart-stat-value">${fvFull(activeMarket.volume24h)}</span>
+                <span className="font-mono chart-stat-value">${fvCompact(activeMarket.volume24h)}</span>
               </div>
 
               <div className="chart-stat-item">
                 <span className="chart-stat-label">Open Interest</span>
-                <span className="font-mono chart-stat-value">${fvFull(activeMarket.openInterest)}</span>
+                <span className="font-mono chart-stat-value">${fvCompact(activeMarket.openInterest)}</span>
               </div>
 
               <div className="chart-stat-item chart-stat-mobile-col">

@@ -20,7 +20,6 @@ export default function Positions() {
 
   const TABS: { id: Tab; label: string }[] = [
     { id: 'balances', label: 'Balances' },
-    { id: 'collateral', label: 'Collateral' },
     { id: 'positions', label: 'Positions' },
     { id: 'orders', label: 'Open Orders' },
     { id: 'twaps', label: 'TWAPs' },
@@ -206,22 +205,6 @@ export default function Positions() {
                   <span>Time to Next Order</span>
                   <span>Reduce Only</span>
                   <span>Cancel</span>
-                </div>
-                <div className="pos-empty">No results found</div>
-              </>
-            )}
-          </div>
-        ) : tab === 'collateral' ? (
-          <div className="pos-table-wrapper">
-            {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view Collateral</div>
-            ) : (
-              <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
-                  <span>Asset</span>
-                  <span>Type</span>
-                  <span>Total</span>
-                  <span>Value (USD)</span>
                 </div>
                 <div className="pos-empty">No results found</div>
               </>

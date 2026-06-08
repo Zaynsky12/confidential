@@ -4,38 +4,31 @@ import { useTradeStore } from '../store/useTradeStore'
 let tvScriptLoadingPromise: Promise<void> | null = null
 
 const getTVSymbol = (pythSymbol: string) => {
+  const parts = pythSymbol.split('.')
+  const cleanPair = parts[parts.length - 1].replace('/', '') // e.g., BTCUSD
+
   if (pythSymbol.startsWith('Crypto.')) {
-    const parts = pythSymbol.split('.')
-    const cleanPair = parts[parts.length - 1].replace('/', '')
-    if (cleanPair.endsWith('USD')) {
-      return `BINANCE:${cleanPair}T`
-    }
-    return `BINANCE:${cleanPair}`
+    // Menggunakan datafeed asli Pyth Network di TradingView!
+    return `PYTH:${cleanPair}`
   }
   
   if (pythSymbol.startsWith('Equity.US.')) {
-    const parts = pythSymbol.split('.')
     const symbol = parts[2].split('/')[0] // e.g. "AAPL"
     if (symbol === 'SPY') return 'AMEX:SPY'
     return `NASDAQ:${symbol}`
   }
 
   if (pythSymbol.startsWith('Metal.')) {
-    const parts = pythSymbol.split('.')
-    const symbol = parts[1].replace('/', '') // e.g. "XAUUSD"
-    return `OANDA:${symbol}`
+    return `OANDA:${cleanPair}`
   }
 
   if (pythSymbol.startsWith('FX.')) {
-    const parts = pythSymbol.split('.')
-    const symbol = parts[1].replace('/', '') // e.g. "EURUSD"
-    return `OANDA:${symbol}`
+    // Menggunakan datafeed Pyth untuk Forex
+    return `PYTH:${cleanPair}`
   }
 
   // Fallback
-  const parts = pythSymbol.split('.')
-  const cleanPair = parts[parts.length - 1].replace('/', '')
-  return `BINANCE:${cleanPair}`
+  return `PYTH:${cleanPair}`
 }
 
 export default function PriceChart() {
@@ -70,7 +63,7 @@ export default function PriceChart() {
           enable_publishing: false,
           gridColor: "rgba(255, 255, 255, 0.04)",
           hide_top_toolbar: false,
-          hide_legend: false,
+          hide_legend: true,
           save_image: true,
           hide_side_toolbar: false,
           allow_symbol_change: false, // We disable this so the header search is gone

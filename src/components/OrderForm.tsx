@@ -45,9 +45,13 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     }
   }, [activeMarket?.category, leveragePresets])
   const [reduceOnly, setReduceOnly] = useState(false)
+  const [postOnly, setPostOnly] = useState(false)
   const [showTpSl, setShowTpSl] = useState(false)
   const [takeProfit, setTakeProfit] = useState('')
   const [stopLoss, setStopLoss] = useState('')
+  const [triggerPrice, setTriggerPrice] = useState('')
+  const [durationHours, setDurationHours] = useState('1')
+  const [durationMins, setDurationMins] = useState('0')
   const [inputCurrency, setInputCurrency] = useState<'BASE' | 'USD'>('BASE')
   const isCustomLeverage = !leveragePresets.includes(leverage)
   const maxLeverage = leveragePresets[leveragePresets.length - 1]
@@ -211,9 +215,43 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         </span>
       </div>
 
+      {/* Dynamic Order Settings */}
+      {orderType !== 'market' && (
+        <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, marginBottom: 4, animationDuration: '200ms' }}>
+          {(orderType === 'limit' || orderType === 'stop limit') && (
+            <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
+              <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Limit Price</span>
+              <input type="number" placeholder="0.00" value={price} onChange={e=>setPrice(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
+              <span style={{ fontSize:12, color:'#8e8e93', marginLeft: 8 }}>USD</span>
+            </div>
+          )}
+
+          {(orderType === 'stop market' || orderType === 'stop limit') && (
+            <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
+              <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Trigger Price</span>
+              <input type="number" placeholder="0.00" value={triggerPrice} onChange={e=>setTriggerPrice(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
+              <span style={{ fontSize:12, color:'#8e8e93', marginLeft: 8 }}>USD</span>
+            </div>
+          )}
+
+          {orderType === 'twap' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
+                <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Hours</span>
+                <input type="number" placeholder="0" min="0" value={durationHours} onChange={e=>setDurationHours(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
+              </div>
+              <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
+                <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Minutes</span>
+                <input type="number" placeholder="0" min="0" max="59" value={durationMins} onChange={e=>setDurationMins(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Order Size Input */}
       <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-        <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:(!sizeNum)?'1px solid var(--color-red)':'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
+        <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:(size !== '' && !sizeNum)?'1px solid var(--color-red)':'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
           <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Order Size</span>
           <input type="number" placeholder="0" value={size} onChange={e=>handleSizeChange(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0 }} />
           <div style={{ display:'flex', background:'var(--color-bg2)', borderRadius:4, padding:2, marginLeft:8 }}>
@@ -227,7 +265,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             >USD</span>
           </div>
         </div>
-        {(!sizeNum) && (
+        {(size !== '' && !sizeNum) && (
           <div style={{ color:'#e55f48', fontSize:11, display:'flex', alignItems:'center', gap:4 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             Must be at least 0.00002
@@ -246,32 +284,46 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
 
       {/* Checkboxes */}
       <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-          <input type="checkbox" checked={reduceOnly} onChange={()=>setReduceOnly(!reduceOnly)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
-          <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Reduce Only</span>
-        </label>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-          <input type="checkbox" checked={showTpSl} onChange={()=>setShowTpSl(!showTpSl)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
-          <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Take Profit / Stop Loss</span>
-        </label>
+        <div style={{ display:'flex', gap: 16 }}>
+          <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+            <input type="checkbox" checked={reduceOnly} onChange={()=>setReduceOnly(!reduceOnly)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
+            <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Reduce Only</span>
+          </label>
+          
+          {orderType === 'limit' && (
+            <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+              <input type="checkbox" checked={postOnly} onChange={()=>setPostOnly(!postOnly)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
+              <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Post Only</span>
+            </label>
+          )}
+        </div>
+        
+        {(orderType === 'market' || orderType === 'limit') && !reduceOnly && (
+          <>
+            <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+              <input type="checkbox" checked={showTpSl} onChange={()=>setShowTpSl(!showTpSl)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
+              <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Take Profit / Stop Loss</span>
+            </label>
 
-        {showTpSl && (
-          <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, animationDuration: '200ms' }}>
-            <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
-              <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Take Profit</span>
-              <div style={{ display:'flex', alignItems:'center' }}>
-                <input type="number" placeholder="0.00" value={takeProfit} onChange={e=>setTakeProfit(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
-                <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
+            {showTpSl && (
+              <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, animationDuration: '200ms' }}>
+                <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
+                  <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Take Profit</span>
+                  <div style={{ display:'flex', alignItems:'center' }}>
+                    <input type="number" placeholder="0.00" value={takeProfit} onChange={e=>setTakeProfit(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
+                    <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
+                  </div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
+                  <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Stop Loss</span>
+                  <div style={{ display:'flex', alignItems:'center' }}>
+                    <input type="number" placeholder="0.00" value={stopLoss} onChange={e=>setStopLoss(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
+                    <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
-              <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Stop Loss</span>
-              <div style={{ display:'flex', alignItems:'center' }}>
-                <input type="number" placeholder="0.00" value={stopLoss} onChange={e=>setStopLoss(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
-                <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
-              </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
       </div>
 
@@ -283,7 +335,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         fontSize:14, fontWeight:600, cursor:(!isConnected||!sizeNum)?'not-allowed':'pointer',
         marginTop: 4
       }}>
-        {!isConnected ? 'Connect Wallet' : `Place ${activeMarket.baseAsset} Order`}
+        {!isConnected ? 'Connect Wallet' : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
       </button>
       {/* Summary Stats */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>
