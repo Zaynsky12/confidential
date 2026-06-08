@@ -54,9 +54,18 @@ export default function WalletModal() {
   if(!isWalletModalOpen) return null
 
   const handleWallet = (id:string)=>{
-    const c = connectors.find(c=> id==='metamask'?(c.id==='injected'||c.name?.toLowerCase().includes('metamask')):
-      id==='walletconnect'?c.id==='walletConnect': c.id==='injected')
-    if(c){ connect({connector:c}); setWalletModalOpen(false) }
+    let c = connectors.find(c => c.id.toLowerCase().includes(id) || c.name?.toLowerCase().includes(id))
+    if (!c && id === 'metamask') {
+      c = connectors.find(c => c.id === 'injected' || c.id === 'metaMaskSDK' || c.id === 'io.metamask')
+    }
+    if (!c) c = connectors[0] // Fallback to first available
+
+    if(c) { 
+      connect({connector:c})
+      setWalletModalOpen(false) 
+    } else {
+      alert('Wallet extension not found! Please install MetaMask or another Web3 wallet.')
+    }
   }
 
   const handleOtpChange = (i:number,v:string)=>{
