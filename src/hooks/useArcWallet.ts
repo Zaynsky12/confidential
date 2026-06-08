@@ -9,7 +9,7 @@ export function useArcWallet() {
   const { address: wagmiAddress, isConnected: wagmiConnected, chainId } = useAccount()
   const { disconnect: wagmiDisconnect } = useDisconnect()
   const { authenticated, user, logout: privyLogout } = usePrivy()
-  const { mockBalance, setWalletModalOpen } = useTradeStore()
+  const { setWalletModalOpen } = useTradeStore()
 
   const privyAddress = user?.wallet?.address
   const privyEmail = user?.email?.address
