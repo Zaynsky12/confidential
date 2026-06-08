@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
-import { useConnect } from 'wagmi'
-import { useLoginWithEmail } from '@privy-io/react-auth'
+
+import { useLoginWithEmail, usePrivy } from '@privy-io/react-auth'
 
 type Tab = 'wallet' | 'email'
 type EmailStep = 'input' | 'otp' | 'loading'
@@ -24,7 +24,7 @@ export default function WalletModal() {
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState(['','','','','',''])
   const otpRefs = useRef<(HTMLInputElement|null)[]>([])
-  const { connectors, connect } = useConnect()
+  const { login } = usePrivy()
 
   const { sendCode, loginWithCode } = useLoginWithEmail({
     onComplete: () => {
@@ -53,19 +53,9 @@ export default function WalletModal() {
 
   if(!isWalletModalOpen) return null
 
-  const handleWallet = (id:string)=>{
-    let c = connectors.find(c => c.id.toLowerCase().includes(id) || c.name?.toLowerCase().includes(id))
-    if (!c && id === 'metamask') {
-      c = connectors.find(c => c.id === 'injected' || c.id === 'metaMaskSDK' || c.id === 'io.metamask')
-    }
-    if (!c) c = connectors[0] // Fallback to first available
-
-    if(c) { 
-      connect({connector:c})
-      setWalletModalOpen(false) 
-    } else {
-      alert('Wallet extension not found! Please install MetaMask or another Web3 wallet.')
-    }
+  const handleWallet = ()=>{
+    setWalletModalOpen(false)
+    login() // Delegate to Privy's native modal
   }
 
   const handleOtpChange = (i:number,v:string)=>{
@@ -104,7 +94,7 @@ export default function WalletModal() {
           {activeTab==='wallet' && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
               {WALLETS.map(w=>(
-                <button key={w.id} onClick={()=>handleWallet(w.id)}
+                <button key={w.id} onClick={()=>handleWallet()}
                   style={{ display:'flex',alignItems:'center',gap:14,padding:'12px 14px',borderRadius:8,cursor:'pointer',transition:'all 200ms',textAlign:'left',width:'100%',
                     border: w.featured?'1px solid rgba(0,82,255,0.3)':'1px solid transparent',
                     background: w.featured?'rgba(0,82,255,0.05)':'transparent',color:'var(--color-text1)' }}>
