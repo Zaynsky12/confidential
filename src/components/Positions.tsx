@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 
-type Tab = 'balances' | 'collateral' | 'positions' | 'orders' | 'twaps' | 'twap_history' | 'trade_history' | 'funding_history' | 'order_history' | 'transfers'
+type Tab = 'balances' | 'positions' | 'orders' | 'trades'
 
 export default function Positions() {
   const { positions, orders, closePosition, cancelOrder } = useTradeStore()
@@ -21,13 +21,8 @@ export default function Positions() {
   const TABS: { id: Tab; label: string }[] = [
     { id: 'balances', label: 'Balances' },
     { id: 'positions', label: 'Positions' },
-    { id: 'orders', label: 'Open Orders' },
-    { id: 'twaps', label: 'TWAPs' },
-    { id: 'twap_history', label: 'TWAP History' },
-    { id: 'trade_history', label: 'Trade History' },
-    { id: 'funding_history', label: 'Funding History' },
-    { id: 'order_history', label: 'Order History' },
-    { id: 'transfers', label: 'Transfers' }
+    { id: 'orders', label: 'Orders' },
+    { id: 'trades', label: 'Trades' }
   ]
 
   return (
@@ -48,7 +43,31 @@ export default function Positions() {
       </div>
 
       <div className="pos-content">
-        {tab === 'positions' ? (
+        {tab === 'balances' ? (
+          <div className="pos-table-wrapper">
+            {!isConnected ? (
+              <div className="pos-empty">Please connect wallet to view balances</div>
+            ) : (
+              <>
+                <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+                  <span>Asset</span>
+                  <span>Total</span>
+                  <span>Available</span>
+                  <span>Value (USD)</span>
+                </div>
+                <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <img src="/usdc.png" alt="USDC" style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>USDC</span>
+                  </div>
+                  <span className="font-mono">{balance.toFixed(2)}</span>
+                  <span className="font-mono">{balance.toFixed(2)}</span>
+                  <span className="font-mono">${balance.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        ) : tab === 'positions' ? (
           <div className="pos-table-wrapper">
             {!isConnected ? (
               <div className="pos-empty">Please connect wallet to view positions</div>
@@ -130,31 +149,7 @@ export default function Positions() {
               </>
             )}
           </div>
-        ) : tab === 'balances' ? (
-          <div className="pos-table-wrapper">
-            {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view balances</div>
-            ) : (
-              <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
-                  <span>Asset</span>
-                  <span>Total</span>
-                  <span>Available</span>
-                  <span>Value (USD)</span>
-                </div>
-                <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img src="/usdc.png" alt="USDC" style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0 }} />
-                    <span style={{ fontWeight: 600 }}>USDC</span>
-                  </div>
-                  <span className="font-mono">{balance.toFixed(2)}</span>
-                  <span className="font-mono">{balance.toFixed(2)}</span>
-                  <span className="font-mono">${balance.toFixed(2)}</span>
-                </div>
-              </>
-            )}
-          </div>
-        ) : tab === 'trade_history' ? (
+        ) : tab === 'trades' ? (
           <div className="pos-table-wrapper">
             {!isConnected ? (
               <div className="pos-empty">Please connect wallet to view history</div>
@@ -188,96 +183,6 @@ export default function Positions() {
                     </div>
                   ))
                 )}
-              </>
-            )}
-          </div>
-        ) : tab === 'twaps' ? (
-          <div className="pos-table-wrapper">
-            {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view TWAPs</div>
-            ) : (
-              <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1.5fr 1fr 1fr' }}>
-                  <span>Created</span>
-                  <span>Coin</span>
-                  <span>Total Size</span>
-                  <span>Filled</span>
-                  <span>Time to Next Order</span>
-                  <span>Reduce Only</span>
-                  <span>Cancel</span>
-                </div>
-                <div className="pos-empty">No results found</div>
-              </>
-            )}
-          </div>
-        ) : tab === 'twap_history' ? (
-          <div className="pos-table-wrapper">
-            {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view TWAP History</div>
-            ) : (
-              <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
-                  <span>Time</span>
-                  <span>Coin</span>
-                  <span>Total Size</span>
-                  <span>Filled Price</span>
-                  <span>Status</span>
-                </div>
-                <div className="pos-empty">No results found</div>
-              </>
-            )}
-          </div>
-        ) : tab === 'funding_history' ? (
-          <div className="pos-table-wrapper">
-            {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view Funding History</div>
-            ) : (
-              <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
-                  <span>Time</span>
-                  <span>Market</span>
-                  <span>Payment</span>
-                  <span>Funding Rate</span>
-                  <span>Position Size</span>
-                </div>
-                <div className="pos-empty">No results found</div>
-              </>
-            )}
-          </div>
-        ) : tab === 'order_history' ? (
-          <div className="pos-table-wrapper">
-            {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view Order History</div>
-            ) : (
-              <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                  <span>Time</span>
-                  <span>Market</span>
-                  <span>Side</span>
-                  <span>Type</span>
-                  <span>Size</span>
-                  <span>Price</span>
-                  <span>Status</span>
-                </div>
-                <div className="pos-empty">No results found</div>
-              </>
-            )}
-          </div>
-        ) : tab === 'transfers' ? (
-          <div className="pos-table-wrapper">
-            {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view Transfers</div>
-            ) : (
-              <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                  <span>Time</span>
-                  <span>Asset</span>
-                  <span>Amount</span>
-                  <span>Type</span>
-                  <span>Status</span>
-                  <span>Tx</span>
-                </div>
-                <div className="pos-empty">No results found</div>
               </>
             )}
           </div>
