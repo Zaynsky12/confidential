@@ -26,16 +26,16 @@ const getAssetLogo = (pair: string) => {
     gold: 'https://cryptologos.cc/logos/pax-gold-paxg-logo.png',
     silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
     nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
-    pepe: 'https://cryptologos.cc/logos/pepe-pepe-logo.png',
-    wif: 'https://ui-avatars.com/api/?name=WIF&background=996633&color=fff&rounded=true&bold=true',
-    sui: 'https://cryptologos.cc/logos/sui-sui-logo.png',
-    apt: 'https://cryptologos.cc/logos/aptos-apt-logo.png',
-    avax: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
-    bnb: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
-    xrp: 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
-    near: 'https://cryptologos.cc/logos/near-protocol-near-logo.png'
+    pepe: 'https://s2.coinmarketcap.com/static/img/coins/64x64/24478.png',
+    wif: 'https://s2.coinmarketcap.com/static/img/coins/64x64/28752.png',
+    sui: 'https://s2.coinmarketcap.com/static/img/coins/64x64/20947.png',
+    apt: 'https://s2.coinmarketcap.com/static/img/coins/64x64/21794.png',
+    avax: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
+    bnb: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1839.png',
+    xrp: 'https://s2.coinmarketcap.com/static/img/coins/64x64/52.png',
+    near: 'https://s2.coinmarketcap.com/static/img/coins/64x64/6535.png'
   }
-  return map[base] || ''
+  return map[base] || `https://ui-avatars.com/api/?name=${base}&background=1a202c&color=fff&rounded=true&bold=true`
 }
 
 export default function Trade() {
