@@ -57,8 +57,8 @@ export function useConfidentialTrading() {
       const sizeUnits = parseUnits(sizeUsd.toString(), 6) // USDC 6 decimals
 
       const tx = await writeContractAsync({
-        address: CONTRACTS.TRADING,
-        abi: ABIS.TRADING,
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
         functionName: 'openPosition',
         args: [
           pairId,
@@ -66,7 +66,7 @@ export function useConfidentialTrading() {
           sizeUnits,
           BigInt(leverage)
         ],
-      })
+      } as any)
 
       toast.dismiss('trade')
       return tx
@@ -83,11 +83,11 @@ export function useConfidentialTrading() {
     try {
       toast.loading('Closing Position...', { id: 'close' })
       const tx = await writeContractAsync({
-        address: CONTRACTS.TRADING,
-        abi: ABIS.TRADING,
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
         functionName: 'closePosition',
         args: [positionId],
-      })
+      } as any)
       toast.dismiss('close')
       return tx
     } catch (error: any) {
@@ -124,8 +124,8 @@ export function useConfidentialTrading() {
       const priceUnits = parseUnits(triggerPriceUsd.toString(), 18) // Oracle uses 18 decimals
 
       const tx = await writeContractAsync({
-        address: CONTRACTS.TRADING,
-        abi: ABIS.TRADING,
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
         functionName: 'placeOrder',
         args: [
           pairId,
@@ -136,7 +136,7 @@ export function useConfidentialTrading() {
           orderType,
           reduceOnly
         ],
-      })
+      } as any)
 
       toast.dismiss('order')
       return tx
