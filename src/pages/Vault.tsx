@@ -8,7 +8,7 @@ import { useConfidentialVault } from '../hooks/useConfidentialVault'
 
 export default function Vault() {
   const { vaultAPY, vaultDeposits } = useTradeStore()
-  const { isConnected, balance, connect } = useArcWallet()
+  const { isConnected, balance, connect, isWrongNetwork } = useArcWallet()
   const { deposit, requestWithdrawal, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
@@ -21,7 +21,7 @@ export default function Vault() {
   const tabs = ['Activity', 'Positions', 'Trade History', 'Funding History']
 
   const handleAction = async () => {
-    if (!isConnected) { connect(); return }
+    if (!isConnected || isWrongNetwork) { connect(); return }
     const amount = Number(amt)
     if (!amount || amount <= 0) return
 
@@ -195,8 +195,8 @@ export default function Vault() {
                 </div>
               )}
 
-              <button className="submit-btn" disabled={isPending || !amt || Number(amt) <= 0} onClick={handleAction} style={{ opacity: (isPending || !amt) ? 0.5 : 1 }}>
-                {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : activeAction}
+              <button className="submit-btn" disabled={isPending || (!amt && !isWrongNetwork && isConnected) || (Number(amt) <= 0 && !isWrongNetwork && isConnected)} onClick={handleAction} style={{ opacity: (isPending || (!amt && !isWrongNetwork && isConnected)) ? 0.5 : 1 }}>
+                {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isWrongNetwork ? 'Switch to Arc Testnet' : activeAction}
               </button>
             </div>
           </div>

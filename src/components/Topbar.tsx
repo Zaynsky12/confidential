@@ -43,7 +43,7 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Topbar() {
-  const { isConnected, truncatedAddress, balance, disconnect, connect } = useArcWallet()
+  const { isConnected, truncatedAddress, balance, disconnect, connect, isWrongNetwork } = useArcWallet()
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -169,7 +169,19 @@ export default function Topbar() {
 
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isConnected && (
+            {isConnected && isWrongNetwork && (
+              <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
+                <button 
+                  className="font-mono" 
+                  style={{ padding: '6px 12px', fontSize: '14px', color: '#fff', backgroundColor: 'var(--color-red)', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  onClick={() => connect()} // Privy will trigger network switch
+                >
+                  Wrong Network
+                </button>
+              </div>
+            )}
+
+            {isConnected && !isWrongNetwork && (
               <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
                 <div className="font-mono" style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--color-text1)', display: 'flex', alignItems: 'center', backgroundColor: 'var(--color-bg2)', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
                   {balance.toFixed(2)} USDC

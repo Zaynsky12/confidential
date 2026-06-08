@@ -39,7 +39,7 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Trade() {
-  const { isConnected, connect } = useArcWallet()
+  const { isConnected, connect, isWrongNetwork } = useArcWallet()
   const { markets, activeMarketId, mobileNav, setMobileNav, setMarketSelectorOpen } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [mobileView, setMobileView] = useState<'chart' | 'orderbook' | 'trades'>('chart')
@@ -174,13 +174,13 @@ export default function Trade() {
 
       {/* Mobile Bottom Action Bar */}
       <div className="trade-mobile-action-bar">
-        {!isConnected ? (
+        {!isConnected || isWrongNetwork ? (
           <button 
             className="btn btn-connect-unified animate-fade-in" 
             style={{ width: '100%', padding: '10px', fontSize: '15px', fontWeight: 600, borderRadius: '8px' }}
             onClick={() => connect()}
           >
-            Connect Wallet
+            {isWrongNetwork ? 'Switch to Arc Testnet' : 'Connect Wallet'}
           </button>
         ) : (
           <>
