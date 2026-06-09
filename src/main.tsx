@@ -31,6 +31,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       appId={PRIVY_APP_ID}
       config={{
         loginMethods: ['email', 'wallet'],
+        defaultChain: arcTestnet,
+        supportedChains: [arcTestnet],
         appearance: {
           theme: 'dark',
           accentColor: '#0052FF',

@@ -94,7 +94,7 @@ export default function SharePnLModal({ isOpen, onClose, position }: SharePnLMod
 
             {/* Header (Brand + Logo) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px' }}>
-              <img src="/logo.png" alt="Confidential" style={{ width: 28, height: 28, backgroundColor: '#fff', borderRadius: '50%', padding: '2px' }} />
+              <img src="/logo.png" alt="Confidential" style={{ width: 28, height: 28, objectFit: 'contain' }} />
               <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.02em' }}>Confidential</span>
             </div>
 
