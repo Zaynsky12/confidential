@@ -344,3 +344,13 @@ input[type="number"] {
   background-color: var(--color-bg2);
   border-color: var(--color-text3);
 }
+
+/* ═══ Privy Customizations ═══ */
+div[role="dialog"] img[src*="logo.png"],
+#privy-dialog img {
+  background-color: #ffffff !important;
+  border-radius: 50% !important;
+  padding: 3px !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1) !important;
+  object-fit: contain !important;
+}

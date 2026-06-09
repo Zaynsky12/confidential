@@ -34,7 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         appearance: {
           theme: 'dark',
           accentColor: '#0052FF',
-          logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png', // Temporary logo
+          logo: '/logo.png', // Updated logo
         },
         embeddedWallets: {
           ethereum: {
