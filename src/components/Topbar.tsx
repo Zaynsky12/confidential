@@ -43,7 +43,7 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Topbar() {
-  const { isConnected, truncatedAddress, balance, disconnect, connect, isWrongNetwork, chainId } = useArcWallet()
+  const { isConnected, truncatedAddress, balance, disconnect, connect, isWrongNetwork, chainId, switchNetwork } = useArcWallet()
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -170,7 +170,7 @@ export default function Topbar() {
                 <button 
                   className="font-mono" 
                   style={{ padding: '6px 12px', fontSize: '14px', color: '#fff', backgroundColor: 'var(--color-red)', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-                  onClick={() => connect()} // Privy will trigger network switch
+                  onClick={() => switchNetwork?.()} // Trigger network switch
                 >
                   Wrong Network (ID: {chainId || 'unknown'})
                 </button>

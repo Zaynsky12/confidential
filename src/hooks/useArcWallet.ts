@@ -1,4 +1,4 @@
-import { useAccount, useDisconnect, useReadContract, useBalance } from 'wagmi'
+import { useAccount, useDisconnect, useReadContract, useBalance, useSwitchChain } from 'wagmi'
 import { usePrivy } from '@privy-io/react-auth'
 import { formatUnits } from 'viem'
 import { CONTRACTS, ABIS } from '../config/contracts'
@@ -9,6 +9,7 @@ import { useEffect } from 'react'
 export function useArcWallet() {
   const { address: wagmiAddress, isConnected: wagmiConnected, chainId } = useAccount()
   const { disconnect: wagmiDisconnect } = useDisconnect()
+  const { switchChain } = useSwitchChain()
   const { authenticated, user, logout: privyLogout, login } = usePrivy()
 
 
@@ -87,6 +88,7 @@ export function useArcWallet() {
     truncatedAddress,
     connect,
     disconnect,
+    switchNetwork: () => switchChain?.({ chainId: arcTestnet.id }),
     ready: true,
     chainId,
   }

@@ -4,6 +4,7 @@ import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { usePositions } from '../hooks/usePositions'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
+import SharePnLModal, { type SharePositionData } from './SharePnLModal'
 
 type Tab = 'balances' | 'positions' | 'orders' | 'trades'
 
@@ -11,6 +12,7 @@ export default function Positions() {
   const { orders, cancelOrder, markets } = useTradeStore()
   const { isConnected, balance } = useArcWallet()
   const [tab, setTab] = useState<Tab>('positions')
+  const [selectedShare, setSelectedShare] = useState<SharePositionData | null>(null)
 
   // Read from smart contract
   const { activePositions } = usePositions()
@@ -82,14 +84,14 @@ export default function Positions() {
             ) : (
               <>
                 <div className="pos-header">
-                  <span>Market</span>
-                  <span>Side</span>
-                  <span>Size</span>
-                  <span>Entry Price</span>
-                  <span>Mark Price</span>
-                  <span>Liq. Price</span>
-                  <span>Margin</span>
-                  <span>PnL</span>
+                  <span style={{ textAlign: 'left' }}>Market</span>
+                  <span style={{ textAlign: 'left' }}>Side</span>
+                  <span style={{ textAlign: 'right' }}>Size</span>
+                  <span style={{ textAlign: 'right' }}>Entry Price</span>
+                  <span style={{ textAlign: 'right' }}>Mark Price</span>
+                  <span style={{ textAlign: 'right' }}>Liq. Price</span>
+                  <span style={{ textAlign: 'right' }}>Margin</span>
+                  <span style={{ textAlign: 'right' }}>PnL</span>
                   <span></span>
                 </div>
                 {openPositions.length === 0 ? (
@@ -112,21 +114,40 @@ export default function Positions() {
                     
                     return (
                       <div key={p.id} className="pos-row">
-                        <span style={{ fontWeight: 600 }}>{pairName}</span>
-                        <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                        <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
+                        <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'left' }}>
                           {p.isLong ? 'long' : 'short'} {p.leverage}x
                         </span>
-                        <span className="font-mono">{p.sizeUsd.toFixed(2)}</span>
-                        <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
-                        <span className="font-mono">${markPrice.toFixed(2)}</span>
-                        <span className="font-mono" style={{ color: 'var(--color-text2)' }}>${p.liquidationPrice.toFixed(2)}</span>
-                        <span className="font-mono">${p.collateral.toFixed(2)}</span>
-                        <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
+                        <span className="font-mono" style={{ textAlign: 'right' }}>{p.sizeUsd.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'right' }}>${p.entryPrice.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'right' }}>${markPrice.toFixed(2)}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'right' }}>${p.liquidationPrice.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'right' }}>${p.collateral.toFixed(2)}</span>
+                        <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, textAlign: 'right' }}>
                           {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                         </span>
-                        <button onClick={() => closePosition(BigInt(p.id))} className="btn-close">
-                          Close
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                          <button 
+                            className="btn-share"
+                            onClick={() => setSelectedShare({
+                              pair: pairName,
+                              side: p.isLong ? 'long' : 'short',
+                              leverage: Number(p.leverage),
+                              entryPrice: p.entryPrice,
+                              markPrice: markPrice,
+                              pnlPercent: pnlPercent,
+                              pnlUsd: pnl
+                            })}
+                            title="Share PnL"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                          <button onClick={() => closePosition(BigInt(p.id))} className="btn-close">
+                            Close
+                          </button>
+                        </div>
                       </div>
                     )
                   })
@@ -140,7 +161,7 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view open orders</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr auto' }}>
+                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                   <span>Time</span>
                   <span>Market</span>
                   <span>Side</span>
@@ -154,7 +175,7 @@ export default function Positions() {
                   <div className="pos-empty">No open orders</div>
                 ) : (
                   openOrders.map((o) => (
-                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr auto' }}>
+                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
                       <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.timestamp)}</span>
                       <span style={{ fontWeight: 600 }}>{o.pair}</span>
                       <span className={o.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
@@ -280,7 +301,7 @@ export default function Positions() {
         }
         .pos-header {
           display: grid;
-          grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1.5fr auto;
+          grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1.5fr 110px;
           padding: 8px 16px;
           font-size: 11px;
           color: var(--color-text3);
@@ -289,7 +310,7 @@ export default function Positions() {
         }
         .pos-row {
           display: grid;
-          grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1.5fr auto;
+          grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1.5fr 110px;
           padding: 10px 16px;
           font-size: 12px;
           align-items: center;
@@ -311,6 +332,23 @@ export default function Positions() {
           transition: all 150ms;
         }
         .btn-close:hover {
+          background: var(--color-bg2);
+          color: var(--color-text1);
+          border-color: var(--color-text3);
+        }
+        .btn-share {
+          background: transparent;
+          border: 1px solid var(--color-border);
+          color: var(--color-text2);
+          padding: 4px;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 150ms;
+        }
+        .btn-share:hover {
           background: var(--color-bg2);
           color: var(--color-text1);
           border-color: var(--color-text3);
@@ -351,6 +389,13 @@ export default function Positions() {
           }
         }
       `}</style>
+
+      {/* Share Modal */}
+      <SharePnLModal 
+        isOpen={!!selectedShare} 
+        onClose={() => setSelectedShare(null)} 
+        position={selectedShare} 
+      />
     </div>
   )
 }
