@@ -43,7 +43,7 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Topbar() {
-  const { isConnected, truncatedAddress, balance, disconnect, connect, isWrongNetwork, chainId, switchNetwork } = useArcWallet()
+  const { isConnected, truncatedAddress, address, balance, disconnect, connect, isWrongNetwork, chainId, switchNetwork } = useArcWallet()
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -51,6 +51,15 @@ export default function Topbar() {
   const [marketSearch, setMarketSearch] = useState('')
   const [marketTab, setMarketTab] = useState<'all' | 'crypto' | 'rwa' | 'forex' | 'watchlist'>('all')
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    if (address) {
+      navigator.clipboard.writeText(address)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -211,7 +220,16 @@ export default function Topbar() {
                 <div className="topbar-dropdown animate-fade-in-up" style={{ animationDuration: '200ms' }}>
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
                     <div className="label" style={{ marginBottom: '4px' }}>Connected Wallet</div>
-                    <div className="font-mono" style={{ fontSize: '13px' }}>{truncatedAddress}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div className="font-mono" style={{ fontSize: '13px' }}>{truncatedAddress}</div>
+                      <button onClick={handleCopy} title="Copy Address" style={{ background: 'none', border: 'none', color: copied ? 'var(--color-green)' : 'var(--color-text2)', cursor: 'pointer', display: 'flex', padding: 0 }}>
+                        {copied ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0014.172 1.5H10a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2"/><path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2"/></svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
                     <div className="label" style={{ marginBottom: '4px' }}>Balance</div>
@@ -310,6 +328,13 @@ export default function Topbar() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div className="topbar-avatar" />
                       <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{truncatedAddress}</span>
+                      <button onClick={handleCopy} title="Copy Address" style={{ background: 'none', border: 'none', color: copied ? 'var(--color-green)' : 'var(--color-text2)', cursor: 'pointer', padding: 4, display: 'flex' }}>
+                        {copied ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0014.172 1.5H10a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2"/><path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2"/></svg>
+                        )}
+                      </button>
                     </div>
                     <button
                       className="btn btn-ghost"
