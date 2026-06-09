@@ -1,0 +1,301 @@
+import { useState, useEffect } from 'react'
+import { gql } from 'graphql-request'
+import { gqlClient } from '../config/graphql'
+import { formatUnits } from 'viem'
+
+export interface IndexerDeposit {
+  id: string
+  user: string
+  action: string
+  amount: number
+  shares: number
+  timestamp: number
+  txHash: string
+}
+
+export function useVaultHistory(userAddress?: string) {
+  const [deposits, setDeposits] = useState<IndexerDeposit[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        setIsLoading(true)
+        let query: string
+        let variables: any = {}
+
+        if (userAddress) {
+          query = gql`
+            query GetUserDeposits($user: Bytes!) {
+              vaultDeposits(where: { user: $user }, orderBy: timestamp, orderDirection: desc) {
+                id
+                user
+                action
+                amount
+                shares
+                timestamp
+                txHash
+              }
+            }
+          `
+          variables = { user: userAddress.toLowerCase() }
+        } else {
+          query = gql`
+            query GetAllDeposits {
+              vaultDeposits(orderBy: timestamp, orderDirection: desc) {
+                id
+                user
+                action
+                amount
+                shares
+                timestamp
+                txHash
+              }
+            }
+          `
+        }
+
+        const data: any = await gqlClient.request(query, variables)
+        
+        const formatted = data.vaultDeposits.map((d: any) => ({
+          ...d,
+          amount: Number(formatUnits(BigInt(d.amount), 6)),
+          shares: Number(formatUnits(BigInt(d.shares), 6)),
+          timestamp: Number(d.timestamp) * 1000 // Convert to ms
+        }))
+
+        setDeposits(formatted)
+      } catch (e) {
+        console.error("Goldsky Fetch Error:", e)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchHistory()
+    
+    // Poll every 10 seconds
+    const interval = setInterval(fetchHistory, 10000)
+    return () => clearInterval(interval)
+  }, [userAddress])
+
+  return { deposits, isLoading }
+}
+
+export interface IndexerPosition {
+  id: string
+  positionId: number
+  trader: string
+  pairId: string
+  isLong: boolean
+  sizeUsd: number
+  entryPrice: number
+  leverage: number
+  collateral: number
+  liquidationPrice: number
+  isOpen: boolean
+  openedAt: number
+  closedAt?: number
+  exitPrice?: number
+  pnl?: number
+}
+
+export function usePositions(userAddress?: string) {
+  const [positions, setPositions] = useState<IndexerPosition[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchPositions() {
+      try {
+        setIsLoading(true)
+        if (!userAddress) {
+          setPositions([])
+          return
+        }
+
+        const query = gql`
+          query GetUserPositions($user: Bytes!) {
+            positions(where: { trader: $user, isOpen: true }, orderBy: openedAt, orderDirection: desc) {
+              id
+              positionId
+              trader
+              pairId
+              isLong
+              sizeUsd
+              entryPrice
+              leverage
+              collateral
+              liquidationPrice
+              isOpen
+              openedAt
+            }
+          }
+        `
+        
+        const data: any = await gqlClient.request(query, { user: userAddress.toLowerCase() })
+        
+        const formatted = data.positions.map((p: any) => ({
+          ...p,
+          positionId: Number(p.positionId),
+          sizeUsd: Number(formatUnits(BigInt(p.sizeUsd), 6)),
+          entryPrice: Number(formatUnits(BigInt(p.entryPrice), 18)),
+          leverage: Number(p.leverage),
+          collateral: Number(formatUnits(BigInt(p.collateral), 6)),
+          liquidationPrice: Number(formatUnits(BigInt(p.liquidationPrice), 18)),
+          openedAt: Number(p.openedAt) * 1000
+        }))
+
+        setPositions(formatted)
+      } catch (e) {
+        console.error("Goldsky Fetch Positions Error:", e)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchPositions()
+    const interval = setInterval(fetchPositions, 5000) // Poll every 5s for fast trading updates
+    return () => clearInterval(interval)
+  }, [userAddress])
+
+  return { positions, isLoading }
+}
+
+export interface IndexerOrder {
+  id: string
+  orderId: number
+  trader: string
+  pairId: string
+  orderType: number
+  triggerPrice: number
+  sizeUsd: number
+  leverage: number
+  collateral: number
+  isLong: boolean
+  isActive: boolean
+  createdAt: number
+}
+
+export function useOrders(userAddress?: string) {
+  const [orders, setOrders] = useState<IndexerOrder[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchOrders() {
+      try {
+        setIsLoading(true)
+        if (!userAddress) {
+          setOrders([])
+          return
+        }
+
+        const query = gql`
+          query GetUserOrders($user: Bytes!) {
+            orders(where: { trader: $user, isActive: true }, orderBy: createdAt, orderDirection: desc) {
+              id
+              orderId
+              trader
+              pairId
+              orderType
+              triggerPrice
+              sizeUsd
+              leverage
+              collateral
+              isLong
+              isActive
+              createdAt
+            }
+          }
+        `
+        
+        const data: any = await gqlClient.request(query, { user: userAddress.toLowerCase() })
+        
+        const formatted = data.orders.map((o: any) => ({
+          ...o,
+          orderId: Number(o.orderId),
+          triggerPrice: Number(formatUnits(BigInt(o.triggerPrice), 18)),
+          sizeUsd: Number(formatUnits(BigInt(o.sizeUsd), 6)),
+          leverage: Number(o.leverage),
+          collateral: Number(formatUnits(BigInt(o.collateral), 6)),
+          createdAt: Number(o.createdAt) * 1000
+        }))
+
+        setOrders(formatted)
+      } catch (e) {
+        console.error("Goldsky Fetch Orders Error:", e)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchOrders()
+    const interval = setInterval(fetchOrders, 5000)
+    return () => clearInterval(interval)
+  }, [userAddress])
+
+  return { orders, isLoading }
+}
+
+export interface IndexerTradeRecord {
+  id: string
+  trader: string
+  pairId: string
+  action: string
+  sizeUsd: number
+  price: number
+  timestamp: number
+  txHash: string
+}
+
+export function useTradeRecords(userAddress?: string) {
+  const [trades, setTrades] = useState<IndexerTradeRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchTrades() {
+      try {
+        setIsLoading(true)
+        if (!userAddress) {
+          setTrades([])
+          return
+        }
+
+        const query = gql`
+          query GetUserTrades($user: Bytes!) {
+            tradeRecords(where: { trader: $user }, orderBy: timestamp, orderDirection: desc) {
+              id
+              trader
+              pairId
+              action
+              sizeUsd
+              price
+              timestamp
+              txHash
+            }
+          }
+        `
+        
+        const data: any = await gqlClient.request(query, { user: userAddress.toLowerCase() })
+        
+        const formatted = data.tradeRecords.map((t: any) => ({
+          ...t,
+          sizeUsd: Number(formatUnits(BigInt(t.sizeUsd), 6)),
+          price: Number(formatUnits(BigInt(t.price), 18)),
+          timestamp: Number(t.timestamp) * 1000
+        }))
+
+        setTrades(formatted)
+      } catch (e) {
+        console.error("Goldsky Fetch Trades Error:", e)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTrades()
+    const interval = setInterval(fetchTrades, 10000)
+    return () => clearInterval(interval)
+  }, [userAddress])
+
+  return { trades, isLoading }
+}

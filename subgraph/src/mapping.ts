@@ -1,0 +1,178 @@
+import { BigInt, Bytes } from "@graphprotocol/graph-ts"
+import {
+  ConfidentialTrading,
+  PositionOpened,
+  PositionClosed,
+  PositionLiquidated,
+  OrderPlaced,
+  OrderCancelled,
+  OrderExecuted
+} from "../generated/ConfidentialTrading/ConfidentialTrading"
+import {
+  Deposit,
+  Withdraw
+} from "../generated/ConfidentialVault/ConfidentialVault"
+import { Position, Order, TradeRecord, VaultDeposit } from "../generated/schema"
+
+export function handlePositionOpened(event: PositionOpened): void {
+  let positionId = event.params.positionId.toString()
+  let position = new Position(positionId)
+
+  position.positionId = event.params.positionId
+  position.trader = event.params.trader
+  position.pairId = event.params.pairId
+  position.isLong = event.params.isLong
+  position.sizeUsd = event.params.sizeUsd
+  position.entryPrice = event.params.entryPrice
+  position.leverage = event.params.leverage
+  
+  // Calculate collateral: sizeUsd / leverage
+  if (event.params.leverage.gt(BigInt.fromI32(0))) {
+    position.collateral = event.params.sizeUsd.div(event.params.leverage)
+  } else {
+    position.collateral = BigInt.fromI32(0)
+  }
+  
+  let contract = ConfidentialTrading.bind(event.address)
+  let posCall = contract.try_getPosition(event.params.positionId)
+  if (!posCall.reverted) {
+    position.liquidationPrice = posCall.value.liquidationPrice
+  } else {
+    position.liquidationPrice = BigInt.fromI32(0)
+  }
+
+  position.isOpen = true
+  position.openedAt = event.block.timestamp
+  position.save()
+
+  // Create Trade Record
+  let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  trade.trader = event.params.trader
+  trade.pairId = event.params.pairId
+  trade.action = "Open"
+  trade.sizeUsd = event.params.sizeUsd
+  trade.price = event.params.entryPrice
+  trade.timestamp = event.block.timestamp
+  trade.txHash = event.transaction.hash
+  trade.save()
+}
+
+export function handlePositionClosed(event: PositionClosed): void {
+  let positionId = event.params.positionId.toString()
+  let position = Position.load(positionId)
+  
+  if (position != null) {
+    position.isOpen = false
+    position.closedAt = event.block.timestamp
+    position.exitPrice = event.params.exitPrice
+    position.pnl = event.params.pnl
+    position.save()
+
+    let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+    trade.trader = event.params.trader
+    trade.pairId = position.pairId
+    trade.action = "Close"
+    trade.sizeUsd = position.sizeUsd
+    trade.price = event.params.exitPrice
+    trade.timestamp = event.block.timestamp
+    trade.txHash = event.transaction.hash
+    trade.save()
+  }
+}
+
+export function handlePositionLiquidated(event: PositionLiquidated): void {
+  let positionId = event.params.positionId.toString()
+  let position = Position.load(positionId)
+  
+  if (position != null) {
+    position.isOpen = false
+    position.closedAt = event.block.timestamp
+    position.save()
+
+    let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+    trade.trader = position.trader
+    trade.pairId = position.pairId
+    trade.action = "Liquidate"
+    trade.sizeUsd = position.sizeUsd
+    trade.price = position.liquidationPrice
+    trade.timestamp = event.block.timestamp
+    trade.txHash = event.transaction.hash
+    trade.save()
+  }
+}
+
+export function handleOrderPlaced(event: OrderPlaced): void {
+  let orderId = event.params.orderId.toString()
+  let order = new Order(orderId)
+
+  order.orderId = event.params.orderId
+  order.trader = event.params.trader
+  order.pairId = event.params.pairId
+  order.orderType = event.params.orderType
+  order.triggerPrice = event.params.triggerPrice
+  
+  let contract = ConfidentialTrading.bind(event.address)
+  let orderCall = contract.try_pendingOrders(event.params.orderId)
+  
+  if (!orderCall.reverted) {
+    order.isLong = orderCall.value.getIsLong()
+    order.sizeUsd = orderCall.value.getSizeUsd()
+    order.leverage = orderCall.value.getLeverage()
+    order.collateral = orderCall.value.getCollateral()
+  } else {
+    order.isLong = true
+    order.sizeUsd = BigInt.fromI32(0)
+    order.leverage = BigInt.fromI32(1)
+    order.collateral = BigInt.fromI32(0)
+  }
+
+  order.isActive = true
+  order.createdAt = event.block.timestamp
+  order.save()
+}
+
+export function handleOrderCancelled(event: OrderCancelled): void {
+  let orderId = event.params.orderId.toString()
+  let order = Order.load(orderId)
+  if (order != null) {
+    order.isActive = false
+    order.save()
+  }
+}
+
+export function handleOrderExecuted(event: OrderExecuted): void {
+  let orderId = event.params.orderId.toString()
+  let order = Order.load(orderId)
+  if (order != null) {
+    order.isActive = false
+    order.executedAt = event.block.timestamp
+    order.positionId = event.params.positionId
+    order.save()
+  }
+}
+
+export function handleDeposit(event: Deposit): void {
+  let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  let deposit = new VaultDeposit(id)
+  
+  deposit.user = event.params.user
+  deposit.action = "deposit"
+  deposit.amount = event.params.amount
+  deposit.shares = event.params.sharesReceived
+  deposit.timestamp = event.block.timestamp
+  deposit.txHash = event.transaction.hash
+  deposit.save()
+}
+
+export function handleWithdraw(event: Withdraw): void {
+  let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  let withdraw = new VaultDeposit(id)
+  
+  withdraw.user = event.params.user
+  withdraw.action = "withdraw"
+  withdraw.amount = event.params.amount
+  withdraw.shares = event.params.sharesBurned
+  withdraw.timestamp = event.block.timestamp
+  withdraw.txHash = event.transaction.hash
+  withdraw.save()
+}

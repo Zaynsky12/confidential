@@ -1,27 +1,29 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { keccak256, toHex } from 'viem'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { usePositions } from '../hooks/usePositions'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
+import { useOrders, useTradeRecords } from '../hooks/useGoldsky'
+
 import SharePnLModal, { type SharePositionData } from './SharePnLModal'
 
 type Tab = 'balances' | 'positions' | 'orders' | 'trades'
 
 export default function Positions() {
-  const { orders, cancelOrder, markets } = useTradeStore()
-  const { isConnected, balance } = useArcWallet()
+  const { cancelOrder, markets } = useTradeStore()
+  const { isConnected, balance, address } = useArcWallet()
   const [tab, setTab] = useState<Tab>('positions')
   const [selectedShare, setSelectedShare] = useState<SharePositionData | null>(null)
 
-  // Read from smart contract
+  // Read from smart contract & Goldsky
   const { activePositions } = usePositions()
   const { closePosition } = useConfidentialTrading()
+  const { orders: openOrders, isLoading: isOrdersLoading } = useOrders(address)
+  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address)
 
   // Use on-chain positions for open positions tab
   const openPositions = activePositions
-  const closedPositions: any[] = [] // History can be fetched via subgraph/events later
-  const openOrders = useMemo(() => orders.filter((o) => o.status === 'open'), [orders])
 
   const formatTime = (ts: number) => {
     const d = new Date(ts)
@@ -171,25 +173,30 @@ export default function Positions() {
                   <span>Filled</span>
                   <span></span>
                 </div>
-                {openOrders.length === 0 ? (
+                {isOrdersLoading ? (
+                  <div className="pos-empty">Loading orders from Goldsky...</div>
+                ) : openOrders.length === 0 ? (
                   <div className="pos-empty">No open orders</div>
                 ) : (
-                  openOrders.map((o) => (
+                  openOrders.map((o) => {
+                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === o.pairId)
+                    const pairName = matchedMarket ? matchedMarket.pair : o.pairId.slice(0, 10) + '...'
+                    return (
                     <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
-                      <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.timestamp)}</span>
-                      <span style={{ fontWeight: 600 }}>{o.pair}</span>
-                      <span className={o.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
-                        {o.side}
+                      <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.createdAt)}</span>
+                      <span style={{ fontWeight: 600 }}>{pairName}</span>
+                      <span className={o.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                        {o.isLong ? 'long' : 'short'}
                       </span>
-                      <span style={{ textTransform: 'capitalize' }}>{o.type}</span>
-                      <span className="font-mono">{o.size.toFixed(4)}</span>
-                      <span className="font-mono">${o.price.toFixed(2)}</span>
+                      <span style={{ textTransform: 'capitalize' }}>{o.orderType === 0 ? 'Limit' : 'Stop'}</span>
+                      <span className="font-mono">{o.sizeUsd.toFixed(2)}</span>
+                      <span className="font-mono">${o.triggerPrice.toFixed(2)}</span>
                       <span className="font-mono">0.00%</span>
                       <button onClick={() => cancelOrder(o.id)} className="btn-close">
                         Cancel
                       </button>
                     </div>
-                  ))
+                  )})
                 )}
               </>
             )}
@@ -209,24 +216,29 @@ export default function Positions() {
                   <span>Close Price</span>
                   <span>Realized PnL</span>
                 </div>
-                {closedPositions.length === 0 ? (
+                {isTradesLoading ? (
+                  <div className="pos-empty">Loading history from Goldsky...</div>
+                ) : closedPositions.length === 0 ? (
                   <div className="pos-empty">No trade history</div>
                 ) : (
-                  closedPositions.map((p) => (
+                  closedPositions.map((p) => {
+                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
+                    const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
+                    return (
                     <div key={p.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
-                      <span style={{ color: 'var(--color-text3)' }}>{p.closedAt ? formatTime(p.closedAt) : '—'}</span>
-                      <span style={{ fontWeight: 600 }}>{p.pair}</span>
-                      <span className={p.side === 'long' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
-                        {p.side}
+                      <span style={{ color: 'var(--color-text3)' }}>{formatTime(p.timestamp)}</span>
+                      <span style={{ fontWeight: 600 }}>{pairName}</span>
+                      <span className={p.action === 'Open' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                        {p.action}
                       </span>
-                      <span className="font-mono">{p.size.toFixed(4)}</span>
-                      <span className="font-mono">${p.entryPrice.toFixed(2)}</span>
-                      <span className="font-mono">${p.markPrice.toFixed(2)}</span>
-                      <span className={`font-mono ${p.pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
-                        {p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)}
+                      <span className="font-mono">{p.sizeUsd.toFixed(2)}</span>
+                      <span className="font-mono">-</span>
+                      <span className="font-mono">${p.price.toFixed(2)}</span>
+                      <span className="font-mono text-accent">
+                        <a href={`https://explorer.arc.network/tx/${p.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
                       </span>
                     </div>
-                  ))
+                  )})
                 )}
               </>
             )}

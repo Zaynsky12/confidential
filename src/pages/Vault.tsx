@@ -4,12 +4,14 @@ import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialVault } from '../hooks/useConfidentialVault'
+import { useVaultHistory } from '../hooks/useGoldsky'
 
 
 export default function Vault() {
-  const { vaultAPY, vaultDeposits } = useTradeStore()
-  const { isConnected, balance, connect, isWrongNetwork } = useArcWallet()
+  const { vaultAPY } = useTradeStore()
+  const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
+  const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address)
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
   const [activeTab, setActiveTab] = useState('Activity')
@@ -228,7 +230,9 @@ export default function Vault() {
                   </tr>
                 </thead>
                 <tbody>
-                  {vaultDeposits.length === 0 ? (
+                  {isHistoryLoading ? (
+                    <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>Loading from Goldsky...</td></tr>
+                  ) : vaultDeposits.length === 0 ? (
                     <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No activity yet</td></tr>
                   ) : vaultDeposits.map(d=>(
                     <tr key={d.id}>

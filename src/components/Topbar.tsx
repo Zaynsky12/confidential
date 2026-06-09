@@ -107,7 +107,7 @@ export default function Topbar() {
 
           <div className="topbar-logo-wrapper desktop-only">
             <div className="topbar-logo">
-              <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, width: 28, objectFit: 'contain', backgroundColor: '#fff', borderRadius: '50%', padding: '2px' }} />
+              <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, width: 28, objectFit: 'contain' }} />
               <span className="topbar-brand">Confidential</span>
             </div>
           </div>
@@ -271,7 +271,7 @@ export default function Topbar() {
           <div className="mobile-menu-drawer" onClick={e => e.stopPropagation()}>
             <div className="mobile-menu-header">
               <div className="topbar-logo">
-                <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, width: 28, objectFit: 'contain', backgroundColor: '#fff', borderRadius: '50%', padding: '2px' }} />
+                <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, width: 28, objectFit: 'contain' }} />
                 <span className="topbar-brand">Confidential</span>
               </div>
               <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>

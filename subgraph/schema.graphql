@@ -1,0 +1,55 @@
+type Position @entity {
+  id: ID!
+  positionId: BigInt!
+  trader: Bytes!
+  pairId: Bytes!
+  isLong: Boolean!
+  sizeUsd: BigInt!
+  entryPrice: BigInt!
+  leverage: BigInt!
+  collateral: BigInt!
+  liquidationPrice: BigInt!
+  isOpen: Boolean!
+  openedAt: BigInt!
+  closedAt: BigInt
+  exitPrice: BigInt
+  pnl: BigInt
+}
+
+type Order @entity {
+  id: ID!
+  orderId: BigInt!
+  trader: Bytes!
+  pairId: Bytes!
+  orderType: Int!
+  triggerPrice: BigInt!
+  sizeUsd: BigInt!
+  leverage: BigInt!
+  collateral: BigInt!
+  isLong: Boolean!
+  isActive: Boolean!
+  createdAt: BigInt!
+  executedAt: BigInt
+  positionId: BigInt
+}
+
+type TradeRecord @entity {
+  id: ID!
+  trader: Bytes!
+  pairId: Bytes!
+  action: String! # "Open", "Close", "Liquidate"
+  sizeUsd: BigInt!
+  price: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type VaultDeposit @entity {
+  id: ID!
+  user: Bytes!
+  action: String! # "deposit" or "withdraw"
+  amount: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
