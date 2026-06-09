@@ -2,7 +2,7 @@ const { createWalletClient, createPublicClient, http, keccak256, toHex, parseUni
 const { privateKeyToAccount } = require('viem/accounts');
 require('dotenv').config();
 const { defineChain } = require('viem');
-const fetch = require('node-fetch'); // Ensure node-fetch is installed or use global fetch in Node 18+
+// const fetch = require('node-fetch'); // Ensure node-fetch is installed or use global fetch in Node 18+
 
 const arcTestnet = defineChain({
   id: 5042002,
