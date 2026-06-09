@@ -107,11 +107,7 @@ export default function Topbar() {
 
           <div className="topbar-logo-wrapper desktop-only">
             <div className="topbar-logo">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0052FF"/>
-                <path d="M2 17l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.5"/>
-                <path d="M2 12l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.75"/>
-              </svg>
+              <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, objectFit: 'contain' }} />
               <span className="topbar-brand">Confidential</span>
             </div>
           </div>
@@ -275,11 +271,7 @@ export default function Topbar() {
           <div className="mobile-menu-drawer" onClick={e => e.stopPropagation()}>
             <div className="mobile-menu-header">
               <div className="topbar-logo">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0052FF"/>
-                  <path d="M2 17l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.5"/>
-                  <path d="M2 12l10 5 10-5" stroke="#0052FF" strokeWidth="2" fill="none" opacity="0.75"/>
-                </svg>
+                <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, objectFit: 'contain' }} />
                 <span className="topbar-brand">Confidential</span>
               </div>
               <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>
@@ -426,7 +418,7 @@ export default function Topbar() {
                 <tbody>
                   {filteredMarkets.map((m) => {
                     const isActive = m.id === activeMarketId
-                    const leverage = m.category === 'crypto' ? '20x' : m.category === 'forex' ? '50x' : '10x'
+                    const leverage = `${m.maxLeverage}x`
                     return (
                       <tr
                         key={m.id}

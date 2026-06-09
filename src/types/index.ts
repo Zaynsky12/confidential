@@ -19,6 +19,7 @@ export interface Market {
   high24h: number;
   low24h: number;
   openInterest: number;
+  maxLeverage: number;
 }
 
 export interface CandleData {

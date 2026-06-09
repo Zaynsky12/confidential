@@ -42,8 +42,8 @@ export function useConfidentialTrading() {
       
       if (!isApproved(totalRequired)) {
         await approveInfinite()
-        // Wait briefly for allowance state to catch up 
-        // (in a real app, we might wait for the receipt inside approveInfinite)
+        // Wait for allowance state to catch up across RPC nodes
+        await new Promise(res => setTimeout(res, 5000))
       }
 
       toast.loading('Opening Position...', { id: 'trade' })
@@ -54,7 +54,7 @@ export function useConfidentialTrading() {
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
 
-      const sizeUnits = parseUnits(sizeUsd.toString(), 6) // USDC 6 decimals
+      const sizeUnits = parseUnits(sizeUsd.toFixed(6), 6) // USDC 6 decimals
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
@@ -64,8 +64,10 @@ export function useConfidentialTrading() {
           pairId,
           isLong,
           sizeUnits,
-          BigInt(leverage)
+          BigInt(leverage),
+          [] // empty pythUpdateData for MockOracle
         ],
+        value: 0n,
       } as any)
 
       toast.dismiss('trade')
@@ -86,7 +88,8 @@ export function useConfidentialTrading() {
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
         functionName: 'closePosition',
-        args: [positionId],
+        args: [positionId, []], // empty pythUpdateData
+        value: 0n,
       } as any)
       toast.dismiss('close')
       return tx
@@ -113,6 +116,7 @@ export function useConfidentialTrading() {
       
       if (!isApproved(totalRequired)) {
         await approveInfinite()
+        await new Promise(res => setTimeout(res, 5000))
       }
 
       toast.loading('Placing Order...', { id: 'order' })
@@ -120,8 +124,8 @@ export function useConfidentialTrading() {
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
 
-      const sizeUnits = parseUnits(sizeUsd.toString(), 6)
-      const priceUnits = parseUnits(triggerPriceUsd.toString(), 18) // Oracle uses 18 decimals
+      const sizeUnits = parseUnits(sizeUsd.toFixed(6), 6)
+      const priceUnits = parseUnits(triggerPriceUsd.toFixed(18), 18) // Oracle uses 18 decimals
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
@@ -134,8 +138,10 @@ export function useConfidentialTrading() {
           BigInt(leverage),
           priceUnits,
           orderType,
-          reduceOnly
+          reduceOnly,
+          [] // empty pythUpdateData
         ],
+        value: 0n,
       } as any)
 
       toast.dismiss('order')

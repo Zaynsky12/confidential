@@ -73,7 +73,7 @@ export default function Trade() {
                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 <span style={{ background: 'rgba(247, 147, 26, 0.15)', color: '#F7931A', padding: '2px 6px', fontSize: 11, borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
-                  {activeMarket.category === 'forex' ? '50x' : activeMarket.category === 'rwa' ? '10x' : '20x'}
+                  {activeMarket.maxLeverage}x
                 </span>
               </button>
               

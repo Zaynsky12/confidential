@@ -15,7 +15,7 @@ contract DeployConfidential is Script {
     address constant USDC = 0x3600000000000000000000000000000000000000;
     
     // Pyth contract address on Arc Testnet
-    address constant PYTH = 0xACeA761c27A909d4D3895128EBe6370FDE2dF481;
+    address constant PYTH = 0x2880aB155794e7179c9eE2e38200202908C17B43;
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -55,16 +55,16 @@ contract DeployConfidential is Script {
         _addPair(core, oracle, "APT/USDC",   0x03ae4db29ed4ae33d323568895aa00337e658e348b37509f5372ae51f0af00d5, 25, 250_000e6, 250_000e6);
         _addPair(core, oracle, "NEAR/USDC",  0xc415de8d2eba7db216527dff4b60e8f3a5311c740dadb233e13e12547e226750, 25, 250_000e6, 250_000e6);
         _addPair(core, oracle, "DOGE/USDC",  0xdcef50dd0a4cd2dcc17e45df1676dcb336a11a61c69df7a0299b0150c672d25c, 20, 200_000e6, 200_000e6);
-        _addPair(core, oracle, "PEPE/USDC",  0xd69731a2e74ac1ce884fc3890f7ee324b6deb66147055249568869ed700882e4, 10, 100_000e6, 100_000e6);
-        _addPair(core, oracle, "WIF/USDC",   0x4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc, 10, 100_000e6, 100_000e6);
+        _addPair(core, oracle, "PEPE/USDC",  0xd69731a2e74ac1ce884fc3890f7ee324b6deb66147055249568869ed700882e4, 20, 100_000e6, 100_000e6);
+        _addPair(core, oracle, "WIF/USDC",   0x4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc, 20, 100_000e6, 100_000e6);
 
-        // ── RWA (max 10x leverage) ──
-        _addPair(core, oracle, "AAPL/USDC",  0x49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688, 10, 500_000e6, 500_000e6);
-        _addPair(core, oracle, "TSLA/USDC",  0x16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1, 10, 500_000e6, 500_000e6);
-        _addPair(core, oracle, "GOLD/USDC",  0x765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2, 10, 1_000_000e6, 1_000_000e6);
-        _addPair(core, oracle, "SILVER/USDC",0xf2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e, 10, 500_000e6, 500_000e6);
-        _addPair(core, oracle, "SPY/USDC",   0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5, 10, 500_000e6, 500_000e6);
-        _addPair(core, oracle, "NVDA/USDC",  0xb1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593, 10, 500_000e6, 500_000e6);
+        // ── RWA (max 100x leverage for metals, 50x for equities) ──
+        _addPair(core, oracle, "AAPL/USDC",  0x49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688, 50, 500_000e6, 500_000e6);
+        _addPair(core, oracle, "TSLA/USDC",  0x16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1, 50, 500_000e6, 500_000e6);
+        _addPair(core, oracle, "GOLD/USDC",  0x765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2, 100, 1_000_000e6, 1_000_000e6);
+        _addPair(core, oracle, "SILVER/USDC",0xf2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e, 100, 500_000e6, 500_000e6);
+        _addPair(core, oracle, "SPY/USDC",   0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5, 50, 500_000e6, 500_000e6);
+        _addPair(core, oracle, "NVDA/USDC",  0xb1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593, 50, 500_000e6, 500_000e6);
 
         // ── Forex (max 100x leverage) ──
         _addPair(core, oracle, "EUR/USDC",   0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b, 100, 2_000_000e6, 2_000_000e6);
@@ -75,16 +75,15 @@ contract DeployConfidential is Script {
     }
 
     function _addPair(
-        ConfidentialCore core,
-        PythPriceOracle oracle,
-        string memory name,
-        bytes32 pythFeedId,
-        uint256 maxLev,
-        uint256 maxLong,
-        uint256 maxShort
+        ConfidentialCore core, 
+        PythPriceOracle oracle, 
+        string memory pairName, 
+        bytes32 pythId, 
+        uint256 maxLeverage,
+        uint256 maxLongOI,
+        uint256 maxShortOI
     ) internal {
-        core.addPair(name, pythFeedId, maxLev, maxLong, maxShort, 2000); // 2000 bps = 20% max per user
-        bytes32 pairId = keccak256(abi.encodePacked(name));
-        oracle.setPriceFeed(pairId, pythFeedId);
+        core.addPair(pairName, pythId, maxLeverage, maxLongOI, maxShortOI, 2000); // 20% max pos
+        oracle.setPriceFeed(keccak256(abi.encodePacked(pairName)), pythId);
     }
 }

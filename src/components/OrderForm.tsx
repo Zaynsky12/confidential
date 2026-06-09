@@ -35,13 +35,14 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   // Dynamic leverage presets based on market category
   const leveragePresets = useMemo(() => {
     if (!activeMarket) return [1, 10, 25, 50]
-    switch (activeMarket.category) {
-      case 'forex': return [1, 25, 50, 100]
-      case 'rwa': return [1, 3, 5, 10]
-      case 'crypto':
-      default: return [1, 10, 25, 50]
-    }
-  }, [activeMarket?.category])
+    
+    const max = activeMarket.maxLeverage
+    if (max <= 10) return [1, 3, 5, max]
+    if (max <= 20) return [1, 5, 10, max]
+    if (max <= 25) return [1, 10, 15, max]
+    if (max <= 50) return [1, 10, 25, max]
+    return [1, 25, 50, max] // for 100x
+  }, [activeMarket])
 
   useEffect(() => {
     if (activeMarket) {
@@ -76,13 +77,14 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       notional: notional.toFixed(2),
       liqPrice: (effectivePrice * liqMul).toFixed(2),
       fees: fees.toFixed(2),
+      totalRequired: collateral + fees
     }
   }, [effectivePrice, sizeNum, leverage, side, usdSize])
 
   const handleSizePercentChange = (percent: number) => {
     setSizePercent(percent)
     if (!activeMarket || !effectivePrice || !isConnected || balance <= 0) return
-    const maxNotional = balance * leverage
+    const maxNotional = balance / (1 / leverage + 0.0004)
     
     if (inputCurrency === 'USD') {
       const newSize = ((maxNotional * percent) / 100).toFixed(2)
@@ -97,7 +99,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const handleSizeChange = (val: string) => {
     setSize(val)
     if (!activeMarket || !effectivePrice || !isConnected || balance <= 0) return
-    const maxNotional = balance * leverage
+    const maxNotional = balance / (1 / leverage + 0.0004)
     const valNum = Number(val) || 0
     
     if (inputCurrency === 'USD') {
@@ -116,9 +118,11 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     else setSize(baseSize.toFixed(4))
   }
 
+  const isInsufficientBalance = orderSummary ? orderSummary.totalRequired > balance : false
+
   const handleSubmit = async () => {
     if (!isConnected || isWrongNetwork) { connect(); return }
-    if (!activeMarket || !sizeNum || !orderSummary) return
+    if (!activeMarket || !sizeNum || !orderSummary || isInsufficientBalance) return
     
     try {
       if (orderType === 'market') {
@@ -384,14 +388,14 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       </div>
 
       {/* Submit Button */}
-      <button onClick={handleSubmit} disabled={isTxPending || (!isConnected && sizeNum > 0)} style={{ 
+      <button onClick={handleSubmit} disabled={isTxPending || (!isConnected && sizeNum > 0) || isInsufficientBalance} style={{ 
         width:'100%', padding:'12px', borderRadius:8, border:'none', 
-        background: (!isConnected || !sizeNum || isTxPending) ? 'var(--color-bg3)' : (side === 'long' ? 'var(--color-green)' : 'var(--color-red)'), 
-        color: (!isConnected || !sizeNum || isTxPending) ? '#8e8e93' : (side === 'long' ? '#000' : '#fff'), 
-        fontSize:14, fontWeight:600, cursor:(!isConnected||!sizeNum||isTxPending)?'not-allowed':'pointer',
+        background: (!isConnected || !sizeNum || isTxPending || isInsufficientBalance) ? 'var(--color-bg3)' : (side === 'long' ? 'var(--color-green)' : 'var(--color-red)'), 
+        color: (!isConnected || !sizeNum || isTxPending || isInsufficientBalance) ? '#8e8e93' : (side === 'long' ? '#000' : '#fff'), 
+        fontSize:14, fontWeight:600, cursor:(!isConnected||!sizeNum||isTxPending||isInsufficientBalance)?'not-allowed':'pointer',
         marginTop: 4
       }}>
-        {isTxPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
+        {isTxPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isInsufficientBalance ? 'Insufficient Balance' : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
       </button>
       {/* Summary Stats */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>

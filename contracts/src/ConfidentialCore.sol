@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./PythPriceOracle.sol";
+import "./MockOracle.sol";
 
 /// @title ConfidentialCore — Central parameter store & fee router
 /// @notice Manages trading pairs, fee distribution, and emergency controls
@@ -21,7 +21,7 @@ contract ConfidentialCore {
     address public owner;
     bool public paused;
 
-    PythPriceOracle public oracle;
+    MockOracle public oracle;
     address public vault;
     address public trading;
     address public treasury;
@@ -88,7 +88,7 @@ contract ConfidentialCore {
     constructor(address _usdc, address _oracle) {
         owner = msg.sender;
         usdc = _usdc;
-        oracle = PythPriceOracle(_oracle);
+        oracle = MockOracle(_oracle);
     }
 
     // ──────────── Admin Setup ────────────
@@ -149,6 +149,11 @@ contract ConfidentialCore {
         pairs[pairId].maxLongOI = maxLongOI_;
         pairs[pairId].maxShortOI = maxShortOI_;
         pairs[pairId].maxPositionPct = maxPositionPct;
+        emit PairUpdated(pairId);
+    }
+
+    function updatePairLeverage(bytes32 pairId, uint256 maxLeverage_) external onlyOwner {
+        pairs[pairId].maxLeverage = maxLeverage_;
         emit PairUpdated(pairId);
     }
 

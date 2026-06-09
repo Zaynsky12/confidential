@@ -38,7 +38,7 @@ export function useUSDCApproval(spenderAddress: `0x${string}`) {
   // amountUsdc is expected to be a number (e.g. 100 for $100)
   const isApproved = (amountUsdc: number) => {
     if (!allowance) return false
-    const required = parseUnits(amountUsdc.toString(), 6) // USDC has 6 decimals
+    const required = parseUnits(amountUsdc.toFixed(6), 6) // USDC has 6 decimals
     return (allowance as bigint) >= required
   }
 

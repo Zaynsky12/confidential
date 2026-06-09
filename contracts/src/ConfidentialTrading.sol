@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "./ConfidentialCore.sol";
 import "./ConfidentialVault.sol";
-import "./PythPriceOracle.sol";
+import "./MockOracle.sol";
 
 /// @title IERC20Transfer — Minimal interface for USDC transfers
 interface IERC20Transfer {
@@ -45,7 +45,7 @@ contract ConfidentialTrading {
     // ──────────── State ────────────
     ConfidentialCore public core;
     ConfidentialVault public vault;
-    PythPriceOracle public oracle;
+    MockOracle public oracle;
     IERC20Transfer public immutable usdc;
 
     // Position storage
@@ -84,7 +84,7 @@ contract ConfidentialTrading {
         usdc = IERC20Transfer(_usdc);
         core = ConfidentialCore(_core);
         vault = ConfidentialVault(_vault);
-        oracle = PythPriceOracle(_oracle);
+        oracle = MockOracle(_oracle);
     }
 
     // ──────────── Open Position (Market Order) ────────────
@@ -94,8 +94,13 @@ contract ConfidentialTrading {
         bytes32 pairId,
         bool isLong,
         uint256 sizeUsd,
-        uint256 leverage
-    ) external returns (uint256 positionId) {
+        uint256 leverage,
+        bytes[] calldata updateData
+    ) external payable returns (uint256 positionId) {
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
         if (sizeUsd == 0) revert InvalidSize();
 
         // Validate pair, leverage, OI limits
@@ -118,8 +123,7 @@ contract ConfidentialTrading {
         // Distribute fee
         _distributeFee(fee);
 
-        // Transfer collateral to vault as backing
-        usdc.transfer(address(vault), collateral);
+        // Trading contract holds the collateral
         vault.reserveBacking(collateral);
 
         // Calculate liquidation price
@@ -151,7 +155,11 @@ contract ConfidentialTrading {
     // ──────────── Close Position ────────────
 
     /// @notice Close an open position at the current oracle price
-    function closePosition(uint256 positionId) external {
+    function closePosition(uint256 positionId, bytes[] calldata updateData) external payable {
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
         Position storage pos = positions[positionId];
         if (!pos.isOpen) revert PositionNotOpen();
         if (pos.trader != msg.sender) revert NotPositionOwner();
@@ -183,8 +191,12 @@ contract ConfidentialTrading {
                 profit = 0;
             }
             
-            // Return collateral + profit to trader
-            vault.payProfit(pos.trader, pos.collateral + profit);
+            // Return collateral to trader
+            usdc.transfer(pos.trader, pos.collateral);
+            // Return profit to trader from vault
+            if (profit > 0) {
+                vault.payProfit(pos.trader, profit);
+            }
             _distributeFee(closeFee);
         } else {
             // Trader lost: loss goes to vault
@@ -192,16 +204,19 @@ contract ConfidentialTrading {
             
             if (loss >= pos.collateral) {
                 // Total loss — vault keeps all collateral
+                usdc.transfer(address(vault), pos.collateral);
                 vault.captureLoss(pos.collateral);
             } else {
                 // Partial loss — return remaining collateral minus fee
                 uint256 remaining = pos.collateral - loss;
                 if (remaining > closeFee) {
                     remaining -= closeFee;
+                    usdc.transfer(address(vault), loss);
                     vault.captureLoss(loss);
-                    vault.payProfit(pos.trader, remaining);
+                    usdc.transfer(pos.trader, remaining);
                     _distributeFee(closeFee);
                 } else {
+                    usdc.transfer(address(vault), pos.collateral);
                     vault.captureLoss(pos.collateral);
                 }
             }
@@ -219,7 +234,11 @@ contract ConfidentialTrading {
     // ──────────── Liquidation ────────────
 
     /// @notice Liquidate an undercollateralized position (anyone can call)
-    function liquidate(uint256 positionId) external {
+    function liquidate(uint256 positionId, bytes[] calldata updateData) external payable {
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
         Position storage pos = positions[positionId];
         if (!pos.isOpen) revert PositionNotOpen();
 
@@ -244,12 +263,13 @@ contract ConfidentialTrading {
 
         // Vault captures remaining collateral
         if (remaining > 0) {
+            usdc.transfer(address(vault), remaining);
             vault.captureLoss(remaining);
         }
 
-        // Pay reward to liquidator from vault
+        // Pay reward to liquidator from collateral
         if (reward > 0) {
-            vault.payProfit(msg.sender, reward);
+            usdc.transfer(msg.sender, reward);
         }
 
         // Update OI
@@ -271,8 +291,13 @@ contract ConfidentialTrading {
         uint256 leverage,
         uint256 triggerPrice,
         uint8 orderType,
-        bool reduceOnly
-    ) external returns (uint256 orderId) {
+        bool reduceOnly,
+        bytes[] calldata updateData
+    ) external payable returns (uint256 orderId) {
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
         if (sizeUsd == 0) revert InvalidSize();
 
         // Pre-deposit collateral + fee
@@ -314,7 +339,11 @@ contract ConfidentialTrading {
     }
 
     /// @notice Execute a pending order (called by keeper/bot)
-    function executeOrder(uint256 orderId) external {
+    function executeOrder(uint256 orderId, bytes[] calldata updateData) external payable {
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
         PendingOrder storage order = pendingOrders[orderId];
         if (!order.isActive) revert OrderNotActive();
 
@@ -347,8 +376,7 @@ contract ConfidentialTrading {
         uint256 fee = core.calculateFee(order.sizeUsd);
         _distributeFee(fee);
 
-        // Transfer collateral to vault
-        usdc.transfer(address(vault), order.collateral);
+        // Trading contract holds collateral
         vault.reserveBacking(order.collateral);
 
         // Calculate liquidation price
