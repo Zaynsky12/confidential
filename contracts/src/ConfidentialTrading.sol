@@ -1,9 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./ConfidentialCore.sol";
-import "./ConfidentialVault.sol";
-import "./PythPriceOracle.sol";
+interface IConfidentialCore {
+    function validateOpenPosition(bytes32 pairId, address user, bool isLong, uint256 sizeUsd, uint256 leverage) external view;
+    function calculateFee(uint256 sizeUsd) external view returns (uint256);
+    function increaseOI(bytes32 pairId, address user, bool isLong, uint256 sizeUsd) external;
+    function decreaseOI(bytes32 pairId, address user, bool isLong, uint256 sizeUsd) external;
+    function getFeeSplit(uint256 totalFee) external view returns (uint256, uint256, uint256);
+    function treasury() external view returns (address);
+    function insuranceFund() external view returns (address);
+    event FeeDistributed(uint256 toVault, uint256 toTreasury, uint256 toInsurance);
+}
+
+interface IConfidentialVault {
+    function reserveBacking(uint256 amount) external;
+    function releaseBacking(uint256 amount) external;
+    function payProfit(address trader, uint256 amount) external;
+    function captureLoss(uint256 amount) external;
+    function receiveFees(uint256 amount) external;
+}
+
+interface IPythPriceOracle {
+    function updatePriceFeeds(bytes[] calldata updateData) external payable;
+    function getPrice(bytes32 feedId) external view returns (uint256 price, uint256 publishTime);
+}
 
 /// @title IERC20Transfer — Minimal interface for USDC transfers
 interface IERC20Transfer {
@@ -36,16 +56,19 @@ contract ConfidentialTrading {
         uint256 collateral;
         uint256 leverage;
         uint256 triggerPrice;   // For limit & stop orders (18 decimals)
-        uint8 orderType;        // 0=limit, 1=stop_market
+        uint8 orderType;        // 0=limit, 1=stop_market, 2=market_open, 3=market_close
         bool reduceOnly;
         bool isActive;
         uint256 createdAt;
+        uint256 positionId;     // For market close
+        uint256 feePaid;        // Pre-paid trading fee
+        uint256 executionFee;   // Pre-paid keeper execution fee (msg.value)
     }
 
     // ──────────── State ────────────
-    ConfidentialCore public core;
-    ConfidentialVault public vault;
-    PythPriceOracle public oracle;
+    IConfidentialCore public core;
+    IConfidentialVault public vault;
+    IPythPriceOracle public oracle;
     IERC20Transfer public immutable usdc;
 
     // Position storage
@@ -60,7 +83,7 @@ contract ConfidentialTrading {
     uint256 public nextOrderId;
 
     // Liquidation reward (basis points of collateral)
-    uint256 public liquidationRewardBps = 500; // 5%
+    uint256 public liquidationRewardBps = 100; // 1%
 
     // ──────────── Events ────────────
     event PositionOpened(uint256 indexed positionId, address indexed trader, bytes32 pairId, bool isLong, uint256 sizeUsd, uint256 entryPrice, uint256 leverage);
@@ -82,32 +105,27 @@ contract ConfidentialTrading {
 
     constructor(address _usdc, address _core, address _vault, address _oracle) {
         usdc = IERC20Transfer(_usdc);
-        core = ConfidentialCore(_core);
-        vault = ConfidentialVault(_vault);
-        oracle = PythPriceOracle(_oracle);
+        core = IConfidentialCore(_core);
+        vault = IConfidentialVault(_vault);
+        oracle = IPythPriceOracle(_oracle);
     }
 
-    // ──────────── Open Position (Market Order) ────────────
+    // ──────────── Open Position Request (2-Step) ────────────
 
-    /// @notice Open a new perpetual position at the current oracle price
-    function openPosition(
+    /// @notice Request to open a market position (executed later by keeper)
+    function createOpenRequest(
         bytes32 pairId,
         bool isLong,
         uint256 sizeUsd,
-        uint256 leverage,
-        bytes[] calldata updateData
-    ) external payable returns (uint256 positionId) {
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
-
+        uint256 leverage
+    ) external payable returns (uint256 orderId) {
         if (sizeUsd == 0) revert InvalidSize();
+        
+        uint256 executionFee = msg.value;
+        require(executionFee > 0, "Execution fee required");
 
         // Validate pair, leverage, OI limits
         core.validateOpenPosition(pairId, msg.sender, isLong, sizeUsd, leverage);
-
-        // Get current price from oracle
-        (uint256 currentPrice, ) = oracle.getPrice(pairId);
 
         // Calculate collateral required
         uint256 collateral = sizeUsd / leverage;
@@ -120,168 +138,59 @@ contract ConfidentialTrading {
         // Transfer USDC from trader
         usdc.transferFrom(msg.sender, address(this), totalRequired);
 
-        // Distribute fee
-        _distributeFee(fee);
+        orderId = nextOrderId++;
+        PendingOrder storage newOrder = pendingOrders[orderId];
+        newOrder.pairId = pairId;
+        newOrder.trader = msg.sender;
+        newOrder.isLong = isLong;
+        newOrder.sizeUsd = sizeUsd;
+        newOrder.collateral = collateral;
+        newOrder.leverage = leverage;
+        newOrder.triggerPrice = 0;
+        newOrder.orderType = 2; // market_open
+        newOrder.reduceOnly = false;
+        newOrder.isActive = true;
+        newOrder.createdAt = block.timestamp;
+        newOrder.positionId = 0;
+        newOrder.feePaid = fee;
+        newOrder.executionFee = executionFee;
 
-        // Trading contract holds the collateral
-        vault.reserveBacking(collateral);
-
-        // Calculate liquidation price
-        uint256 liqPrice = _calcLiqPrice(currentPrice, leverage, isLong);
-
-        // Create position
-        positionId = nextPositionId++;
-        positions[positionId] = Position({
-            pairId: pairId,
-            trader: msg.sender,
-            isLong: isLong,
-            sizeUsd: sizeUsd,
-            collateral: collateral,
-            entryPrice: currentPrice,
-            leverage: leverage,
-            liquidationPrice: liqPrice,
-            openedAt: block.timestamp,
-            isOpen: true
-        });
-
-        userPositions[msg.sender].push(positionId);
-
-        // Update OI
-        core.increaseOI(pairId, msg.sender, isLong, sizeUsd);
-
-        emit PositionOpened(positionId, msg.sender, pairId, isLong, sizeUsd, currentPrice, leverage);
+        emit OrderPlaced(orderId, msg.sender, pairId, 2, 0);
     }
 
-    // ──────────── Close Position ────────────
+    // ──────────── Close Position Request (2-Step) ────────────
 
-    /// @notice Close an open position at the current oracle price
-    function closePosition(uint256 positionId, bytes[] calldata updateData) external payable {
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
-
+    /// @notice Request to close an open position (executed later by keeper)
+    function createCloseRequest(
+        uint256 positionId
+    ) external payable returns (uint256 orderId) {
         Position storage pos = positions[positionId];
         if (!pos.isOpen) revert PositionNotOpen();
         if (pos.trader != msg.sender) revert NotPositionOwner();
 
-        _closePosition(positionId, pos);
-    }
+        uint256 executionFee = msg.value;
+        require(executionFee > 0, "Execution fee required");
 
-    function _closePosition(uint256 positionId, Position storage pos) internal {
-        // Get current price
-        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
+        uint256 fee = core.calculateFee(pos.sizeUsd);
 
-        // Calculate PnL
-        int256 pnl = _calcPnl(pos, currentPrice);
+        orderId = nextOrderId++;
+        PendingOrder storage newOrder = pendingOrders[orderId];
+        newOrder.pairId = pos.pairId;
+        newOrder.trader = msg.sender;
+        newOrder.isLong = pos.isLong;
+        newOrder.sizeUsd = pos.sizeUsd;
+        newOrder.collateral = 0; // Not used for close
+        newOrder.leverage = pos.leverage;
+        newOrder.triggerPrice = 0;
+        newOrder.orderType = 3; // market_close
+        newOrder.reduceOnly = true;
+        newOrder.isActive = true;
+        newOrder.createdAt = block.timestamp;
+        newOrder.positionId = positionId;
+        newOrder.feePaid = fee;
+        newOrder.executionFee = executionFee;
 
-        // Calculate closing fee
-        uint256 closeFee = core.calculateFee(pos.sizeUsd);
-
-        // Release vault backing
-        vault.releaseBacking(pos.collateral);
-
-        // Settle PnL
-        if (pnl > 0) {
-            // Trader won: vault pays entire profit to Trading contract first
-            uint256 profit = uint256(pnl);
-            vault.payProfit(address(this), profit);
-
-            if (profit > closeFee) {
-                profit -= closeFee;
-            } else {
-                closeFee = profit;
-                profit = 0;
-            }
-            
-            // Return collateral to trader
-            usdc.transfer(pos.trader, pos.collateral);
-            // Return net profit to trader
-            if (profit > 0) {
-                usdc.transfer(pos.trader, profit);
-            }
-            // Distribute the closing fee
-            _distributeFee(closeFee);
-        } else {
-            // Trader lost: loss goes to vault
-            uint256 loss = uint256(-pnl);
-            
-            if (loss >= pos.collateral) {
-                // Total loss — vault keeps all collateral
-                usdc.transfer(address(vault), pos.collateral);
-                vault.captureLoss(pos.collateral);
-            } else {
-                // Partial loss — return remaining collateral minus fee
-                uint256 remaining = pos.collateral - loss;
-                if (remaining > closeFee) {
-                    remaining -= closeFee;
-                    usdc.transfer(address(vault), loss);
-                    vault.captureLoss(loss);
-                    usdc.transfer(pos.trader, remaining);
-                    _distributeFee(closeFee);
-                } else {
-                    usdc.transfer(address(vault), pos.collateral);
-                    vault.captureLoss(pos.collateral);
-                }
-            }
-        }
-
-        // Update OI
-        core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
-
-        // Mark position as closed
-        pos.isOpen = false;
-
-        emit PositionClosed(positionId, pos.trader, currentPrice, pnl);
-    }
-
-    // ──────────── Liquidation ────────────
-
-    /// @notice Liquidate an undercollateralized position (anyone can call)
-    function liquidate(uint256 positionId, bytes[] calldata updateData) external payable {
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
-
-        Position storage pos = positions[positionId];
-        if (!pos.isOpen) revert PositionNotOpen();
-
-        // Get current price
-        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
-
-        // Check if liquidatable
-        bool shouldLiquidate;
-        if (pos.isLong) {
-            shouldLiquidate = currentPrice <= pos.liquidationPrice;
-        } else {
-            shouldLiquidate = currentPrice >= pos.liquidationPrice;
-        }
-        if (!shouldLiquidate) revert NotLiquidatable();
-
-        // Calculate liquidation reward for the caller
-        uint256 reward = (pos.collateral * liquidationRewardBps) / 10000;
-        uint256 remaining = pos.collateral > reward ? pos.collateral - reward : 0;
-
-        // Release vault backing
-        vault.releaseBacking(pos.collateral);
-
-        // Vault captures remaining collateral
-        if (remaining > 0) {
-            usdc.transfer(address(vault), remaining);
-            vault.captureLoss(remaining);
-        }
-
-        // Pay reward to liquidator from collateral
-        if (reward > 0) {
-            usdc.transfer(msg.sender, reward);
-        }
-
-        // Update OI
-        core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
-
-        // Mark position as closed
-        pos.isOpen = false;
-
-        emit PositionLiquidated(positionId, msg.sender, reward);
+        emit OrderPlaced(orderId, msg.sender, pos.pairId, 3, 0);
     }
 
     // ──────────── Pending Orders (Limit / Stop) ────────────
@@ -294,14 +203,12 @@ contract ConfidentialTrading {
         uint256 leverage,
         uint256 triggerPrice,
         uint8 orderType,
-        bool reduceOnly,
-        bytes[] calldata updateData
+        bool reduceOnly
     ) external payable returns (uint256 orderId) {
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
-
         if (sizeUsd == 0) revert InvalidSize();
+        
+        uint256 executionFee = msg.value;
+        require(executionFee > 0, "Execution fee required");
 
         // Pre-deposit collateral + fee
         uint256 collateral = sizeUsd / leverage;
@@ -309,19 +216,21 @@ contract ConfidentialTrading {
         usdc.transferFrom(msg.sender, address(this), collateral + fee);
 
         orderId = nextOrderId++;
-        pendingOrders[orderId] = PendingOrder({
-            pairId: pairId,
-            trader: msg.sender,
-            isLong: isLong,
-            sizeUsd: sizeUsd,
-            collateral: collateral,
-            leverage: leverage,
-            triggerPrice: triggerPrice,
-            orderType: orderType,
-            reduceOnly: reduceOnly,
-            isActive: true,
-            createdAt: block.timestamp
-        });
+        PendingOrder storage newOrder = pendingOrders[orderId];
+        newOrder.pairId = pairId;
+        newOrder.trader = msg.sender;
+        newOrder.isLong = isLong;
+        newOrder.sizeUsd = sizeUsd;
+        newOrder.collateral = collateral;
+        newOrder.leverage = leverage;
+        newOrder.triggerPrice = triggerPrice;
+        newOrder.orderType = orderType;
+        newOrder.reduceOnly = reduceOnly;
+        newOrder.isActive = true;
+        newOrder.createdAt = block.timestamp;
+        newOrder.positionId = 0;
+        newOrder.feePaid = fee;
+        newOrder.executionFee = executionFee;
 
         emit OrderPlaced(orderId, msg.sender, pairId, orderType, triggerPrice);
     }
@@ -335,8 +244,15 @@ contract ConfidentialTrading {
         order.isActive = false;
 
         // Refund collateral + fee
-        uint256 fee = core.calculateFee(order.sizeUsd);
-        usdc.transfer(msg.sender, order.collateral + fee);
+        if (order.orderType != 3) { // Market close doesn't deposit collateral upfront
+            usdc.transfer(msg.sender, order.collateral + order.feePaid);
+        }
+        
+        // Refund execution fee
+        if (order.executionFee > 0) {
+            (bool success, ) = msg.sender.call{value: order.executionFee}("");
+            require(success, "Fee refund failed");
+        }
 
         emit OrderCancelled(orderId);
     }
@@ -353,77 +269,166 @@ contract ConfidentialTrading {
         (uint256 currentPrice, ) = oracle.getPrice(order.pairId);
 
         // Check trigger conditions
-        bool triggered;
-        if (order.orderType == 0) {
-            // Limit order
-            if (order.isLong) {
-                triggered = currentPrice <= order.triggerPrice;
+        if (order.orderType == 0 || order.orderType == 1) {
+            bool triggered;
+            if (order.orderType == 0) {
+                triggered = order.isLong ? (currentPrice <= order.triggerPrice) : (currentPrice >= order.triggerPrice);
             } else {
-                triggered = currentPrice >= order.triggerPrice;
+                triggered = order.isLong ? (currentPrice >= order.triggerPrice) : (currentPrice <= order.triggerPrice);
             }
-        } else {
-            // Stop market
-            if (order.isLong) {
-                triggered = currentPrice >= order.triggerPrice;
-            } else {
-                triggered = currentPrice <= order.triggerPrice;
-            }
+            require(triggered, "Order not triggered");
+            _executeOpen(order, currentPrice, orderId);
+        } else if (order.orderType == 2) {
+            _executeOpen(order, currentPrice, orderId);
+        } else if (order.orderType == 3) {
+            _executeClose(order, currentPrice, orderId);
         }
 
-        require(triggered, "Order not triggered");
+        order.isActive = false;
 
-        // Validate
+        // Pay execution fee to keeper
+        if (order.executionFee > 0) {
+            (bool success, ) = msg.sender.call{value: order.executionFee}("");
+            require(success, "Fee transfer failed");
+        }
+    }
+
+    function _executeOpen(PendingOrder storage order, uint256 currentPrice, uint256 orderId) internal {
         core.validateOpenPosition(order.pairId, order.trader, order.isLong, order.sizeUsd, order.leverage);
 
-        // Fee already collected — distribute it
-        uint256 fee = core.calculateFee(order.sizeUsd);
-        _distributeFee(fee);
-
-        // Trading contract holds collateral
+        _distributeFee(order.feePaid);
         vault.reserveBacking(order.collateral);
 
-        // Calculate liquidation price
         uint256 liqPrice = _calcLiqPrice(currentPrice, order.leverage, order.isLong);
 
-        // Create position
         uint256 positionId = nextPositionId++;
-        positions[positionId] = Position({
-            pairId: order.pairId,
-            trader: order.trader,
-            isLong: order.isLong,
-            sizeUsd: order.sizeUsd,
-            collateral: order.collateral,
-            entryPrice: currentPrice,
-            leverage: order.leverage,
-            liquidationPrice: liqPrice,
-            openedAt: block.timestamp,
-            isOpen: true
-        });
+        Position storage newPos = positions[positionId];
+        newPos.pairId = order.pairId;
+        newPos.trader = order.trader;
+        newPos.isLong = order.isLong;
+        newPos.sizeUsd = order.sizeUsd;
+        newPos.collateral = order.collateral;
+        newPos.entryPrice = currentPrice;
+        newPos.leverage = order.leverage;
+        newPos.liquidationPrice = liqPrice;
+        newPos.openedAt = block.timestamp;
+        newPos.isOpen = true;
 
         userPositions[order.trader].push(positionId);
-
-        // Update OI
         core.increaseOI(order.pairId, order.trader, order.isLong, order.sizeUsd);
-
-        // Mark order as executed
-        order.isActive = false;
 
         emit OrderExecuted(orderId, positionId);
         emit PositionOpened(positionId, order.trader, order.pairId, order.isLong, order.sizeUsd, currentPrice, order.leverage);
+    }
+
+    function _executeClose(PendingOrder storage order, uint256 currentPrice, uint256 orderId) internal {
+        Position storage pos = positions[order.positionId];
+        require(pos.isOpen, "Position not open");
+
+        int256 pnl = _calcPnl(pos, currentPrice);
+        uint256 closeFee = order.feePaid;
+
+        vault.releaseBacking(pos.collateral);
+
+        if (pnl > 0) {
+            uint256 profit = uint256(pnl);
+            vault.payProfit(address(this), profit);
+
+            if (profit > closeFee) {
+                profit -= closeFee;
+            } else {
+                closeFee = profit;
+                profit = 0;
+            }
+            
+            usdc.transfer(pos.trader, pos.collateral);
+            if (profit > 0) {
+                usdc.transfer(pos.trader, profit);
+            }
+            _distributeFee(closeFee);
+        } else {
+            uint256 loss = uint256(-pnl);
+            
+            if (loss >= pos.collateral) {
+                usdc.transfer(address(vault), pos.collateral);
+                vault.captureLoss(pos.collateral);
+            } else {
+                uint256 remaining = pos.collateral - loss;
+                if (remaining >= closeFee) {
+                    remaining -= closeFee;
+                    usdc.transfer(address(vault), loss);
+                    vault.captureLoss(loss);
+                    if (remaining > 0) usdc.transfer(pos.trader, remaining);
+                    _distributeFee(closeFee);
+                } else {
+                    usdc.transfer(address(vault), loss);
+                    vault.captureLoss(loss);
+                    if (remaining > 0) _distributeFee(remaining);
+                }
+            }
+        }
+
+        core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
+        pos.isOpen = false;
+
+        emit OrderExecuted(orderId, order.positionId);
+        emit PositionClosed(order.positionId, pos.trader, currentPrice, pnl);
+    }
+
+    // ──────────── Liquidation ────────────
+
+    /// @notice Liquidate an undercollateralized position (anyone can call)
+    function liquidate(uint256 positionId, bytes[] calldata updateData) external payable {
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
+        Position storage pos = positions[positionId];
+        if (!pos.isOpen) revert PositionNotOpen();
+
+        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
+
+        bool shouldLiquidate;
+        if (pos.isLong) {
+            shouldLiquidate = currentPrice <= pos.liquidationPrice;
+        } else {
+            shouldLiquidate = currentPrice >= pos.liquidationPrice;
+        }
+        if (!shouldLiquidate) revert NotLiquidatable();
+
+        uint256 reward = (pos.collateral * liquidationRewardBps) / 10000;
+        uint256 maxReward = 50 * 1e6; // 50 USDC max MEV reward limit
+        if (reward > maxReward) reward = maxReward;
+        
+        uint256 remaining = pos.collateral > reward ? pos.collateral - reward : 0;
+
+        vault.releaseBacking(pos.collateral);
+
+        if (remaining > 0) {
+            usdc.transfer(address(vault), remaining);
+            vault.captureLoss(remaining);
+        }
+
+        if (reward > 0) {
+            usdc.transfer(msg.sender, reward);
+        }
+
+        core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
+        pos.isOpen = false;
+
+        emit PositionLiquidated(positionId, msg.sender, reward);
     }
 
     // ──────────── Internal Helpers ────────────
 
     function _calcPnl(Position memory pos, uint256 currentPrice) internal pure returns (int256) {
         if (pos.isLong) {
-            // Long PnL = sizeUsd * (currentPrice - entryPrice) / entryPrice
             if (currentPrice >= pos.entryPrice) {
                 return int256((pos.sizeUsd * (currentPrice - pos.entryPrice)) / pos.entryPrice);
             } else {
                 return -int256((pos.sizeUsd * (pos.entryPrice - currentPrice)) / pos.entryPrice);
             }
         } else {
-            // Short PnL = sizeUsd * (entryPrice - currentPrice) / entryPrice
             if (pos.entryPrice >= currentPrice) {
                 return int256((pos.sizeUsd * (pos.entryPrice - currentPrice)) / pos.entryPrice);
             } else {
@@ -433,10 +438,7 @@ contract ConfidentialTrading {
     }
 
     function _calcLiqPrice(uint256 entryPrice, uint256 leverage, bool isLong) internal pure returns (uint256) {
-        // Liquidation at 90% collateral loss
-        // Long:  liqPrice = entryPrice * (1 - 0.9/leverage)
-        // Short: liqPrice = entryPrice * (1 + 0.9/leverage)
-        uint256 movePercent = (9000) / leverage; // basis points of price move
+        uint256 movePercent = (9000) / leverage; 
         
         if (isLong) {
             return entryPrice - (entryPrice * movePercent) / 10000;
@@ -450,23 +452,20 @@ contract ConfidentialTrading {
 
         (uint256 toVault, uint256 toTreasury, uint256 toInsurance) = core.getFeeSplit(fee);
 
-        // Send to vault
         if (toVault > 0) {
             usdc.transfer(address(vault), toVault);
             vault.receiveFees(toVault);
         }
 
-        // Send to treasury
         if (toTreasury > 0) {
             usdc.transfer(core.treasury(), toTreasury);
         }
 
-        // Send to insurance fund
         if (toInsurance > 0) {
             usdc.transfer(core.insuranceFund(), toInsurance);
         }
 
-        emit ConfidentialCore.FeeDistributed(toVault, toTreasury, toInsurance);
+        emit IConfidentialCore.FeeDistributed(toVault, toTreasury, toInsurance);
     }
 
     // ──────────── View Functions ────────────

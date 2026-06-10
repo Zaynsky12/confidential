@@ -25,6 +25,8 @@ contract ConfidentialVault {
     IERC20 public immutable usdc;
     ConfidentialCore public core;
 
+    uint256 public constant MINIMUM_LIQUIDITY = 1000;
+
     // ERC-20 share tracking
     uint256 public totalShares;
     mapping(address => uint256) public shares;
@@ -72,7 +74,8 @@ contract ConfidentialVault {
         // Calculate shares using current exchange rate
         uint256 sharesToMint;
         if (totalShares == 0 || totalAssets == 0) {
-            sharesToMint = amount; // 1:1 for first deposit
+            sharesToMint = amount - MINIMUM_LIQUIDITY; 
+            totalShares += MINIMUM_LIQUIDITY; // Permanent dead shares
         } else {
             sharesToMint = (amount * totalShares) / totalAssets;
         }

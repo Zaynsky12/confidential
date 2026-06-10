@@ -14,22 +14,29 @@ const arcTestnet = defineChain({
   },
 });
 
-const privateKey = process.env.PRIVATE_KEY || '0x';
+const privateKey = process.env.BOT_KEEPER_PRIVATE_KEY || '0x';
 if (privateKey === '0x') {
-  console.error("Missing PRIVATE_KEY in .env");
+  console.error("Missing BOT_KEEPER_PRIVATE_KEY in .env");
   process.exit(1);
 }
 const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0xD7c70a4E4E912Bf09ad96922633968Eb989cFcB8';
+const TRADING_ADDRESS = '0x751EA442eFE4E93392dcd934931e44c06a7C4c24';
 
-// Minimal ABI required for liquidations
+// ABI required for liquidations AND executing pending orders
 const TRADING_ABI = [
   {
     "inputs": [],
     "name": "nextPositionId",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextOrderId",
     "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
@@ -60,11 +67,43 @@ const TRADING_ABI = [
     "type": "function"
   },
   {
+    "inputs": [{ "internalType": "uint256", "name": "orderId", "type": "uint256" }],
+    "name": "pendingOrders",
+    "outputs": [
+      { "internalType": "bytes32", "name": "pairId", "type": "bytes32" },
+      { "internalType": "address", "name": "trader", "type": "address" },
+      { "internalType": "bool", "name": "isLong", "type": "bool" },
+      { "internalType": "uint256", "name": "sizeUsd", "type": "uint256" },
+      { "internalType": "uint256", "name": "collateral", "type": "uint256" },
+      { "internalType": "uint256", "name": "leverage", "type": "uint256" },
+      { "internalType": "uint256", "name": "triggerPrice", "type": "uint256" },
+      { "internalType": "uint8", "name": "orderType", "type": "uint8" },
+      { "internalType": "bool", "name": "reduceOnly", "type": "bool" },
+      { "internalType": "bool", "name": "isActive", "type": "bool" },
+      { "internalType": "uint256", "name": "createdAt", "type": "uint256" },
+      { "internalType": "uint256", "name": "positionId", "type": "uint256" },
+      { "internalType": "uint256", "name": "feePaid", "type": "uint256" },
+      { "internalType": "uint256", "name": "executionFee", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       { "internalType": "uint256", "name": "positionId", "type": "uint256" },
       { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }
     ],
     "name": "liquidate",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "orderId", "type": "uint256" },
+      { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }
+    ],
+    "name": "executeOrder",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -92,45 +131,9 @@ const PAIRS = [
   { name: 'PEPE/USDC', pythId: '0xd69731a2e74ac1ce884fc3890f7ee324b6deb66147055249568869ed700882e4' },
 ];
 
-async function checkLiquidations() {
+async function runKeeper() {
   try {
-    // 1. Fetch current max position ID
-    const nextIdStr = await client.readContract({
-      address: TRADING_ADDRESS,
-      abi: TRADING_ABI,
-      functionName: 'nextPositionId',
-    });
-    const nextId = Number(nextIdStr);
-
-    if (nextId === 0) {
-      console.log(`[${new Date().toLocaleTimeString()}] No positions exist yet.`);
-      return;
-    }
-
-    // 2. Fetch all open positions (in a real production app, we would use subgraph to avoid massive loops)
-    // For this implementation, looping through all position IDs is fine
-    const activePositions = [];
-    const activePairs = new Set();
-
-    for (let i = 0; i < nextId; i++) {
-      const pos = await client.readContract({
-        address: TRADING_ADDRESS,
-        abi: TRADING_ABI,
-        functionName: 'getPosition',
-        args: [BigInt(i)]
-      });
-
-      if (pos.isOpen) {
-        activePositions.push({ id: i, ...pos });
-        activePairs.add(pos.pairId);
-      }
-    }
-
-    console.log(`[${new Date().toLocaleTimeString()}] Monitoring ${activePositions.length} active position(s)...`);
-
-    if (activePositions.length === 0) return;
-
-    // 3. Fetch latest pyth prices for all pairs
+    // 1. Fetch Pyth Prices
     const ids = PAIRS.map(p => p.pythId).join('&ids[]=');
     const response = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${ids}`);
     const pythResponse = await response.json();
@@ -138,71 +141,137 @@ async function checkLiquidations() {
     if (!pythResponse.binary || !pythResponse.binary.data) return;
 
     const pythPayload = pythResponse.binary.data.map(d => '0x' + d.replace('0x', ''));
+    const pythFee = await client.readContract({
+        address: PYTH_ADDRESS,
+        abi: PYTH_ABI,
+        functionName: 'getUpdateFee',
+        args: [pythPayload]
+    });
 
-    // Create a price map for easy lookup
     const currentPrices = {};
     for (const data of pythResponse.parsed) {
-      // Pyth uses pair ID as string without 0x
       const cleanId = data.id;
       const priceNum = BigInt(data.price.price) * (10n ** BigInt(18 + data.price.expo));
       currentPrices[cleanId] = priceNum;
     }
 
-    // 4. Check if any position needs liquidation
-    for (const pos of activePositions) {
-      const cleanPairId = pos.pairId.replace('0x', '');
-      const currentPrice = currentPrices[cleanPairId];
+    // 2. CHECK PENDING ORDERS
+    const nextOrderIdStr = await client.readContract({
+      address: TRADING_ADDRESS,
+      abi: TRADING_ABI,
+      functionName: 'nextOrderId',
+    });
+    const nextOrderId = Number(nextOrderIdStr);
 
-      if (!currentPrice) continue;
-
-      let shouldLiquidate = false;
-      if (pos.isLong) {
-        shouldLiquidate = currentPrice <= pos.liquidationPrice;
-      } else {
-        shouldLiquidate = currentPrice >= pos.liquidationPrice;
-      }
-
-      if (shouldLiquidate) {
-        console.log(`🚨 LIQUIDATION DETECTED for Position #${pos.id}!`);
-        console.log(`   Trader: ${pos.trader}`);
-        console.log(`   Liq Price: ${pos.liquidationPrice.toString()}`);
-        console.log(`   Cur Price: ${currentPrice.toString()}`);
-
+    for (let i = 0; i < nextOrderId; i++) {
         try {
-          // Get update fee
-          const fee = await client.readContract({
-            address: PYTH_ADDRESS,
-            abi: PYTH_ABI,
-            functionName: 'getUpdateFee',
-            args: [pythPayload]
-          });
+            const orderRaw = await client.readContract({
+                address: TRADING_ADDRESS,
+                abi: TRADING_ABI,
+                functionName: 'pendingOrders',
+                args: [BigInt(i)]
+            });
+            
+            const isActive = orderRaw[9];
+            if (!isActive) continue;
 
-          console.log(`   Sending liquidation tx...`);
-          const hash = await wallet.writeContract({
+            const order = {
+                id: i,
+                pairId: orderRaw[0],
+                isLong: orderRaw[2],
+                triggerPrice: orderRaw[6],
+                orderType: orderRaw[7],
+            };
+
+            const cleanPairId = order.pairId.replace('0x', '');
+            const currentPrice = currentPrices[cleanPairId];
+            if (!currentPrice) continue;
+
+            let shouldExecute = false;
+            
+            if (order.orderType === 2 || order.orderType === 3) {
+                // Market Open (2) or Market Close (3) execute immediately
+                shouldExecute = true;
+            } else if (order.orderType === 0) {
+                // Limit
+                shouldExecute = order.isLong ? (currentPrice <= order.triggerPrice) : (currentPrice >= order.triggerPrice);
+            } else if (order.orderType === 1) {
+                // Stop
+                shouldExecute = order.isLong ? (currentPrice >= order.triggerPrice) : (currentPrice <= order.triggerPrice);
+            }
+
+            if (shouldExecute) {
+                console.log(`⚡ EXECUTING Order #${order.id} (Type: ${order.orderType})`);
+                const hash = await wallet.writeContract({
+                    address: TRADING_ADDRESS,
+                    abi: TRADING_ABI,
+                    functionName: 'executeOrder',
+                    args: [BigInt(order.id), pythPayload],
+                    value: pythFee
+                });
+                console.log(`   ✅ EXECUTION SUCCESS! Tx: ${hash}`);
+            }
+        } catch (err) {
+            console.error(`❌ Failed to read or execute order #${i}:`, err.shortMessage || err.message);
+        }
+    }
+
+    // 3. CHECK LIQUIDATIONS
+    const nextPosIdStr = await client.readContract({
+      address: TRADING_ADDRESS,
+      abi: TRADING_ABI,
+      functionName: 'nextPositionId',
+    });
+    const nextPosId = Number(nextPosIdStr);
+
+    for (let i = 0; i < nextPosId; i++) {
+      try {
+          const pos = await client.readContract({
             address: TRADING_ADDRESS,
             abi: TRADING_ABI,
-            functionName: 'liquidate',
-            args: [BigInt(pos.id), pythPayload],
-            value: fee
+            functionName: 'getPosition',
+            args: [BigInt(i)]
           });
 
-          console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
-        } catch (err) {
-          console.error(`   ❌ Failed to liquidate pos #${pos.id}:`, err.message);
-        }
+          if (!pos.isOpen) continue;
+
+          const cleanPairId = pos.pairId.replace('0x', '');
+          const currentPrice = currentPrices[cleanPairId];
+          if (!currentPrice) continue;
+
+          let shouldLiquidate = false;
+          if (pos.isLong) {
+            shouldLiquidate = currentPrice <= pos.liquidationPrice;
+          } else {
+            shouldLiquidate = currentPrice >= pos.liquidationPrice;
+          }
+
+          if (shouldLiquidate) {
+            console.log(`🚨 LIQUIDATING Position #${pos.id}...`);
+            const hash = await wallet.writeContract({
+                address: TRADING_ADDRESS,
+                abi: TRADING_ABI,
+                functionName: 'liquidate',
+                args: [BigInt(pos.id), pythPayload],
+                value: pythFee
+            });
+            console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
+          }
+      } catch (err) {
+          console.error(`❌ Failed to read or liquidate pos #${i}:`, err.shortMessage || err.message);
       }
     }
 
   } catch (e) {
-    console.error('Error monitoring positions:', e.message);
+    console.error('Error in Keeper Loop:', e.shortMessage || e.message);
   }
 }
 
-console.log('🚀 Starting Liquidator Bot for Arc Testnet...');
+console.log('🚀 Starting Keeper Bot for Arc Testnet...');
 console.log(`📡 Connected to Trading Contract: ${TRADING_ADDRESS}`);
-console.log('Bot will monitor all active positions every 10 seconds.');
+console.log('Bot will monitor Liquidations and Pending Orders every 5 seconds.');
 
 // Run immediately
-checkLiquidations();
-// Run every 10 seconds
-setInterval(checkLiquidations, 10000);
+runKeeper();
+// Run every 5 seconds (faster for order execution)
+setInterval(runKeeper, 5000);

@@ -114,6 +114,10 @@ contract PythPriceOracle {
     /// @notice Pass-through to update Pyth price feeds (called by frontend/keeper)
     function updatePriceFeeds(bytes[] calldata updateData) external payable {
         uint256 fee = pyth.getUpdateFee(updateData);
+        require(msg.value >= fee, "Insufficient fee");
         pyth.updatePriceFeeds{value: fee}(updateData);
+        if (msg.value > fee) {
+            payable(msg.sender).transfer(msg.value - fee);
+        }
     }
 }
