@@ -182,8 +182,10 @@ contract ConfidentialTrading {
 
         // Settle PnL
         if (pnl > 0) {
-            // Trader won: vault pays profit
+            // Trader won: vault pays entire profit to Trading contract first
             uint256 profit = uint256(pnl);
+            vault.payProfit(address(this), profit);
+
             if (profit > closeFee) {
                 profit -= closeFee;
             } else {
@@ -193,10 +195,11 @@ contract ConfidentialTrading {
             
             // Return collateral to trader
             usdc.transfer(pos.trader, pos.collateral);
-            // Return profit to trader from vault
+            // Return net profit to trader
             if (profit > 0) {
-                vault.payProfit(pos.trader, profit);
+                usdc.transfer(pos.trader, profit);
             }
+            // Distribute the closing fee
             _distributeFee(closeFee);
         } else {
             // Trader lost: loss goes to vault
