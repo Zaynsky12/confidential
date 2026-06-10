@@ -16,40 +16,40 @@ const arcTestnet = defineChain({
 
 const privateKey = process.env.PRIVATE_KEY || '0x';
 if (privateKey === '0x') {
-    console.error("Missing PRIVATE_KEY in .env");
-    process.exit(1);
+  console.error("Missing PRIVATE_KEY in .env");
+  process.exit(1);
 }
 const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0xD7c70a4E4E912Bf09ad96922633968Eb989cFcB8';
+const TRADING_ADDRESS = '0xc35ca2227833b07f69a56a32feb0a4cc2130b2a8';
 
 // Minimal ABI required for liquidations
 const TRADING_ABI = [
   {
     "inputs": [],
     "name": "nextPositionId",
-    "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{"internalType": "uint256","name": "positionId","type": "uint256"}],
+    "inputs": [{ "internalType": "uint256", "name": "positionId", "type": "uint256" }],
     "name": "getPosition",
     "outputs": [
       {
         "components": [
-          {"internalType": "bytes32","name": "pairId","type": "bytes32"},
-          {"internalType": "address","name": "trader","type": "address"},
-          {"internalType": "bool","name": "isLong","type": "bool"},
-          {"internalType": "uint256","name": "sizeUsd","type": "uint256"},
-          {"internalType": "uint256","name": "collateral","type": "uint256"},
-          {"internalType": "uint256","name": "entryPrice","type": "uint256"},
-          {"internalType": "uint256","name": "leverage","type": "uint256"},
-          {"internalType": "uint256","name": "liquidationPrice","type": "uint256"},
-          {"internalType": "uint256","name": "openedAt","type": "uint256"},
-          {"internalType": "bool","name": "isOpen","type": "bool"}
+          { "internalType": "bytes32", "name": "pairId", "type": "bytes32" },
+          { "internalType": "address", "name": "trader", "type": "address" },
+          { "internalType": "bool", "name": "isLong", "type": "bool" },
+          { "internalType": "uint256", "name": "sizeUsd", "type": "uint256" },
+          { "internalType": "uint256", "name": "collateral", "type": "uint256" },
+          { "internalType": "uint256", "name": "entryPrice", "type": "uint256" },
+          { "internalType": "uint256", "name": "leverage", "type": "uint256" },
+          { "internalType": "uint256", "name": "liquidationPrice", "type": "uint256" },
+          { "internalType": "uint256", "name": "openedAt", "type": "uint256" },
+          { "internalType": "bool", "name": "isOpen", "type": "bool" }
         ],
         "internalType": "struct ConfidentialTrading.Position",
         "name": "",
@@ -61,8 +61,8 @@ const TRADING_ABI = [
   },
   {
     "inputs": [
-      {"internalType": "uint256","name": "positionId","type": "uint256"},
-      {"internalType": "bytes[]","name": "updateData","type": "bytes[]"}
+      { "internalType": "uint256", "name": "positionId", "type": "uint256" },
+      { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }
     ],
     "name": "liquidate",
     "outputs": [],
@@ -73,7 +73,7 @@ const TRADING_ABI = [
 
 const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
 const PYTH_ABI = [
-  {"inputs":[{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"getUpdateFee","outputs":[{"internalType":"uint256","name":"feeAmount","type":"uint256"}],"stateMutability":"view","type":"function"}
+  { "inputs": [{ "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }], "name": "getUpdateFee", "outputs": [{ "internalType": "uint256", "name": "feeAmount", "type": "uint256" }], "stateMutability": "view", "type": "function" }
 ];
 
 const PAIRS = [
@@ -134,63 +134,63 @@ async function checkLiquidations() {
     const ids = PAIRS.map(p => p.pythId).join('&ids[]=');
     const response = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${ids}`);
     const pythResponse = await response.json();
-    
+
     if (!pythResponse.binary || !pythResponse.binary.data) return;
-    
+
     const pythPayload = pythResponse.binary.data.map(d => '0x' + d.replace('0x', ''));
-    
+
     // Create a price map for easy lookup
     const currentPrices = {};
     for (const data of pythResponse.parsed) {
-        // Pyth uses pair ID as string without 0x
-        const cleanId = data.id;
-        const priceNum = BigInt(data.price.price) * (10n ** BigInt(18 + data.price.expo));
-        currentPrices[cleanId] = priceNum;
+      // Pyth uses pair ID as string without 0x
+      const cleanId = data.id;
+      const priceNum = BigInt(data.price.price) * (10n ** BigInt(18 + data.price.expo));
+      currentPrices[cleanId] = priceNum;
     }
 
     // 4. Check if any position needs liquidation
     for (const pos of activePositions) {
-        const cleanPairId = pos.pairId.replace('0x', '');
-        const currentPrice = currentPrices[cleanPairId];
+      const cleanPairId = pos.pairId.replace('0x', '');
+      const currentPrice = currentPrices[cleanPairId];
 
-        if (!currentPrice) continue;
+      if (!currentPrice) continue;
 
-        let shouldLiquidate = false;
-        if (pos.isLong) {
-            shouldLiquidate = currentPrice <= pos.liquidationPrice;
-        } else {
-            shouldLiquidate = currentPrice >= pos.liquidationPrice;
+      let shouldLiquidate = false;
+      if (pos.isLong) {
+        shouldLiquidate = currentPrice <= pos.liquidationPrice;
+      } else {
+        shouldLiquidate = currentPrice >= pos.liquidationPrice;
+      }
+
+      if (shouldLiquidate) {
+        console.log(`🚨 LIQUIDATION DETECTED for Position #${pos.id}!`);
+        console.log(`   Trader: ${pos.trader}`);
+        console.log(`   Liq Price: ${pos.liquidationPrice.toString()}`);
+        console.log(`   Cur Price: ${currentPrice.toString()}`);
+
+        try {
+          // Get update fee
+          const fee = await client.readContract({
+            address: PYTH_ADDRESS,
+            abi: PYTH_ABI,
+            functionName: 'getUpdateFee',
+            args: [pythPayload]
+          });
+
+          console.log(`   Sending liquidation tx...`);
+          const hash = await wallet.writeContract({
+            address: TRADING_ADDRESS,
+            abi: TRADING_ABI,
+            functionName: 'liquidate',
+            args: [BigInt(pos.id), pythPayload],
+            value: fee
+          });
+
+          console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
+        } catch (err) {
+          console.error(`   ❌ Failed to liquidate pos #${pos.id}:`, err.message);
         }
-
-        if (shouldLiquidate) {
-            console.log(`🚨 LIQUIDATION DETECTED for Position #${pos.id}!`);
-            console.log(`   Trader: ${pos.trader}`);
-            console.log(`   Liq Price: ${pos.liquidationPrice.toString()}`);
-            console.log(`   Cur Price: ${currentPrice.toString()}`);
-            
-            try {
-                // Get update fee
-                const fee = await client.readContract({
-                    address: PYTH_ADDRESS,
-                    abi: PYTH_ABI,
-                    functionName: 'getUpdateFee',
-                    args: [pythPayload]
-                });
-
-                console.log(`   Sending liquidation tx...`);
-                const hash = await wallet.writeContract({
-                    address: TRADING_ADDRESS,
-                    abi: TRADING_ABI,
-                    functionName: 'liquidate',
-                    args: [BigInt(pos.id), pythPayload],
-                    value: fee
-                });
-
-                console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
-            } catch (err) {
-                console.error(`   ❌ Failed to liquidate pos #${pos.id}:`, err.message);
-            }
-        }
+      }
     }
 
   } catch (e) {
