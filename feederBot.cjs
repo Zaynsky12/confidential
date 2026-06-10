@@ -23,7 +23,7 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0xc35ca2227833b07f69a56a32feb0a4cc2130b2a8';
+const TRADING_ADDRESS = '0xD7c70a4E4E912Bf09ad96922633968Eb989cFcB8';
 
 // Minimal ABI required for liquidations
 const TRADING_ABI = [
