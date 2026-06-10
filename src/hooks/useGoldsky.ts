@@ -161,6 +161,71 @@ export function usePositions(userAddress?: string) {
   return { positions, isLoading }
 }
 
+export function useClosedPositions(userAddress?: string) {
+  const [closedPositions, setClosedPositions] = useState<IndexerPosition[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchPositions() {
+      try {
+        setIsLoading(true)
+        if (!userAddress) {
+          setClosedPositions([])
+          return
+        }
+
+        const query = gql`
+          query GetUserClosedPositions($user: Bytes!) {
+            positions(where: { trader: $user, isOpen: false }, orderBy: closedAt, orderDirection: desc) {
+              id
+              positionId
+              trader
+              pairId
+              isLong
+              sizeUsd
+              entryPrice
+              leverage
+              collateral
+              liquidationPrice
+              isOpen
+              openedAt
+              closedAt
+              pnl
+            }
+          }
+        `
+        
+        const data: any = await gqlClient.request(query, { user: userAddress.toLowerCase() })
+        
+        const formatted = data.positions.map((p: any) => ({
+          ...p,
+          positionId: Number(p.positionId),
+          sizeUsd: Number(formatUnits(BigInt(p.sizeUsd), 6)),
+          entryPrice: Number(formatUnits(BigInt(p.entryPrice), 18)),
+          leverage: Number(p.leverage),
+          collateral: Number(formatUnits(BigInt(p.collateral), 6)),
+          liquidationPrice: Number(formatUnits(BigInt(p.liquidationPrice), 18)),
+          openedAt: Number(p.openedAt) * 1000,
+          closedAt: Number(p.closedAt) * 1000,
+          pnl: p.pnl ? Number(formatUnits(BigInt(p.pnl), 6)) : 0
+        }))
+
+        setClosedPositions(formatted)
+      } catch (e) {
+        console.error("Goldsky Fetch Closed Positions Error:", e)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchPositions()
+    const interval = setInterval(fetchPositions, 15000)
+    return () => clearInterval(interval)
+  }, [userAddress])
+
+  return { closedPositions, isLoading }
+}
+
 export interface IndexerOrder {
   id: string
   orderId: number

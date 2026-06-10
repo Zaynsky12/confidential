@@ -3,35 +3,74 @@ import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
+import { usePositions } from '../hooks/usePositions'
+import { useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
 import Positions from '../components/Positions'
+import { keccak256, toHex } from 'viem'
 export default function Portfolio() {
-  const { positions } = useTradeStore()
-  const { balance } = useArcWallet()
+  const { markets } = useTradeStore()
+  const { balance, address } = useArcWallet()
+  const { activePositions } = usePositions()
+  const { closedPositions } = useClosedPositions(address)
+  const { trades } = useTradeRecords(address)
+
   const chartRef = useRef<HTMLDivElement>(null)
   const chartApiRef = useRef<IChartApi | null>(null)
 
   const [chartMetric, setChartMetric] = useState('PnL')
   const [chartTimeframe, setChartTimeframe] = useState('30d')
 
-  const openPos = positions.filter(p=>p.status==='open')
-  const totalPnl = positions.reduce((s,p)=>s+p.pnl,0)
-  const wins = positions.filter(p=>p.pnl>0).length
-  const winRate = positions.length?((wins/positions.length)*100).toFixed(1):'0.0'
-  const totalVol = positions.reduce((s,p)=>s+p.entryPrice*p.size,0)
-  const bestTrade = positions.length? Math.max(...positions.map(p=>p.pnl)):0
-  const equity = balance + openPos.reduce((s,p)=>s+p.collateral+p.pnl,0)
+  // Calculate Realized PnL from closed positions
+  const realizedPnl = closedPositions.reduce((sum, p) => sum + (p.pnl || 0), 0)
 
-  // Mock 30-day PnL data
+  // Calculate Unrealized PnL from open positions
+  const unrealizedPnl = activePositions.reduce((sum, p) => {
+    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
+    const markPrice = matchedMarket ? matchedMarket.price : p.entryPrice
+    const sizeBaseAsset = p.sizeUsd / p.entryPrice
+    const pnl = matchedMarket ? (p.isLong ? (markPrice - p.entryPrice) * sizeBaseAsset : (p.entryPrice - markPrice) * sizeBaseAsset) : 0
+    return sum + pnl
+  }, 0)
+
+  const totalPnl = realizedPnl + unrealizedPnl
+
+  // Stats
+  const wins = closedPositions.filter(p => (p.pnl || 0) > 0).length
+  const winRate = closedPositions.length ? ((wins / closedPositions.length) * 100).toFixed(1) : '0.0'
+  const totalVol = trades.reduce((sum, t) => sum + t.sizeUsd, 0)
+  const bestTrade = closedPositions.length ? Math.max(...closedPositions.map(p => p.pnl || 0)) : 0
+  const equity = balance + activePositions.reduce((sum, p) => sum + p.collateral, 0) + unrealizedPnl
+
+  // Generate real cumulative PnL chart data
   const pnlData = useMemo(()=>{
-    const data = []
-    const now = Math.floor(Date.now()/1000)
-    let cumPnl = 0
-    for(let i=29;i>=0;i--){
-      cumPnl += (Math.random()-0.45)*50
-      data.push({ time: (now - i*86400) as Time, value: +cumPnl.toFixed(2) })
+    if (closedPositions.length === 0) {
+      // Empty state
+      const now = Math.floor(Date.now() / 1000)
+      return [
+        { time: (now - 86400) as Time, value: 0 },
+        { time: now as Time, value: 0 }
+      ]
     }
+
+    // Sort closed positions ascending by time
+    const sorted = [...closedPositions].sort((a, b) => (a.closedAt || 0) - (b.closedAt || 0))
+    let cumPnl = 0
+    const data = []
+    
+    // Add start point before first trade
+    const firstTime = sorted[0].closedAt || Date.now()
+    data.push({ time: ((firstTime / 1000) - 86400) as Time, value: 0 })
+
+    for (const pos of sorted) {
+      cumPnl += (pos.pnl || 0)
+      data.push({ time: ((pos.closedAt || Date.now()) / 1000) as Time, value: +cumPnl.toFixed(2) })
+    }
+
+    // Add current unrealized PnL to the last point
+    data.push({ time: Math.floor(Date.now() / 1000) as Time, value: +(cumPnl + unrealizedPnl).toFixed(2) })
+
     return data
-  },[])
+  }, [closedPositions, unrealizedPnl])
 
   useEffect(()=>{
     if(!chartRef.current) return
@@ -142,7 +181,7 @@ export default function Portfolio() {
       <div className="portfolio-mobile-only mobile-account-overview-card">
         <div className="mobile-overview-row"><span className="label">Equity</span><span className="value">${equity.toFixed(2)}</span></div>
         <div className="mobile-overview-row"><span className="label">Balance</span><span className="value">${balance.toFixed(2)}</span></div>
-        <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value ${totalPnl >= 0 ? 'text-green' : 'text-red'}`}>${totalPnl.toFixed(2)}</span></div>
+        <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value ${unrealizedPnl >= 0 ? 'text-green' : 'text-red'}`}>${unrealizedPnl.toFixed(2)}</span></div>
         <div className="mobile-overview-row"><span className="label">Funding Cost (Unrealized)</span><span className="value">$0.00</span></div>
         <div className="mobile-overview-row"><span className="label">Cross-margin Ratio</span><span className="value">0.0000%</span></div>
         <div className="mobile-overview-row"><span className="label">Maintenance Margin</span><span className="value">$0.00</span></div>

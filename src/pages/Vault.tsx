@@ -4,14 +4,18 @@ import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialVault } from '../hooks/useConfidentialVault'
-import { useVaultHistory } from '../hooks/useGoldsky'
-
+import { useVaultHistory, useTradeRecords } from '../hooks/useGoldsky'
+import { usePositions } from '../hooks/usePositions'
+import { keccak256, toHex } from 'viem'
 
 export default function Vault() {
-  const { vaultAPY } = useTradeStore()
+  const { vaultAPY, markets } = useTradeStore()
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address)
+  const { deposits: globalDeposits } = useVaultHistory() // For global TVL chart
+  const { activePositions } = usePositions()
+  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address)
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
   const [activeTab, setActiveTab] = useState('Activity')
@@ -41,19 +45,39 @@ export default function Vault() {
 
   const formatTime = (ts: number) => new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
-  // Mock 30-day Vault TVL data for chart based on real TVL
-  const tvlData = useMemo(()=>{
-    const data = []
-    const now = Math.floor(Date.now()/1000)
-    let currentTVL = tvlUsd * 0.8 || 1000000 // default if 0
-    for(let i=29;i>=0;i--){
-      currentTVL += (Math.random()-0.3)*10000 // generally goes up
-      data.push({ time: (now - i*86400) as Time, value: +currentTVL.toFixed(2) })
+  // Real Vault TVL data for chart
+  const tvlData = useMemo(() => {
+    if (!globalDeposits || globalDeposits.length === 0) {
+      const now = Math.floor(Date.now() / 1000)
+      return [
+        { time: (now - 86400) as Time, value: 0 },
+        { time: now as Time, value: 0 }
+      ]
     }
-    // ensure last is current
-    data[data.length-1].value = tvlUsd || currentTVL
+
+    // Sort ascending by time
+    const sorted = [...globalDeposits].sort((a, b) => a.timestamp - b.timestamp)
+    let currentTVL = 0
+    const data = []
+    
+    data.push({ time: ((sorted[0].timestamp / 1000) - 86400) as Time, value: 0 })
+
+    for (const d of sorted) {
+      if (d.action === 'deposit') {
+        currentTVL += d.amount
+      } else {
+        currentTVL -= d.amount
+      }
+      data.push({ time: (d.timestamp / 1000) as Time, value: +currentTVL.toFixed(2) })
+    }
+
+    // Push latest tvlUsd directly from contract if greater than indexed
+    if (tvlUsd > currentTVL) {
+      data.push({ time: Math.floor(Date.now() / 1000) as Time, value: +tvlUsd.toFixed(2) })
+    }
+
     return data
-  },[tvlUsd])
+  }, [globalDeposits, tvlUsd])
 
   useEffect(()=>{
     if(!chartRef.current) return
@@ -91,7 +115,7 @@ export default function Vault() {
         <div className="mobile-only" style={{ marginTop: 24, padding: '16px', background: 'var(--color-bg1)', borderRadius: '8px', border: '1px solid var(--color-border)', justifyContent: 'space-between' }}>
            <div>
              <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Vault TVL</div>
-             <div className="font-mono" style={{ fontSize: 20, fontWeight: 600 }}>US${(tvlUsd / 1e6).toFixed(2)}M</div>
+             <div className="font-mono" style={{ fontSize: 20, fontWeight: 600 }}>US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
            </div>
            <div style={{ textAlign: 'right' }}>
              <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Lockup Period</div>
@@ -128,7 +152,7 @@ export default function Vault() {
             <div className="panel-header">Performance Metrics</div>
             <div className="overview-list-grid">
               {[
-                ['TVL', `US$${(tvlUsd/1e6).toFixed(2)}M`, 'var(--color-text1)'],
+                ['TVL', `US$${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, 'var(--color-text1)'],
                 ['APR (7-day)', `${vaultAPY}%`, 'var(--color-green)'],
                 ['All Time Return', '+14.2%', 'var(--color-green)'],
                 ['Max Drawdown', '-2.14%', 'var(--color-text1)'],
@@ -239,9 +263,79 @@ export default function Vault() {
                       <td style={{ color:'var(--color-text2)' }}>{formatTime(d.timestamp)}</td>
                       <td><span className={d.action==='deposit'?'badge badge-green':'badge badge-red'} style={{ fontSize:10,padding:'2px 8px' }}>{d.action.toUpperCase()}</span></td>
                       <td className="font-mono">{d.amount.toFixed(2)} USDC</td>
-                      <td className="font-mono text-accent">{d.txHash.slice(0,8)}...{d.txHash.slice(-6)}</td>
+                      <td className="font-mono text-accent">
+                        <a href={`https://explorer.arc.network/tx/${d.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
+                      </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          ) : activeTab === 'Positions' ? (
+            <div style={{ overflowX:'auto' }}>
+              <table className="portfolio-table">
+                <thead>
+                  <tr>
+                    <th>Market</th>
+                    <th>Side</th>
+                    <th>Size</th>
+                    <th>Entry Price</th>
+                    <th>Leverage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activePositions.length === 0 ? (
+                    <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No open positions</td></tr>
+                  ) : activePositions.map(p => {
+                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
+                    const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
+                    return (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 600 }}>{pairName}</td>
+                        <td><span className={p.isLong?'text-green':'text-red'} style={{ textTransform:'uppercase', fontSize:11, fontWeight:600 }}>{p.isLong?'LONG':'SHORT'}</span></td>
+                        <td className="font-mono">{p.sizeUsd.toFixed(2)}</td>
+                        <td className="font-mono">${p.entryPrice.toFixed(2)}</td>
+                        <td className="font-mono">{p.leverage}x</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : activeTab === 'Trade History' ? (
+            <div style={{ overflowX:'auto' }}>
+              <table className="portfolio-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Market</th>
+                    <th>Side</th>
+                    <th>Size</th>
+                    <th>Close Price</th>
+                    <th>Realized PnL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isTradesLoading ? (
+                    <tr><td colSpan={6} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>Loading from Goldsky...</td></tr>
+                  ) : closedPositions.length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No trade history</td></tr>
+                  ) : closedPositions.map(p => {
+                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
+                    const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
+                    return (
+                      <tr key={p.id}>
+                        <td style={{ color:'var(--color-text2)' }}>{formatTime(p.timestamp)}</td>
+                        <td style={{ fontWeight: 600 }}>{pairName}</td>
+                        <td><span className={p.action==='Open'?'text-green':'text-red'} style={{ textTransform:'uppercase', fontSize:11, fontWeight:600 }}>{p.action}</span></td>
+                        <td className="font-mono">{p.sizeUsd.toFixed(2)}</td>
+                        <td className="font-mono">${p.price.toFixed(2)}</td>
+                        <td className="font-mono text-accent">
+                          <a href={`https://explorer.arc.network/tx/${p.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
