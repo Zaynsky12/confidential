@@ -33,23 +33,22 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const [tempLeverage, setTempLeverage] = useState<number | string>('')
   
   // Dynamic leverage presets based on market category
+  const maxMarketLeverage = activeMarket?.maxLeverage || 50
+  
   const leveragePresets = useMemo(() => {
-    if (!activeMarket) return [1, 10, 25, 50]
-    
-    const max = activeMarket.maxLeverage
-    if (max <= 10) return [1, 3, 5, max]
-    if (max <= 20) return [1, 5, 10, max]
-    if (max <= 25) return [1, 10, 15, max]
-    if (max <= 50) return [1, 10, 25, max]
-    return [1, 25, 50, max] // for 100x
-  }, [activeMarket])
+    if (maxMarketLeverage <= 10) return [1, 3, 5, maxMarketLeverage]
+    if (maxMarketLeverage <= 20) return [1, 5, 10, maxMarketLeverage]
+    if (maxMarketLeverage <= 25) return [1, 10, 15, maxMarketLeverage]
+    if (maxMarketLeverage <= 50) return [1, 10, 25, maxMarketLeverage]
+    return [1, 25, 50, maxMarketLeverage] // for 100x
+  }, [maxMarketLeverage])
 
   useEffect(() => {
     if (activeMarket) {
-      // Default to the max leverage of the new category
+      // Default to the max leverage of the new category when switching markets
       setLeverage(leveragePresets[leveragePresets.length - 1])
     }
-  }, [activeMarket?.category, leveragePresets])
+  }, [activeMarket?.id]) // Only run when the market ID itself changes
   const [reduceOnly, setReduceOnly] = useState(false)
   const [showTpSl, setShowTpSl] = useState(false)
   const [takeProfit, setTakeProfit] = useState('')
