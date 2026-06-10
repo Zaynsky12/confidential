@@ -4,13 +4,61 @@ import { CONTRACTS, ABIS } from '../config/contracts'
 import { useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useUSDCApproval } from './useUSDCApproval'
+import { useTradeStore } from '../store/useTradeStore'
+import { usePublicClient } from 'wagmi'
 
 export function useConfidentialTrading() {
   const { writeContractAsync, data: hash, isPending } = useWriteContract()
+  const publicClient = usePublicClient()
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   })
+
+  // Fetch VAA from Hermes and required fee from contract
+  const fetchPythVaa = async (pairName: string): Promise<{ updateData: string[], fee: bigint }> => {
+    // 1. Get the Pyth ID from our trade store
+    const market = useTradeStore.getState().markets.find(m => m.pair === pairName)
+    if (!market || !market.pythPriceId) {
+      throw new Error(`Pyth Price ID not found for ${pairName}`)
+    }
+    
+    // 2. Fetch VAA from Hermes API
+    const response = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${market.pythPriceId}`)
+    if (!response.ok) {
+      throw new Error('Hermes API error')
+    }
+    const data = await response.json()
+    
+    if (!data || !data.binary || !data.binary.data) {
+      throw new Error('Failed to fetch Pyth VAA payload')
+    }
+    
+    // Pyth SDK usually provides an array of hex strings without '0x'
+    const updateData = data.binary.data.map((d: string) => d.startsWith('0x') ? d : '0x' + d)
+    
+    // 3. Read the required update fee from the Pyth Oracle Contract
+    let fee = 1n // default 1 wei
+    if (publicClient) {
+      try {
+        // Correct Pyth contract address for Arc Testnet
+        const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43'
+        const PYTH_ABI = [{"inputs":[{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"getUpdateFee","outputs":[{"internalType":"uint256","name":"feeAmount","type":"uint256"}],"stateMutability":"view","type":"function"}] as const;
+        
+        fee = await publicClient.readContract({
+          address: PYTH_ADDRESS,
+          abi: PYTH_ABI,
+          functionName: 'getUpdateFee',
+          args: [updateData]
+        }) as bigint
+      } catch (e) {
+        console.warn('Failed to read dynamic Pyth fee, defaulting to 1 wei', e)
+        fee = 1n
+      }
+    }
+    
+    return { updateData, fee }
+  }
 
   // Hook for USDC Approval specifically for Trading Contract
   const { 
@@ -46,6 +94,9 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
+      toast.loading('Fetching Oracle Price...', { id: 'trade' })
+      const { updateData, fee: oracleFee } = await fetchPythVaa(pairName)
+
       toast.loading('Opening Position...', { id: 'trade' })
 
       // Convert to bytes32 pairId
@@ -65,9 +116,9 @@ export function useConfidentialTrading() {
           isLong,
           sizeUnits,
           BigInt(leverage),
-          [] // empty pythUpdateData for MockOracle
+          updateData
         ],
-        value: 0n,
+        value: oracleFee,
       } as any)
 
       toast.dismiss('trade')
@@ -81,15 +132,18 @@ export function useConfidentialTrading() {
   }
 
   // Close Position
-  const closePosition = async (positionId: bigint) => {
+  const closePosition = async (positionId: bigint, pairName: string) => {
     try {
+      toast.loading('Fetching Oracle Price...', { id: 'close' })
+      const { updateData, fee: oracleFee } = await fetchPythVaa(pairName)
+
       toast.loading('Closing Position...', { id: 'close' })
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
         functionName: 'closePosition',
-        args: [positionId, []], // empty pythUpdateData
-        value: 0n,
+        args: [positionId, updateData],
+        value: oracleFee,
       } as any)
       toast.dismiss('close')
       return tx
@@ -119,6 +173,9 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
+      toast.loading('Fetching Oracle Price...', { id: 'order' })
+      const { updateData, fee: oracleFee } = await fetchPythVaa(pairName)
+
       toast.loading('Placing Order...', { id: 'order' })
 
       const { keccak256, toHex } = await import('viem')
@@ -139,9 +196,9 @@ export function useConfidentialTrading() {
           priceUnits,
           orderType,
           reduceOnly,
-          [] // empty pythUpdateData
+          updateData
         ],
-        value: 0n,
+        value: oracleFee,
       } as any)
 
       toast.dismiss('order')

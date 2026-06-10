@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "./ConfidentialCore.sol";
 import "./ConfidentialVault.sol";
-import "./MockOracle.sol";
+import "./PythPriceOracle.sol";
 
 /// @title IERC20Transfer — Minimal interface for USDC transfers
 interface IERC20Transfer {
@@ -45,7 +45,7 @@ contract ConfidentialTrading {
     // ──────────── State ────────────
     ConfidentialCore public core;
     ConfidentialVault public vault;
-    MockOracle public oracle;
+    PythPriceOracle public oracle;
     IERC20Transfer public immutable usdc;
 
     // Position storage
@@ -84,7 +84,7 @@ contract ConfidentialTrading {
         usdc = IERC20Transfer(_usdc);
         core = ConfidentialCore(_core);
         vault = ConfidentialVault(_vault);
-        oracle = MockOracle(_oracle);
+        oracle = PythPriceOracle(_oracle);
     }
 
     // ──────────── Open Position (Market Order) ────────────
