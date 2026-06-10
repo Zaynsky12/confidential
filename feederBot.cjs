@@ -1,14 +1,13 @@
-const { createWalletClient, createPublicClient, http, keccak256, toHex, parseUnits } = require('viem');
+const { createWalletClient, createPublicClient, http } = require('viem');
 const { privateKeyToAccount } = require('viem/accounts');
 require('dotenv').config();
 const { defineChain } = require('viem');
-// const fetch = require('node-fetch'); // Ensure node-fetch is installed or use global fetch in Node 18+
 
 const arcTestnet = defineChain({
   id: 5042002,
   name: 'Arc Testnet',
   network: 'arc-testnet',
-  nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 },
+  nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 6 },
   rpcUrls: {
     default: { http: ['https://rpc.testnet.arc.network'] },
     public: { http: ['https://rpc.testnet.arc.network'] },
@@ -24,10 +23,57 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const ORACLE_ADDRESS = '0xf004ab1ea65151e1215b918077665c7d29e122c8';
-const ORACLE_ABI = [
-  {"type":"function","name":"updatePriceFeeds","inputs":[{"name":"updateData","type":"bytes[]"}],"outputs":[],"stateMutability":"payable"},
-  {"type":"function","name":"pyth","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"}
+const TRADING_ADDRESS = '0xc35ca2227833b07f69a56a32feb0a4cc2130b2a8';
+
+// Minimal ABI required for liquidations
+const TRADING_ABI = [
+  {
+    "inputs": [],
+    "name": "nextPositionId",
+    "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256","name": "positionId","type": "uint256"}],
+    "name": "getPosition",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "bytes32","name": "pairId","type": "bytes32"},
+          {"internalType": "address","name": "trader","type": "address"},
+          {"internalType": "bool","name": "isLong","type": "bool"},
+          {"internalType": "uint256","name": "sizeUsd","type": "uint256"},
+          {"internalType": "uint256","name": "collateral","type": "uint256"},
+          {"internalType": "uint256","name": "entryPrice","type": "uint256"},
+          {"internalType": "uint256","name": "leverage","type": "uint256"},
+          {"internalType": "uint256","name": "liquidationPrice","type": "uint256"},
+          {"internalType": "uint256","name": "openedAt","type": "uint256"},
+          {"internalType": "bool","name": "isOpen","type": "bool"}
+        ],
+        "internalType": "struct ConfidentialTrading.Position",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256","name": "positionId","type": "uint256"},
+      {"internalType": "bytes[]","name": "updateData","type": "bytes[]"}
+    ],
+    "name": "liquidate",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+];
+
+const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
+const PYTH_ABI = [
+  {"inputs":[{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"getUpdateFee","outputs":[{"internalType":"uint256","name":"feeAmount","type":"uint256"}],"stateMutability":"view","type":"function"}
 ];
 
 const PAIRS = [
@@ -44,70 +90,119 @@ const PAIRS = [
   { name: 'NEAR/USDC', pythId: '0xc415de8d2eba7db216527dff4b60e8f3a5311c740dadb233e13e12547e226750' },
   { name: 'DOGE/USDC', pythId: '0xdcef50dd0a4cd2dcc17e45df1676dcb336a11a61c69df7a0299b0150c672d25c' },
   { name: 'PEPE/USDC', pythId: '0xd69731a2e74ac1ce884fc3890f7ee324b6deb66147055249568869ed700882e4' },
-  { name: 'WIF/USDC', pythId: '0x4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc' },
-  { name: 'AAPL/USDC', pythId: '0x49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688' },
-  { name: 'TSLA/USDC', pythId: '0x16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1' },
-  { name: 'GOLD/USDC', pythId: '0x765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2' },
-  { name: 'SILVER/USDC', pythId: '0xf2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e' },
-  { name: 'SPY/USDC', pythId: '0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5' },
-  { name: 'NVDA/USDC', pythId: '0xb1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593' },
-  { name: 'EUR/USDC', pythId: '0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b' },
-  { name: 'GBP/USDC', pythId: '0x84c2dde9633d93d1bcad84e7dc41c9d56578b7ec52fabedc1f335d673df0a7c1' },
-  { name: 'USDJPY/USDC', pythId: '0xef2c98c804ba503c6a707e38be4dfbb16683775f195b091252bf24693042fd52' },
 ];
 
-async function updatePrices() {
+async function checkLiquidations() {
   try {
+    // 1. Fetch current max position ID
+    const nextIdStr = await client.readContract({
+      address: TRADING_ADDRESS,
+      abi: TRADING_ABI,
+      functionName: 'nextPositionId',
+    });
+    const nextId = Number(nextIdStr);
+
+    if (nextId === 0) {
+      console.log(`[${new Date().toLocaleTimeString()}] No positions exist yet.`);
+      return;
+    }
+
+    // 2. Fetch all open positions (in a real production app, we would use subgraph to avoid massive loops)
+    // For this implementation, looping through all position IDs is fine
+    const activePositions = [];
+    const activePairs = new Set();
+
+    for (let i = 0; i < nextId; i++) {
+      const pos = await client.readContract({
+        address: TRADING_ADDRESS,
+        abi: TRADING_ABI,
+        functionName: 'getPosition',
+        args: [BigInt(i)]
+      });
+
+      if (pos.isOpen) {
+        activePositions.push({ id: i, ...pos });
+        activePairs.add(pos.pairId);
+      }
+    }
+
+    console.log(`[${new Date().toLocaleTimeString()}] Monitoring ${activePositions.length} active position(s)...`);
+
+    if (activePositions.length === 0) return;
+
+    // 3. Fetch latest pyth prices for all pairs
     const ids = PAIRS.map(p => p.pythId).join('&ids[]=');
     const response = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${ids}`);
-    const data = await response.json();
-
-    if (!data.binary || !data.binary.data) return;
-
-    // Convert Hermes VAA payloads to bytes[]
-    const updateData = data.binary.data.map(d => '0x' + d.replace('0x', ''));
-
-    // To get the fee, we need to read from the official Pyth contract.
-    // Our oracle forwards it. But our oracle doesn't expose getUpdateFee!
-    // Wait, let's read directly from the Pyth contract on Arc testnet.
-    const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
-    const PYTH_ABI = [{"inputs":[{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"getUpdateFee","outputs":[{"internalType":"uint256","name":"feeAmount","type":"uint256"}],"stateMutability":"view","type":"function"}];
+    const pythResponse = await response.json();
     
-    const fee = await client.readContract({
-      address: PYTH_ADDRESS,
-      abi: PYTH_ABI,
-      functionName: 'getUpdateFee',
-      args: [updateData]
-    });
+    if (!pythResponse.binary || !pythResponse.binary.data) return;
+    
+    const pythPayload = pythResponse.binary.data.map(d => '0x' + d.replace('0x', ''));
+    
+    // Create a price map for easy lookup
+    const currentPrices = {};
+    for (const data of pythResponse.parsed) {
+        // Pyth uses pair ID as string without 0x
+        const cleanId = data.id;
+        const priceNum = BigInt(data.price.price) * (10n ** BigInt(18 + data.price.expo));
+        currentPrices[cleanId] = priceNum;
+    }
 
-    for (let i = 0; i < PAIRS.length; i++) {
-        const pair = PAIRS[i];
-        const cleanId = pair.pythId.replace('0x', '');
-        const pythData = data.parsed.find(d => d.id === cleanId);
-        if (pythData) {
-            const priceNum = Number(pythData.price.price) * (10 ** pythData.price.expo);
-            console.log(`[${new Date().toLocaleTimeString()}] Fetched ${pair.name} Live Price: $${priceNum.toFixed(2)}`);
+    // 4. Check if any position needs liquidation
+    for (const pos of activePositions) {
+        const cleanPairId = pos.pairId.replace('0x', '');
+        const currentPrice = currentPrices[cleanPairId];
+
+        if (!currentPrice) continue;
+
+        let shouldLiquidate = false;
+        if (pos.isLong) {
+            shouldLiquidate = currentPrice <= pos.liquidationPrice;
+        } else {
+            shouldLiquidate = currentPrice >= pos.liquidationPrice;
+        }
+
+        if (shouldLiquidate) {
+            console.log(`🚨 LIQUIDATION DETECTED for Position #${pos.id}!`);
+            console.log(`   Trader: ${pos.trader}`);
+            console.log(`   Liq Price: ${pos.liquidationPrice.toString()}`);
+            console.log(`   Cur Price: ${currentPrice.toString()}`);
+            
+            try {
+                // Get update fee
+                const fee = await client.readContract({
+                    address: PYTH_ADDRESS,
+                    abi: PYTH_ABI,
+                    functionName: 'getUpdateFee',
+                    args: [pythPayload]
+                });
+
+                console.log(`   Sending liquidation tx...`);
+                const hash = await wallet.writeContract({
+                    address: TRADING_ADDRESS,
+                    abi: TRADING_ABI,
+                    functionName: 'liquidate',
+                    args: [BigInt(pos.id), pythPayload],
+                    value: fee
+                });
+
+                console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
+            } catch (err) {
+                console.error(`   ❌ Failed to liquidate pos #${pos.id}:`, err.message);
+            }
         }
     }
 
-    // Push Cryptographic VAA to Smart Contract
-    await wallet.writeContract({
-      address: ORACLE_ADDRESS,
-      abi: ORACLE_ABI,
-      functionName: 'updatePriceFeeds',
-      args: [updateData],
-      value: fee
-    });
-    console.log(`[${new Date().toLocaleTimeString()}] ✅ Pyth VAA Pushed to On-Chain Oracle successfully!`);
-
   } catch (e) {
-    console.error('Error updating prices:', e.message);
+    console.error('Error monitoring positions:', e.message);
   }
 }
 
-console.log('Starting Live Price Feeder Bot for Arc Testnet...');
-console.log('Bot will sync real-time Pyth prices to the Smart Contract every 10 seconds.');
+console.log('🚀 Starting Liquidator Bot for Arc Testnet...');
+console.log(`📡 Connected to Trading Contract: ${TRADING_ADDRESS}`);
+console.log('Bot will monitor all active positions every 10 seconds.');
+
 // Run immediately
-updatePrices();
+checkLiquidations();
 // Run every 10 seconds
-setInterval(updatePrices, 10000);
+setInterval(checkLiquidations, 10000);
