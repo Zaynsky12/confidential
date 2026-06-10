@@ -34,10 +34,10 @@ const getAssetLogo = (pair: string) => {
     wif: 'https://ui-avatars.com/api/?name=WIF&background=f4f4f4&color=000&rounded=true&bold=true',
     sui: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/sui/info/logo.png',
     apt: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/aptos/info/logo.png',
-    avax: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
-    bnb: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
-    xrp: 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
-    near: 'https://cryptologos.cc/logos/near-protocol-near-logo.png'
+    avax: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/info/logo.png',
+    bnb: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png',
+    xrp: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/xrp/info/logo.png',
+    near: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png'
   }
   return map[base] || `https://ui-avatars.com/api/?name=${base}&background=1a202c&color=fff&rounded=true&bold=true`
 }
