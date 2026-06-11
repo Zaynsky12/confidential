@@ -1,4 +1,4 @@
-const { createWalletClient, createPublicClient, http } = require('viem');
+const { createWalletClient, createPublicClient, http, keccak256, toHex } = require('viem');
 const { privateKeyToAccount } = require('viem/accounts');
 require('dotenv').config();
 const { defineChain } = require('viem');
@@ -152,7 +152,12 @@ async function runKeeper() {
     for (const data of pythResponse.parsed) {
       const cleanId = data.id;
       const priceNum = BigInt(data.price.price) * (10n ** BigInt(18 + data.price.expo));
-      currentPrices[cleanId] = priceNum;
+      
+      const pair = PAIRS.find(p => p.pythId.replace('0x','') === cleanId);
+      if (pair) {
+        const onChainPairId = keccak256(toHex(pair.name));
+        currentPrices[onChainPairId] = priceNum;
+      }
     }
 
     // 2. CHECK PENDING ORDERS
@@ -183,8 +188,7 @@ async function runKeeper() {
                 orderType: orderRaw[7],
             };
 
-            const cleanPairId = order.pairId.replace('0x', '');
-            const currentPrice = currentPrices[cleanPairId];
+            const currentPrice = currentPrices[order.pairId];
             if (!currentPrice) continue;
 
             let shouldExecute = false;
@@ -235,8 +239,7 @@ async function runKeeper() {
 
           if (!pos.isOpen) continue;
 
-          const cleanPairId = pos.pairId.replace('0x', '');
-          const currentPrice = currentPrices[cleanPairId];
+          const currentPrice = currentPrices[pos.pairId];
           if (!currentPrice) continue;
 
           let shouldLiquidate = false;
