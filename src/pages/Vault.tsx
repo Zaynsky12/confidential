@@ -14,7 +14,7 @@ export default function Vault() {
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address)
   const { deposits: globalDeposits } = useVaultHistory() // For global TVL chart
-  const { activePositions } = usePositions()
+  const { activePositions } = usePositions(address)
   const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address)
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')

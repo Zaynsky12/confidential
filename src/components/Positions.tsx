@@ -17,7 +17,7 @@ export default function Positions() {
   const [selectedShare, setSelectedShare] = useState<SharePositionData | null>(null)
 
   // Read from smart contract & Goldsky
-  const { activePositions } = usePositions()
+  const { activePositions } = usePositions(address)
   const { closePosition } = useConfidentialTrading()
   const { orders: openOrders, isLoading: isOrdersLoading } = useOrders(address)
   const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address)

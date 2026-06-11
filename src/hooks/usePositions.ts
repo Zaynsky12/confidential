@@ -1,10 +1,9 @@
-import { useAccount, useReadContract, useReadContracts } from 'wagmi'
+import { useReadContract, useReadContracts } from 'wagmi'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import { formatUnits } from 'viem'
 import { useEffect, useState } from 'react'
 
-export function usePositions() {
-  const { address } = useAccount()
+export function usePositions(address?: string) {
   const [activePositions, setActivePositions] = useState<any[]>([])
 
   // 1. Get position IDs

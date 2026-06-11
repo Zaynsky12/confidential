@@ -10,7 +10,7 @@ import { keccak256, toHex } from 'viem'
 export default function Portfolio() {
   const { markets } = useTradeStore()
   const { balance, address } = useArcWallet()
-  const { activePositions } = usePositions()
+  const { activePositions } = usePositions(address)
   const { closedPositions } = useClosedPositions(address)
   const { trades } = useTradeRecords(address)
 
