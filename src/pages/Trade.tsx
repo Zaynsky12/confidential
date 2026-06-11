@@ -78,13 +78,8 @@ export default function Trade() {
               </button>
               
               <div className="chart-stat-item">
-                <span className="chart-stat-label">Mark Price</span>
+                <span className="chart-stat-label">Oracle Price</span>
                 <span className="font-mono chart-stat-value" style={{ color: 'var(--color-accent)' }}>{fp(activeMarket.price)}</span>
-              </div>
-
-              <div className="chart-stat-item">
-                <span className="chart-stat-label">Oracle</span>
-                <span className="font-mono chart-stat-value">{fp(activeMarket.price)}</span>
               </div>
 
               <div className="chart-stat-item">
@@ -104,13 +99,7 @@ export default function Trade() {
                 <span className="font-mono chart-stat-value">${fvCompact(activeMarket.openInterest)}</span>
               </div>
 
-              <div className="chart-stat-item chart-stat-mobile-col">
-                <span className="chart-stat-label">Funding / Countdown</span>
-                <span className="font-mono chart-stat-value" style={{ color: 'var(--color-text1)', display: 'flex', flexDirection: 'row', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--color-accent)' }}>0.0010%</span>
-                  <span style={{ color: 'var(--color-text3)' }}>00:47:11</span>
-                </span>
-              </div>
+
             </div>
           </div>
         )}
