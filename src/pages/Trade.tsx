@@ -27,12 +27,12 @@ const getAssetLogo = (pair: string) => {
     silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
     nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
     pepe: 'https://s2.coinmarketcap.com/static/img/coins/64x64/24478.png',
-    wif: 'https://s2.coinmarketcap.com/static/img/coins/64x64/28752.png',
+    wif: '/wif.jpg',
     sui: 'https://s2.coinmarketcap.com/static/img/coins/64x64/20947.png',
     apt: 'https://s2.coinmarketcap.com/static/img/coins/64x64/21794.png',
     avax: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
     bnb: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1839.png',
-    xrp: 'https://s2.coinmarketcap.com/static/img/coins/64x64/52.png',
+    xrp: '/xrp.jpg',
     near: 'https://s2.coinmarketcap.com/static/img/coins/64x64/6535.png'
   }
   return map[base] || `https://ui-avatars.com/api/?name=${base}&background=1a202c&color=fff&rounded=true&bold=true`
@@ -66,7 +66,7 @@ export default function Trade() {
                 style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', maxWidth: '300px' }}
               >
                 {getAssetLogo(activeMarket.pair) && (
-                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
                 )}
                 <span style={{ fontSize: 18, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>{activeMarket.pair}</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: 'var(--color-text2)' }}>

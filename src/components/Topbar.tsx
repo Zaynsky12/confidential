@@ -31,12 +31,12 @@ const getAssetLogo = (pair: string) => {
     silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
     nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
     pepe: 'https://cryptologos.cc/logos/pepe-pepe-logo.png',
-    wif: 'https://ui-avatars.com/api/?name=WIF&background=f4f4f4&color=000&rounded=true&bold=true',
+    wif: '/wif.jpg',
     sui: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/sui/info/logo.png',
     apt: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/aptos/info/logo.png',
     avax: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/info/logo.png',
     bnb: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png',
-    xrp: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/xrp/info/logo.png',
+    xrp: '/xrp.jpg',
     near: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png'
   }
   return map[base] || `https://ui-avatars.com/api/?name=${base}&background=1a202c&color=fff&rounded=true&bold=true`
@@ -151,7 +151,7 @@ export default function Topbar() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', marginLeft: 0, maxWidth: '100%', padding: '2px 0', minHeight: 0 }}
               >
                 {activeMarket && getAssetLogo(activeMarket.pair) && (
-                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'contain', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                  <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
                 )}
                 <span className="font-mono" style={{ fontWeight: 600, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1, lineHeight: 1 }}>
                   {activeMarket ? activeMarket.pair : 'Trade'}
@@ -488,7 +488,7 @@ export default function Topbar() {
                             </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               {getAssetLogo(m.pair) && (
-                                <img src={getAssetLogo(m.pair)} alt={m.pair} style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'contain', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                                <img src={getAssetLogo(m.pair)} alt={m.pair} style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} onError={(e) => e.currentTarget.style.display = 'none'} />
                               )}
                               <span style={{ fontWeight: 600 }}>{m.pair}</span>
                             </div>
