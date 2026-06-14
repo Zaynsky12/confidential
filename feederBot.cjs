@@ -23,7 +23,7 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0x751EA442eFE4E93392dcd934931e44c06a7C4c24';
+const TRADING_ADDRESS = '0xd9f796201d93dC5eb499B0044a675cB24eB550f9';
 
 // Updated ABI for V2 (TWAP, TP/SL, Funding)
 const TRADING_ABI = [
