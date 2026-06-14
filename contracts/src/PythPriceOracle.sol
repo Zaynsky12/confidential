@@ -83,6 +83,10 @@ contract PythPriceOracle {
         if (feedId == bytes32(0)) revert PriceFeedNotSet();
 
         IPyth.Price memory p = pyth.getPriceNoOlderThan(feedId, maxStaleness);
+        require(p.price > 0, "Invalid negative price");
+        
+        // Advanced: Reject if Oracle confidence is wider than 1% of the price (extreme volatility / untrusted price)
+        require((uint64(p.conf) * 100) / uint64(p.price) <= 1, "Oracle confidence too wide");
 
         // Convert Pyth price (int64 * 10^expo) to uint256 with 18 decimals
         if (p.expo >= 0) {

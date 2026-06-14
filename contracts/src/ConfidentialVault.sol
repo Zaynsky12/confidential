@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./ConfidentialCore.sol";
+import "./ReentrancyGuard.sol";
 
 /// @title IERC20 — Minimal ERC-20 interface
 interface IERC20 {
@@ -17,7 +18,7 @@ interface IERC20 {
 /// @title ConfidentialVault V2 — USDC Liquidity Vault for the Confidential Perpetual DEX
 /// @notice LPs deposit USDC and receive cVAULT shares. Trading profits/losses flow through this vault.
 /// @dev Security: Access control on all state-changing functions, deposit caps, share manipulation protection
-contract ConfidentialVault {
+contract ConfidentialVault is ReentrancyGuard {
     // ──────────── State ────────────
     string public constant name = "Confidential Vault Share";
     string public constant symbol = "cVAULT";
@@ -34,12 +35,12 @@ contract ConfidentialVault {
 
     // Lockup tracking
     mapping(address => uint256) public depositTimestamp;
-    uint256 public lockupPeriod = 3 days;
+    uint256 public lockupPeriod = 7 days;
 
     // Vault accounting
     uint256 public totalAssets;       // Total USDC managed by vault
     uint256 public totalBacking;      // USDC currently backing trader positions
-    uint256 public performanceFeeBps = 1000; // 10% of vault profit
+
 
     // ── Security: Deposit Caps ──
     uint256 public maxDepositPerUser = 1_000_000 * 1e6; // 1M USDC max per user
@@ -53,8 +54,8 @@ contract ConfidentialVault {
     event Deposit(address indexed user, uint256 amount, uint256 sharesReceived);
     event Withdraw(address indexed user, uint256 amount, uint256 sharesBurned);
     event FeeReceived(uint256 amount);
-    event ProfitPaid(address indexed trader, uint256 amount);
-    event LossCaptured(address indexed trader, uint256 amount);
+    event PositionSettled(address indexed trader, int256 netPnl, uint256 collateral);
+    event LiquidationSettled(address indexed trader, address indexed liquidator, uint256 collateral, uint256 reward);
     event EmergencyModeActivated();
     event EmergencyModeDeactivated();
 
@@ -90,7 +91,7 @@ contract ConfidentialVault {
 
     /// @notice Deposit USDC into the vault and receive cVAULT shares
     /// @dev First depositor gets shares minus MINIMUM_LIQUIDITY (anti-manipulation)
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external nonReentrant {
         if (amount == 0) revert ZeroAmount();
         if (!depositsEnabled) revert DepositsDisabled();
         if (totalAssets + amount > maxTotalDeposits) revert ExceedsTVLCap();
@@ -128,7 +129,7 @@ contract ConfidentialVault {
     }
 
     /// @notice Withdraw USDC from the vault by burning cVAULT shares
-    function withdraw(uint256 shareAmount) external {
+    function withdraw(uint256 shareAmount) external nonReentrant {
         if (shareAmount == 0) revert ZeroAmount();
         if (shares[msg.sender] < shareAmount) revert InsufficientShares();
 
@@ -164,41 +165,98 @@ contract ConfidentialVault {
         totalBacking += amount;
     }
 
-    /// @notice Release USDC backing when a position is closed
-    function releaseBacking(uint256 amount) external onlyTrading {
-        totalBacking = totalBacking > amount ? totalBacking - amount : 0;
+    /// @notice Settle a closed position — handles profit, loss, and collateral return
+    /// @dev Replaces the old payProfit + captureLoss + releaseBacking pattern.
+    ///      Collateral is held in escrow (totalBacking) and is NOT part of totalAssets.
+    ///      Only actual profit/loss affects totalAssets (LP pool).
+    /// @param trader Address of the trader
+    /// @param collateral Original collateral amount (held in escrow)
+    /// @param netPnl Net PnL after all fees (positive = trader profit, negative = trader loss)
+    function settlePosition(address trader, uint256 collateral, int256 netPnl) external onlyTrading {
+        // Release collateral from escrow
+        totalBacking = totalBacking > collateral ? totalBacking - collateral : 0;
+
+        if (netPnl >= 0) {
+            // Trader profits — LP pool pays the profit
+            uint256 profit = uint256(netPnl);
+            uint256 available = totalAssets > totalBacking ? totalAssets - totalBacking : 0;
+            if (profit > available) revert InsufficientLiquidity();
+
+            // Effects (CEI): only subtract profit from LP pool
+            totalAssets -= profit;
+
+            // Return collateral + profit to trader
+            require(usdc.transfer(trader, collateral + profit), "Transfer failed");
+        } else {
+            uint256 loss = uint256(-netPnl);
+
+            if (loss >= collateral) {
+                // Full loss: all collateral absorbed into LP pool
+                totalAssets += collateral;
+            } else {
+                // Partial loss: loss goes to LP pool, remaining collateral returned
+                totalAssets += loss;
+                require(usdc.transfer(trader, collateral - loss), "Transfer failed");
+            }
+        }
+
+        emit PositionSettled(trader, netPnl, collateral);
     }
 
-    /// @notice Pay trader's profit from the vault
-    /// @dev Checks available liquidity and triggers circuit breaker tracking
-    function payProfit(address trader, uint256 amount) external onlyTrading {
-        uint256 available = totalAssets > totalBacking ? totalAssets - totalBacking : 0;
-        if (amount > available) revert InsufficientLiquidity();
+    /// @notice Settle a liquidation — collateral split between LP pool and liquidator
+    /// @param trader Address of the liquidated trader
+    /// @param liquidator Address of the liquidator receiving reward
+    /// @param collateral Original collateral amount
+    /// @param reward Liquidator's reward (percentage of collateral)
+    function settleLiquidation(
+        address trader,
+        address liquidator,
+        uint256 collateral,
+        uint256 reward
+    ) external onlyTrading {
+        // Release collateral from escrow
+        totalBacking = totalBacking > collateral ? totalBacking - collateral : 0;
 
-        // Effects first (CEI)
-        totalAssets -= amount;
+        // LP pool receives collateral minus liquidator reward
+        uint256 vaultReceives = collateral - reward;
+        totalAssets += vaultReceives;
 
-        // Track loss in circuit breaker
-        core.trackVaultLoss(amount);
+        // Pay liquidator reward directly from collateral
+        if (reward > 0) {
+            require(usdc.transfer(liquidator, reward), "Transfer failed");
+        }
 
-        // Transfer
-        require(usdc.transfer(trader, amount), "Transfer failed");
-
-        emit ProfitPaid(trader, amount);
+        emit LiquidationSettled(trader, liquidator, collateral, reward);
     }
 
-    /// @notice Capture trader's loss into the vault
-    function captureLoss(uint256 amount) external onlyTrading {
-        // Loss USDC has already been transferred to the vault by the Trading contract
-        totalAssets += amount;
+    /// @notice Distribute closing fee — GMX-style explicit split
+    /// @dev After settlePosition, the fee USDC is implicitly in vault (trader paid less/received less).
+    ///      Vault's share stays in totalAssets. Treasury/insurance shares are sent out.
+    /// @param totalFee Total closing fee to distribute
+    function distributeClosingFee(uint256 totalFee) external onlyTrading {
+        (uint256 toVault, uint256 toTreasury, uint256 toInsurance) = core.getFeeSplit(totalFee);
 
-        emit LossCaptured(msg.sender, amount);
+        // Vault's share: already implicitly in totalAssets, no action needed
+        // (settlePosition subtracted netPnl which had fees deducted, so fee stayed in totalAssets)
+
+        // Treasury share: send out from vault
+        if (toTreasury > 0) {
+            totalAssets -= toTreasury;
+            require(usdc.transfer(core.treasury(), toTreasury), "Transfer failed");
+        }
+
+        // Insurance share: send out from vault
+        if (toInsurance > 0 && core.insuranceFund() != address(0)) {
+            totalAssets -= toInsurance;
+            require(usdc.transfer(core.insuranceFund(), toInsurance), "Transfer failed");
+        }
+
+        emit FeeReceived(totalFee);
     }
 
-    /// @notice Receive trading fees — ONLY callable by Trading contract
-    /// @dev SECURITY FIX: Added onlyTrading modifier (was previously unprotected)
+    /// @notice Receive opening trading fees — called by Trading contract
     function receiveFees(uint256 amount) external onlyTrading {
-        // Fee USDC has been transferred to this contract already
+        // Fee USDC has been transferred to this contract by Trading
         totalAssets += amount;
         emit FeeReceived(amount);
     }

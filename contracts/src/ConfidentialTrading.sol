@@ -4,13 +4,12 @@ pragma solidity ^0.8.24;
 import "./ConfidentialCore.sol";
 import "./ConfidentialVault.sol";
 import "./PythPriceOracle.sol";
-
-
+import "./ReentrancyGuard.sol";
 
 /// @title ConfidentialTrading V2 — Main trading engine
 /// @notice Handles order placement, execution (via keepers), and liquidation.
 /// @dev Security: CEI pattern used throughout, TWAP support, TP/SL, Continuous Funding, safe ERC20 transfers.
-contract ConfidentialTrading {
+contract ConfidentialTrading is ReentrancyGuard {
     // ──────────── Types ────────────
     struct Position {
         bytes32 pairId;
@@ -70,8 +69,8 @@ contract ConfidentialTrading {
     // Limits
     uint256 public constant MIN_POSITION_SIZE = 10 * 1e6; // $10 min size
 
-    // Liquidation reward: 5% of collateral goes to liquidator
-    uint256 public liquidationRewardBps = 500; // 5% in basis points
+    // Liquidation reward: 1% of collateral goes to liquidator
+    uint256 public liquidationRewardBps = 100; // 1% in basis points
 
     // ──────────── Events ────────────
     event OrderPlaced(uint256 indexed orderId, address indexed trader, bytes32 pairId, uint8 orderType, uint256 triggerPrice);
@@ -114,7 +113,7 @@ contract ConfidentialTrading {
         bool reduceOnly,
         uint256 tpPrice,
         uint256 slPrice
-    ) external payable returns (uint256 orderId) {
+    ) external payable nonReentrant returns (uint256 orderId) {
         require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
         require(orderType <= 2, "Invalid order type"); // 0=limit, 1=stop, 2=market
 
@@ -168,7 +167,7 @@ contract ConfidentialTrading {
         uint256 intervalSec,
         uint256 tpPrice,
         uint256 slPrice
-    ) external payable returns (uint256 orderId) {
+    ) external payable nonReentrant returns (uint256 orderId) {
         require(slices >= 2 && slices <= 100, "Invalid slices");
         require(intervalSec >= 60, "Min 60s interval");
         require(totalSizeUsd >= MIN_POSITION_SIZE * slices, "Slice size too small");
@@ -203,7 +202,7 @@ contract ConfidentialTrading {
         emit OrderPlaced(orderId, msg.sender, pairId, 4, 0);
     }
 
-    function createCloseRequest(uint256 positionId) external payable returns (uint256 orderId) {
+    function createCloseRequest(uint256 positionId) external payable nonReentrant returns (uint256 orderId) {
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Position not open");
         require(pos.trader == msg.sender, "Not owner");
@@ -223,7 +222,7 @@ contract ConfidentialTrading {
         emit OrderPlaced(orderId, msg.sender, pos.pairId, 3, 0);
     }
 
-    function cancelOrder(uint256 orderId) external {
+    function cancelOrder(uint256 orderId) external nonReentrant {
         PendingOrder storage order = pendingOrders[orderId];
         require(order.isActive, "Not active");
         require(order.trader == msg.sender, "Not owner");
@@ -259,7 +258,7 @@ contract ConfidentialTrading {
     //                      KEEPER EXECUTION
     // ══════════════════════════════════════════════════════════
 
-    function executeOrder(uint256 orderId, bytes[] calldata updateData) external payable {
+    function executeOrder(uint256 orderId, bytes[] calldata updateData) external payable nonReentrant {
         if (updateData.length > 0) {
             oracle.updatePriceFeeds{value: msg.value}(updateData);
         }
@@ -404,23 +403,19 @@ contract ConfidentialTrading {
         // 3. Update State (CEI Pattern)
         pos.isOpen = false;
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
-        vault.releaseBacking(pos.collateral);
-
-        // 4. Settle PnL with Vault & Trader
+        
+        // Track vault loss in circuit breaker (called directly from Trading, NOT Vault)
+        // Note: we only track if trader makes a net profit (vault pays out)
         if (netPnl > 0) {
-            uint256 profit = uint256(netPnl);
-            // Refund collateral from Vault
-            vault.payProfit(pos.trader, pos.collateral + profit);
-        } else {
-            uint256 loss = uint256(-netPnl);
-            if (loss >= pos.collateral) {
-                // Entire collateral lost
-                vault.captureLoss(pos.collateral);
-            } else {
-                uint256 payout = pos.collateral - loss;
-                vault.captureLoss(loss);
-                vault.payProfit(pos.trader, payout);
-            }
+            core.trackVaultLoss(uint256(netPnl));
+        }
+
+        // 4. Settle with Vault — one clean call
+        vault.settlePosition(pos.trader, pos.collateral, netPnl);
+
+        // 5. Distribute closing fee (GMX style explicit split)
+        if (closingFee > 0) {
+            vault.distributeClosingFee(closingFee);
         }
 
         emit PositionClosed(positionId, pos.trader, currentPrice, pnl);
@@ -431,7 +426,7 @@ contract ConfidentialTrading {
     // ══════════════════════════════════════════════════════════
 
     /// @notice Execute Take Profit or Stop Loss for an open position
-    function executeTPSL(uint256 positionId, bytes[] calldata updateData) external payable {
+    function executeTPSL(uint256 positionId, bytes[] calldata updateData) external payable nonReentrant {
         if (updateData.length > 0) {
             oracle.updatePriceFeeds{value: msg.value}(updateData);
         }
@@ -458,7 +453,7 @@ contract ConfidentialTrading {
         _executeClose(positionId, currentPrice);
     }
 
-    function liquidate(uint256 positionId, bytes[] calldata updateData) external payable {
+    function liquidate(uint256 positionId, bytes[] calldata updateData) external payable nonReentrant {
         if (updateData.length > 0) {
             oracle.updatePriceFeeds{value: msg.value}(updateData);
         }
@@ -474,22 +469,15 @@ contract ConfidentialTrading {
 
         require(isLiquidatable, "Not liquidatable");
 
-        // Calculate liquidation reward (5% of collateral to liquidator)
+        // Calculate liquidation reward (1% of collateral to liquidator)
         uint256 reward = (pos.collateral * liquidationRewardBps) / 10000;
-        uint256 vaultReceives = pos.collateral - reward;
-
+        
         // CEI Pattern — update state before transfers
         pos.isOpen = false;
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
-        vault.releaseBacking(pos.collateral);
 
-        // Vault captures collateral minus reward
-        vault.captureLoss(vaultReceives);
-
-        // Pay liquidator reward from the collateral
-        if (reward > 0) {
-            vault.payProfit(msg.sender, reward);
-        }
+        // Settle liquidation directly with Vault
+        vault.settleLiquidation(pos.trader, msg.sender, pos.collateral, reward);
 
         emit PositionLiquidated(positionId, pos.trader, currentPrice, msg.sender, reward);
     }
@@ -501,11 +489,20 @@ contract ConfidentialTrading {
     function _distributeFee(uint256 totalFee) internal {
         (uint256 toVault, uint256 toTreasury, uint256 toInsurance) = core.getFeeSplit(totalFee);
         
-        _safeTransfer(address(vault), toVault);
-        vault.receiveFees(toVault);
-
-        _safeTransfer(core.treasury(), toTreasury);
-        _safeTransfer(core.insuranceFund(), toInsurance);
+        if (toVault > 0) {
+            _safeTransfer(address(vault), toVault);
+            vault.receiveFees(toVault);
+        }
+        
+        if (toTreasury > 0) {
+            _safeTransfer(core.treasury(), toTreasury);
+        }
+        
+        if (toInsurance > 0) {
+            address insurance = core.insuranceFund();
+            require(insurance != address(0), "Insurance fund not set");
+            _safeTransfer(insurance, toInsurance);
+        }
     }
 
     function _calcLiqPrice(uint256 entryPrice, uint256 leverage, bool isLong) internal view returns (uint256) {

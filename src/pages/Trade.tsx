@@ -208,7 +208,7 @@ export default function Trade() {
 
       {mobileNav === 'account' && (
         <div className="mobile-only trade-mobile-tab-view">
-          <Portfolio />
+          <Portfolio isCompact={true} />
         </div>
       )}
 

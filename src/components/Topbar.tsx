@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { usePrivy } from '@privy-io/react-auth'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
@@ -47,6 +47,7 @@ const getAssetLogo = (pair: string) => {
 export default function Topbar() {
   const { ready, login, logout } = usePrivy()
   const { isConnected, address, balance } = useArcWallet()
+  const location = useLocation()
   const truncatedAddress = address ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}` : ''
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
@@ -64,6 +65,14 @@ export default function Topbar() {
       setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  const isMarketView = !location.pathname.startsWith('/portfolio') && 
+                       !(location.pathname.startsWith('/trade') && mobileNav === 'account') &&
+                       !location.pathname.startsWith('/vault') &&
+                       !(location.pathname.startsWith('/trade') && mobileNav === 'vaults') &&
+                       !location.pathname.startsWith('/referrals') &&
+                       !location.pathname.startsWith('/points') &&
+                       !location.pathname.startsWith('/leaderboard');
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -143,10 +152,14 @@ export default function Topbar() {
 
         {/* Center — Active Market (Mobile Only) */}
         <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 0, justifyContent: 'center' }}>
-          {mobileNav === 'account' ? (
-            <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Portfolio</span>
-          ) : mobileNav === 'vaults' ? (
-            <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Yield Vault</span>
+          {!isMarketView ? (
+            <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>
+              {location.pathname.startsWith('/portfolio') || (location.pathname.startsWith('/trade') && mobileNav === 'account') ? 'Portfolio' :
+               location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? 'Yield Vault' :
+               location.pathname.startsWith('/referrals') ? 'Referrals' :
+               location.pathname.startsWith('/points') ? 'Points' :
+               location.pathname.startsWith('/leaderboard') ? 'Leaderboard' : ''}
+            </span>
           ) : (
             <>
               <button 
@@ -248,7 +261,7 @@ export default function Topbar() {
             <LanguageDropdown />
           </div>
 
-          {activeMarket && (
+          {activeMarket && isMarketView && (
             <button 
               className="favorite-btn mobile-only" 
               onClick={(e) => {

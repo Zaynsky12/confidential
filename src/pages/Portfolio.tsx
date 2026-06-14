@@ -8,7 +8,7 @@ import { useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
 import Positions from '../components/Positions'
 import { keccak256, toHex } from 'viem'
 
-export default function Portfolio() {
+export default function Portfolio({ isCompact = false }: { isCompact?: boolean }) {
   const { markets } = useTradeStore()
   const { balance, address } = useArcWallet()
   const { activePositions } = usePositions(address || undefined)
@@ -113,14 +113,17 @@ export default function Portfolio() {
   }, [chartTimeframe, pnlData])
 
   return (
-    <div className="portfolio-container">
-      {/* DESKTOP LAYOUT (Hidden on Mobile) */}
-      <div className="portfolio-desktop-only">
-        {/* HEADER */}
-        <div className="portfolio-header">
-          <h1 style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>Portfolio</h1>
+    <div className="portfolio-container" style={isCompact ? { padding: '16px', paddingBottom: '80px' } : {}}>
+      {isCompact ? (
+        <div className="mobile-account-overview-card">
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }}>Account Overview</div>
+          <div className="mobile-overview-row"><span className="label">Total Equity</span><span className="value font-mono">${equity.toFixed(2)}</span></div>
+          <div className="mobile-overview-row"><span className="label">Available Balance</span><span className="value font-mono">${balance.toFixed(2)}</span></div>
+          <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value font-mono ${unrealizedPnl >= 0 ? 'text-green' : 'text-red'}`}>{unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)}</span></div>
+          <div className="mobile-overview-row"><span className="label">Margin Type</span><span className="value">Isolated</span></div>
         </div>
-
+      ) : (
+        <>
         {/* STATS ROW */}
         <div className="portfolio-stats-grid">
           <div className="stat-card">
@@ -190,15 +193,8 @@ export default function Portfolio() {
             <div ref={chartRef} className="chart-container" />
           </div>
         </div>
-      </div>
-
-      {/* MOBILE ACCOUNT OVERVIEW (Hidden on Desktop) */}
-      <div className="portfolio-mobile-only mobile-account-overview-card">
-        <div className="mobile-overview-row"><span className="label">Total Equity</span><span className="value">${equity.toFixed(2)}</span></div>
-        <div className="mobile-overview-row"><span className="label">Available Balance</span><span className="value">${balance.toFixed(2)}</span></div>
-        <div className="mobile-overview-row"><span className="label">Active Collateral</span><span className="value">${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)}</span></div>
-        <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value ${unrealizedPnl >= 0 ? 'text-green' : 'text-red'}`}>${unrealizedPnl.toFixed(2)}</span></div>
-      </div>
+        </>
+      )}
 
       {/* BOTTOM SECTION: TABS & TABLES */}
       <div className="portfolio-bottom">
@@ -347,6 +343,29 @@ export default function Portfolio() {
           background: transparent;
         }
 
+        .mobile-account-overview-card {
+          background: var(--color-bg1);
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .mobile-overview-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 13px;
+        }
+        .mobile-overview-row .label {
+          color: var(--color-text2);
+        }
+        .mobile-overview-row .value {
+          color: var(--color-text1);
+        }
+
         .portfolio-mobile-only {
           display: none;
         }
@@ -358,41 +377,40 @@ export default function Portfolio() {
           }
         }
         @media (max-width: 768px) {
-          .portfolio-desktop-only {
-            display: none !important;
-          }
-          .portfolio-mobile-only {
-            display: block;
-          }
           .portfolio-container {
-            padding: 16px 0;
-            overflow-x: hidden;
-            padding-bottom: 0;
-          }
-          .mobile-account-overview-card {
-            background: var(--color-bg1);
-            border: 1px solid var(--color-border);
-            border-radius: 8px;
             padding: 16px;
-            margin: 0 16px 20px 16px;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+          }
+          .portfolio-header h1 {
+            font-size: 24px !important;
+          }
+          .portfolio-stats-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+          .portfolio-mid-grid {
             display: flex;
+            flex-direction: column-reverse; /* Put chart on top of overview on mobile */
+            gap: 16px;
+          }
+          .chart-header {
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
+            align-items: stretch;
           }
-          .mobile-overview-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
+          .chart-controls {
+            flex-direction: column;
+            width: 100%;
           }
-          .mobile-overview-row .label {
-            color: var(--color-text2);
+          .control-group {
+            width: 100%;
+            overflow-x: auto;
           }
-          .mobile-overview-row .value {
-            color: var(--color-text1);
-            font-family: 'JetBrains Mono', monospace;
+          .control-btn {
+            flex: 1;
+            white-space: nowrap;
+            text-align: center;
           }
-          /* Retain default portfolio-bottom card styles (border and bg1) on mobile */
         }
 
         @media (max-width: 480px) {

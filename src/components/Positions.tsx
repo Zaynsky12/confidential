@@ -377,6 +377,7 @@ export default function Positions() {
           }
           .pos-tabs {
             display: flex !important;
+            justify-content: center;
             flex-shrink: 0;
             min-height: 36px;
             overflow-x: auto;

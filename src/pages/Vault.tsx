@@ -9,7 +9,7 @@ import { usePositions } from '../hooks/usePositions'
 import { keccak256, toHex } from 'viem'
 
 export default function Vault() {
-  const { vaultAPY, markets } = useTradeStore()
+  const { markets } = useTradeStore()
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
@@ -122,11 +122,7 @@ export default function Vault() {
     <div className="vault-container">
 
       <div className="vault-header">
-        <h1 style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>USDC Yield Vault</h1>
-        <div style={{ display:'flex', gap:12, marginTop:12 }}>
-          <span className="badge badge-green" style={{ fontSize:13,padding:'4px 12px' }}>{vaultAPY}% APY</span>
-          <span className="badge" style={{ fontSize:13,padding:'4px 12px' }}>Protocol Vault</span>
-        </div>
+        <h1 style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>cUSDC Yield Vault</h1>
         
         {/* Mobile Key Stats Card */}
         <div className="mobile-only" style={{ marginTop: 24, padding: '16px', background: 'var(--color-bg1)', borderRadius: '8px', border: '1px solid var(--color-border)', justifyContent: 'space-between' }}>
@@ -136,7 +132,7 @@ export default function Vault() {
            </div>
            <div style={{ textAlign: 'right' }}>
              <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Lockup Period</div>
-             <div className="font-mono" style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text1)' }}>3 Days</div>
+             <div className="font-mono" style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text1)' }}>7 Days</div>
            </div>
         </div>
       </div>
@@ -170,14 +166,8 @@ export default function Vault() {
             <div className="overview-list-grid">
               {[
                 ['TVL', `US$${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, 'var(--color-text1)'],
-                ['APR (7-day)', `${vaultAPY}%`, 'var(--color-green)'],
-                ['All Time Return', '+14.2%', 'var(--color-green)'],
-                ['Max Drawdown', '-2.14%', 'var(--color-text1)'],
-                ['Sharpe Ratio', '2.84', 'var(--color-text1)'],
-                ['Weekly Win Rate', '88.5%', 'var(--color-text1)'],
                 ['Management Fee', '0.00%', 'var(--color-text1)'],
-                ['Performance Fee', '10.00%', 'var(--color-text1)'],
-                ['Lockup Period', '3 Days', 'var(--color-text1)'],
+                ['Lockup Period', '7 Days', 'var(--color-text1)'],
                 ['Your Deposit', `US$${userCVault.toFixed(2)}`, 'var(--color-accent)'],
               ].map(([label, value, color]) => (
                 <div key={label} className="overview-item">
@@ -211,7 +201,7 @@ export default function Vault() {
               {activeAction === 'Deposit' && (
                 <div className="warning-banner">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                  <span>Funds are locked for 3 days after deposit to prevent front-running.</span>
+                  <span>Funds are locked for 7 days after deposit. You earn 70% of all platform fees plus trader losses.</span>
                 </div>
               )}
 
@@ -230,13 +220,6 @@ export default function Vault() {
                   </div>
                 </div>
               </div>
-
-              {activeAction === 'Deposit' && Number(amt) > 0 && (
-                <div className="est-yield">
-                  <span>Est. Annual Yield</span>
-                  <span className="font-mono text-green">+US${(Number(amt)*(vaultAPY/100)).toFixed(2)}</span>
-                </div>
-              )}
 
               <button className="submit-btn" disabled={isPending || (!amt && !isWrongNetwork && isConnected) || (Number(amt) <= 0 && !isWrongNetwork && isConnected)} onClick={handleAction} style={{ opacity: (isPending || (!amt && !isWrongNetwork && isConnected)) ? 0.5 : 1 }}>
                 {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isWrongNetwork ? 'Switch to Arc Testnet' : activeAction}
