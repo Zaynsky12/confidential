@@ -15,7 +15,7 @@ export const CONTRACTS = {
 // Typed ABIs for Wagmi
 export const ABIS = {
   USDC: ERC20ABI,
-  CORE: ConfidentialCoreABI.abi,
+  CORE: ConfidentialCoreABI,
   VAULT: ConfidentialVaultABI,
   TRADING: ConfidentialTradingABI,
 } as const
