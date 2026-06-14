@@ -8,7 +8,7 @@ const LANGUAGES = [
   { code: 'zh', label: '中文', flag: '🇨🇳' }
 ]
 
-export default function LanguageDropdown() {
+export default function LanguageDropdown({ upward = false }: { upward?: boolean }) {
   const { i18n } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -39,9 +39,8 @@ export default function LanguageDropdown() {
       {isOpen && (
         <div style={{
           position: 'absolute',
-          top: '100%',
+          ...(upward ? { bottom: '100%', marginBottom: '8px' } : { top: '100%', marginTop: '8px' }),
           right: 0,
-          marginTop: '8px',
           width: '160px',
           background: '#121214',
           border: '1px solid var(--color-border)',
