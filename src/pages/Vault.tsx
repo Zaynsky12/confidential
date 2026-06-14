@@ -12,10 +12,10 @@ export default function Vault() {
   const { vaultAPY, markets } = useTradeStore()
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
-  const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address)
+  const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
   const { deposits: globalDeposits } = useVaultHistory() // For global TVL chart
-  const { activePositions } = usePositions(address)
-  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address)
+  const { activePositions } = usePositions(address || undefined)
+  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
   const [activeTab, setActiveTab] = useState('Activity')
@@ -100,6 +100,23 @@ export default function Vault() {
     ro.observe(chartRef.current)
     return ()=>{ ro.disconnect(); chart.remove() }
   },[tvlData])
+
+  useEffect(() => {
+    if (!chartApiRef.current || !tvlData.length) return
+    const chart = chartApiRef.current
+    const now = Math.floor(Date.now() / 1000)
+    let fromTime = 0
+    if (chartTimeframe === '24h') fromTime = now - 86400
+    else if (chartTimeframe === '7d') fromTime = now - 7 * 86400
+    else if (chartTimeframe === '30d') fromTime = now - 30 * 86400
+    else if (chartTimeframe === '90d') fromTime = now - 90 * 86400
+
+    if (fromTime === 0) {
+      chart.timeScale().fitContent()
+    } else {
+      chart.timeScale().setVisibleRange({ from: fromTime as Time, to: now as Time })
+    }
+  }, [chartTimeframe, tvlData])
 
   return (
     <div className="vault-container">
@@ -312,7 +329,7 @@ export default function Vault() {
                     <th>Side</th>
                     <th>Size</th>
                     <th>Close Price</th>
-                    <th>Realized PnL</th>
+                    <th>Tx Hash</th>
                   </tr>
                 </thead>
                 <tbody>

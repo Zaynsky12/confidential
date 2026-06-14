@@ -12,8 +12,6 @@ export function useConfidentialTrading() {
     hash,
   })
 
-
-
   // Hook for USDC Approval specifically for Trading Contract
   const { 
     isApproved, 
@@ -35,7 +33,10 @@ export function useConfidentialTrading() {
     isLong: boolean, 
     sizeUsd: number, 
     leverage: number, 
-    collateralUsd: number
+    collateralUsd: number,
+    tpPriceUsd: number = 0,
+    slPriceUsd: number = 0,
+    triggerPriceUsd: number = 0
   ) => {
     try {
       const fee = sizeUsd * 0.0004
@@ -46,27 +47,35 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Creating Order Request...', { id: 'trade' })
+      toast.loading('Creating Market Order...', { id: 'trade' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
       const sizeUnits = parseUnits(sizeUsd.toFixed(6), 6)
+      const tpUnits = tpPriceUsd > 0 ? parseUnits(tpPriceUsd.toFixed(18), 18) : 0n
+      const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
+      const triggerUnits = triggerPriceUsd > 0 ? parseUnits(triggerPriceUsd.toFixed(18), 18) : 0n
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'createOpenRequest',
+        functionName: 'placeOrder',
         args: [
           pairId,
           isLong,
           sizeUnits,
-          BigInt(leverage)
+          BigInt(leverage),
+          triggerUnits, // Used for market order slippage check
+          2,  // orderType 2 = market_open
+          false, // reduceOnly false for open
+          tpUnits,
+          slUnits
         ],
         value: EXECUTION_FEE,
       } as any)
 
       toast.dismiss('trade')
-      toast.success('Order requested! Keeper will execute shortly.')
+      toast.success('Market Order requested! Keeper will execute shortly.')
       return tx
     } catch (error: any) {
       toast.dismiss('trade')
@@ -105,11 +114,15 @@ export function useConfidentialTrading() {
     leverage: number,
     triggerPriceUsd: number,
     orderType: number, // 0 = limit, 1 = stop
-    reduceOnly: boolean
+    reduceOnly: boolean,
+    tpPriceUsd: number = 0,
+    slPriceUsd: number = 0
   ) => {
     try {
       const collateralUsd = sizeUsd / leverage
-      const totalRequired = collateralUsd + (sizeUsd * 0.0004)
+      // fee calculation logic depends on orderType (0 = maker, 1 = taker)
+      const feeRate = orderType === 0 ? 0.0002 : 0.0004
+      const totalRequired = collateralUsd + (sizeUsd * feeRate)
       
       if (!isApproved(totalRequired)) {
         await approveInfinite()
@@ -123,6 +136,8 @@ export function useConfidentialTrading() {
 
       const sizeUnits = parseUnits(sizeUsd.toFixed(6), 6)
       const priceUnits = parseUnits(triggerPriceUsd.toFixed(18), 18)
+      const tpUnits = tpPriceUsd > 0 ? parseUnits(tpPriceUsd.toFixed(18), 18) : 0n
+      const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
@@ -135,7 +150,9 @@ export function useConfidentialTrading() {
           BigInt(leverage),
           priceUnits,
           orderType,
-          reduceOnly
+          reduceOnly,
+          tpUnits,
+          slUnits
         ],
         value: EXECUTION_FEE,
       } as any)
@@ -150,10 +167,67 @@ export function useConfidentialTrading() {
     }
   }
 
+  // Create TWAP Order
+  const createTwapOrder = async (
+    pairName: string,
+    isLong: boolean,
+    totalSizeUsd: number,
+    leverage: number,
+    slices: number,
+    intervalSec: number,
+    tpPriceUsd: number = 0,
+    slPriceUsd: number = 0
+  ) => {
+    try {
+      const collateralUsd = totalSizeUsd / leverage
+      const totalRequired = collateralUsd + (totalSizeUsd * 0.0004)
+      
+      if (!isApproved(totalRequired)) {
+        await approveInfinite()
+        await new Promise(res => setTimeout(res, 5000))
+      }
+
+      toast.loading('Creating TWAP Order...', { id: 'twap' })
+
+      const { keccak256, toHex } = await import('viem')
+      const pairId = keccak256(toHex(pairName))
+
+      const sizeUnits = parseUnits(totalSizeUsd.toFixed(6), 6)
+      const tpUnits = tpPriceUsd > 0 ? parseUnits(tpPriceUsd.toFixed(18), 18) : 0n
+      const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
+
+      const tx = await writeContractAsync({
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
+        functionName: 'createTwapOrder',
+        args: [
+          pairId,
+          isLong,
+          sizeUnits,
+          BigInt(leverage),
+          BigInt(slices),
+          BigInt(intervalSec),
+          tpUnits,
+          slUnits
+        ],
+        value: EXECUTION_FEE,
+      } as any)
+
+      toast.dismiss('twap')
+      toast.success('TWAP Order created successfully!')
+      return tx
+    } catch (error: any) {
+      toast.dismiss('twap')
+      toast.error(error.shortMessage || 'Failed to create TWAP order')
+      throw error
+    }
+  }
+
   return {
     openPosition,
     closePosition,
     placeOrder,
+    createTwapOrder,
     isTxPending: isPending || isConfirming || isApproving,
   }
 }

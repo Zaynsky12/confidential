@@ -10,7 +10,7 @@ contract UpdateLeverageScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // Arc Testnet Core address
-        ConfidentialCore core = ConfidentialCore(0x769c307CA53c2b84DecEA5b2a6F45304Cd7785CB);
+        ConfidentialCore core = ConfidentialCore(0x769C307cA53C2b84DeceA5B2A6F45304cd7785Cb);
 
         bytes32 goldPairId = keccak256(abi.encodePacked("GOLD/USDC"));
         bytes32 silverPairId = keccak256(abi.encodePacked("SILVER/USDC"));

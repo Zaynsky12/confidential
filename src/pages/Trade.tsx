@@ -1,5 +1,7 @@
 import { useState } from 'react'
-
+import { keccak256, toHex, formatUnits } from 'viem'
+import { useReadContract } from 'wagmi'
+import { CONTRACTS, ABIS } from '../config/contracts'
 import PriceChart from '../components/PriceChart'
 import OrderBook from '../components/OrderBook'
 import OrderForm from '../components/OrderForm'
@@ -44,6 +46,44 @@ export default function Trade() {
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [mobileView, setMobileView] = useState<'chart' | 'orderbook' | 'trades'>('chart')
   
+  // -- Fetch Real Data --
+  const pairIdStr = activeMarket?.pair || 'BTC/USDC'
+  const pairId = keccak256(toHex(pairIdStr))
+
+  const { data: oiInfo } = useReadContract({
+    address: CONTRACTS.CORE as `0x${string}`,
+    abi: ABIS.CORE,
+    functionName: 'getOIInfo',
+    args: [pairId],
+    query: { refetchInterval: 10000 }
+  })
+
+  let totalOI = activeMarket?.openInterest || 0
+  let longOIVal = 0
+  let shortOIVal = 0
+  if (oiInfo) {
+    longOIVal = Number(formatUnits((oiInfo as any)[0], 6))
+    shortOIVal = Number(formatUnits((oiInfo as any)[1], 6))
+    totalOI = longOIVal + shortOIVal
+  }
+
+  // Dynamic Funding Rate — mirrors ConfidentialCore.getProjectedFundingRate()
+  // Formula: (netOI / maxOI) * coefficient * (3600 / 86400) * 100  → hourly %
+  const maxOI = 500000 // $500k default maxLongOI per pair
+  const coefficient = 100
+  const netOI = longOIVal - shortOIVal
+  const hourlyFundingRate = totalOI > 0
+    ? (netOI / maxOI) * coefficient * (3600 / 86400) * 100
+    : 0
+  // For Long: positive netOI means longs pay (negative rate for longs)
+  // For Short: positive netOI means shorts receive (positive rate for shorts)
+  const longFundingRate = -hourlyFundingRate // Longs pay when netOI > 0
+  const shortFundingRate = hourlyFundingRate  // Shorts receive when netOI > 0
+  const formatFR = (rate: number) => Math.abs(rate) < 0.00005 ? '0.0000%' : `${rate >= 0 ? '+' : ''}${rate.toFixed(4)}%`
+  const frColor = (rate: number) => rate === 0 ? 'var(--color-text2)' : rate > 0 ? 'var(--color-green)' : 'var(--color-red)'
+
+
+
   const fp = (p: number) => p >= 1000 ? p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
   const fvCompact = (v: number) => {
     if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B'
@@ -96,14 +136,20 @@ export default function Trade() {
 
               <div className="chart-stat-item">
                 <span className="chart-stat-label">Open Interest</span>
-                <span className="font-mono chart-stat-value">${fvCompact(activeMarket.openInterest)}</span>
+                <span className="font-mono chart-stat-value">${fvCompact(totalOI)}</span>
               </div>
 
               <div className="chart-stat-item chart-stat-mobile-col">
-                <span className="chart-stat-label">Funding / Countdown</span>
-                <span className="font-mono chart-stat-value" style={{ color: 'var(--color-text1)', display: 'flex', flexDirection: 'row', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--color-accent)' }}>0.0010%</span>
-                  <span style={{ color: 'var(--color-text3)' }}>00:47:11</span>
+                <span className="chart-stat-label">Net Rate / 1h</span>
+                <span className="font-mono chart-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <span style={{ color: 'var(--color-green)', fontSize: '12px', lineHeight: 1 }}>↗</span>
+                    <span style={{ color: frColor(longFundingRate) }}>{formatFR(longFundingRate)}</span>
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <span style={{ color: 'var(--color-red)', fontSize: '12px', lineHeight: 1 }}>↘</span>
+                    <span style={{ color: frColor(shortFundingRate) }}>{formatFR(shortFundingRate)}</span>
+                  </span>
                 </span>
               </div>
             </div>
@@ -171,8 +217,19 @@ export default function Trade() {
       <div className="trade-mobile-action-bar">
         {!isConnected || isWrongNetwork ? (
           <button 
-            className="btn btn-connect-unified animate-fade-in" 
-            style={{ width: '100%', padding: '10px', fontSize: '15px', fontWeight: 600, borderRadius: '8px' }}
+            className="btn animate-fade-in" 
+            style={{ 
+              width: '100%', 
+              padding: '10px', 
+              fontSize: '15px', 
+              fontWeight: 600, 
+              borderRadius: '8px', 
+              backgroundColor: 'var(--color-green, #26c68b)', 
+              color: '#0b0e11', 
+              border: 'none', 
+              boxShadow: 'none',
+              cursor: 'pointer' 
+            }}
             onClick={() => connect()}
           >
             {isWrongNetwork ? 'Switch to Arc Testnet' : 'Connect Wallet'}

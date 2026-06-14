@@ -14,6 +14,8 @@ type Position @entity {
   closedAt: BigInt
   exitPrice: BigInt
   pnl: BigInt
+  tpPrice: BigInt
+  slPrice: BigInt
 }
 
 type Order @entity {
@@ -31,6 +33,10 @@ type Order @entity {
   createdAt: BigInt!
   executedAt: BigInt
   positionId: BigInt
+  tpPrice: BigInt
+  slPrice: BigInt
+  twapSlices: BigInt
+  twapExecuted: BigInt
 }
 
 type TradeRecord @entity {

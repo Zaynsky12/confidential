@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 
+import { useTradeRecords, useOrders } from '../hooks/useGoldsky'
+import { keccak256, toHex } from 'viem'
+
 export type OrderBookTab = 'orderbook' | 'trades'
 
 interface OrderBookProps {
@@ -9,7 +12,9 @@ interface OrderBookProps {
 }
 
 export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) {
-  const { orderBook, recentTrades, activeMarketId, markets } = useTradeStore()
+  const { activeMarketId, markets } = useTradeStore()
+  const { trades } = useTradeRecords() // Global trades
+  const { orders } = useOrders() // Global pending orders
   const [tab, setTab] = useState<OrderBookTab>(forcedTab || 'orderbook')
 
   useEffect(() => {
@@ -30,11 +35,41 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
     return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   }
 
-  const maxAskTotal = Math.max(...orderBook.asks.map((a) => a.total), 0.01)
-  const maxBidTotal = Math.max(...orderBook.bids.map((b) => b.total), 0.01)
-  const hasOrders = orderBook.asks.length > 0 && orderBook.bids.length > 0
-  const lowestAsk = hasOrders ? orderBook.asks[orderBook.asks.length - 1].price : 0
-  const highestBid = hasOrders ? orderBook.bids[0].price : 0
+  const activeMarketPairId = activeMarket ? keccak256(toHex(activeMarket.pair)) : ''
+  const realRecentTrades = trades.filter(t => t.pairId === activeMarketPairId).slice(0, 50)
+  
+  const marketOrders = orders.filter(o => o.pairId === activeMarketPairId)
+  
+  const asksRaw = marketOrders.filter(o => !o.isLong).sort((a, b) => b.triggerPrice - a.triggerPrice)
+  const bidsRaw = marketOrders.filter(o => o.isLong).sort((a, b) => b.triggerPrice - a.triggerPrice)
+
+  const asks = asksRaw.map(ask => ({
+    price: ask.triggerPrice,
+    size: ask.triggerPrice > 0 ? ask.sizeUsd / ask.triggerPrice : 0,
+    total: 0
+  }))
+  let currentAskTotal = 0
+  for (let i = asks.length - 1; i >= 0; i--) {
+    currentAskTotal += asks[i].size
+    asks[i].total = currentAskTotal
+  }
+
+  const bids = bidsRaw.map(bid => ({
+    price: bid.triggerPrice,
+    size: bid.triggerPrice > 0 ? bid.sizeUsd / bid.triggerPrice : 0,
+    total: 0
+  }))
+  let currentBidTotal = 0
+  for (let i = 0; i < bids.length; i++) {
+    currentBidTotal += bids[i].size
+    bids[i].total = currentBidTotal
+  }
+
+  const maxAskTotal = Math.max(...asks.map((a) => a.total), 0.01)
+  const maxBidTotal = Math.max(...bids.map((b) => b.total), 0.01)
+  const hasOrders = asks.length > 0 && bids.length > 0
+  const lowestAsk = asks.length > 0 ? asks[asks.length - 1].price : 0
+  const highestBid = bids.length > 0 ? bids[0].price : 0
   const spreadDiff = hasOrders ? lowestAsk - highestBid : 0
   const spreadPct = hasOrders && highestBid > 0 ? (spreadDiff / highestBid) * 100 : 0
 
@@ -64,7 +99,9 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
 
             {/* Asks (reversed — lowest ask at bottom) */}
             <div className="ob-asks">
-              {orderBook.asks.map((ask, i) => (
+              {asks.length === 0 ? (
+                <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 11 }}>No pending Short orders</div>
+              ) : asks.map((ask, i) => (
                 <div key={`ask-${i}`} className="ob-row ask">
                   <div className="ob-depth-bar ask-bar" style={{ width: `${(ask.total / maxAskTotal) * 100}%` }} />
                   <span className="font-mono" style={{ color: '#E05252' }}>{formatPrice(ask.price)}</span>
@@ -85,7 +122,9 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
 
             {/* Bids */}
             <div className="ob-bids">
-              {orderBook.bids.map((bid, i) => (
+              {bids.length === 0 ? (
+                <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 11 }}>No pending Long orders</div>
+              ) : bids.map((bid, i) => (
                 <div key={`bid-${i}`} className="ob-row bid">
                   <div className="ob-depth-bar bid-bar" style={{ width: `${(bid.total / maxBidTotal) * 100}%` }} />
                   <span className="font-mono" style={{ color: '#3FB06A' }}>{formatPrice(bid.price)}</span>
@@ -105,20 +144,27 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
               <span>Time</span>
             </div>
             <div className="trades-list">
-              {recentTrades.map((t) => (
-                <div key={t.id} className="ob-row trade-row">
-                  <span className="font-mono" style={{ color: t.side === 'buy' ? '#3FB06A' : '#E05252' }}>{formatPrice(t.price)}</span>
-                  <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{t.size.toFixed(4)}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                    <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{formatTime(t.time)}</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                      <polyline points="15 3 21 3 21 9"></polyline>
-                      <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
+              {realRecentTrades.length === 0 ? (
+                <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 12 }}>No recent trades</div>
+              ) : realRecentTrades.map((t) => {
+                const color = t.action === 'Open' ? '#3FB06A' : t.action === 'Liquidate' ? '#F7931A' : '#E05252';
+                return (
+                  <div key={t.id} className="ob-row trade-row">
+                    <span className="font-mono" style={{ color }}>{formatPrice(t.price)}</span>
+                    <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{(t.sizeUsd / t.price).toFixed(4)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                      <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{formatTime(t.timestamp)}</span>
+                      <a href={`https://explorer.arc.network/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                          <polyline points="15 3 21 3 21 9"></polyline>
+                          <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                      </a>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </>
         )}

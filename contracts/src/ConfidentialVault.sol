@@ -14,8 +14,9 @@ interface IERC20 {
     function decimals() external view returns (uint8);
 }
 
-/// @title ConfidentialVault — USDC Liquidity Vault for the Confidential Perpetual DEX
+/// @title ConfidentialVault V2 — USDC Liquidity Vault for the Confidential Perpetual DEX
 /// @notice LPs deposit USDC and receive cVAULT shares. Trading profits/losses flow through this vault.
+/// @dev Security: Access control on all state-changing functions, deposit caps, share manipulation protection
 contract ConfidentialVault {
     // ──────────── State ────────────
     string public constant name = "Confidential Vault Share";
@@ -25,7 +26,7 @@ contract ConfidentialVault {
     IERC20 public immutable usdc;
     ConfidentialCore public core;
 
-    uint256 public constant MINIMUM_LIQUIDITY = 1000;
+    uint256 public constant MINIMUM_LIQUIDITY = 1000; // Dead shares to prevent share price manipulation
 
     // ERC-20 share tracking
     uint256 public totalShares;
@@ -40,12 +41,22 @@ contract ConfidentialVault {
     uint256 public totalBacking;      // USDC currently backing trader positions
     uint256 public performanceFeeBps = 1000; // 10% of vault profit
 
+    // ── Security: Deposit Caps ──
+    uint256 public maxDepositPerUser = 1_000_000 * 1e6; // 1M USDC max per user
+    uint256 public maxTotalDeposits = 50_000_000 * 1e6;  // 50M USDC max TVL
+
+    // ── Emergency Controls ──
+    bool public emergencyMode;    // Allows instant withdrawal without lockup
+    bool public depositsEnabled = true;
+
     // ──────────── Events ────────────
     event Deposit(address indexed user, uint256 amount, uint256 sharesReceived);
     event Withdraw(address indexed user, uint256 amount, uint256 sharesBurned);
     event FeeReceived(uint256 amount);
     event ProfitPaid(address indexed trader, uint256 amount);
     event LossCaptured(address indexed trader, uint256 amount);
+    event EmergencyModeActivated();
+    event EmergencyModeDeactivated();
 
     // ──────────── Errors ────────────
     error ZeroAmount();
@@ -53,10 +64,18 @@ contract ConfidentialVault {
     error LockupNotExpired();
     error InsufficientLiquidity();
     error OnlyTrading();
-    error OnlyCore();
+    error OnlyOwner();
+    error DepositsDisabled();
+    error ExceedsDepositCap();
+    error ExceedsTVLCap();
 
     modifier onlyTrading() {
         if (msg.sender != core.trading()) revert OnlyTrading();
+        _;
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != core.owner()) revert OnlyOwner();
         _;
     }
 
@@ -65,23 +84,37 @@ contract ConfidentialVault {
         core = ConfidentialCore(_core);
     }
 
-    // ──────────── LP Functions ────────────
+    // ══════════════════════════════════════════════════════════
+    //                      LP FUNCTIONS
+    // ══════════════════════════════════════════════════════════
 
     /// @notice Deposit USDC into the vault and receive cVAULT shares
+    /// @dev First depositor gets shares minus MINIMUM_LIQUIDITY (anti-manipulation)
     function deposit(uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
+        if (!depositsEnabled) revert DepositsDisabled();
+        if (totalAssets + amount > maxTotalDeposits) revert ExceedsTVLCap();
 
         // Calculate shares using current exchange rate
         uint256 sharesToMint;
         if (totalShares == 0 || totalAssets == 0) {
-            sharesToMint = amount - MINIMUM_LIQUIDITY; 
+            // First deposit: lock MINIMUM_LIQUIDITY shares permanently
+            // This prevents share price manipulation via donation attacks
+            require(amount > MINIMUM_LIQUIDITY, "First deposit too small");
+            sharesToMint = amount - MINIMUM_LIQUIDITY;
             totalShares += MINIMUM_LIQUIDITY; // Permanent dead shares
         } else {
             sharesToMint = (amount * totalShares) / totalAssets;
         }
 
-        // Transfer USDC from user
-        usdc.transferFrom(msg.sender, address(this), amount);
+        require(sharesToMint > 0, "Shares would be zero");
+
+        // Check per-user deposit cap
+        uint256 userCurrentValue = totalShares > 0 ? (shares[msg.sender] * totalAssets) / totalShares : 0;
+        if (userCurrentValue + amount > maxDepositPerUser) revert ExceedsDepositCap();
+
+        // Transfer USDC from user — check return value
+        require(usdc.transferFrom(msg.sender, address(this), amount), "Transfer failed");
 
         // Mint shares
         totalShares += sharesToMint;
@@ -98,7 +131,11 @@ contract ConfidentialVault {
     function withdraw(uint256 shareAmount) external {
         if (shareAmount == 0) revert ZeroAmount();
         if (shares[msg.sender] < shareAmount) revert InsufficientShares();
-        if (block.timestamp < depositTimestamp[msg.sender] + lockupPeriod) revert LockupNotExpired();
+
+        // Allow instant withdrawal in emergency mode
+        if (!emergencyMode) {
+            if (block.timestamp < depositTimestamp[msg.sender] + lockupPeriod) revert LockupNotExpired();
+        }
 
         // Calculate USDC amount based on current share price
         uint256 usdcAmount = (shareAmount * totalAssets) / totalShares;
@@ -107,18 +144,20 @@ contract ConfidentialVault {
         uint256 available = totalAssets > totalBacking ? totalAssets - totalBacking : 0;
         if (usdcAmount > available) revert InsufficientLiquidity();
 
-        // Burn shares
+        // Burn shares (Effects before Interactions — CEI pattern)
         totalShares -= shareAmount;
         shares[msg.sender] -= shareAmount;
         totalAssets -= usdcAmount;
 
         // Transfer USDC to user
-        usdc.transfer(msg.sender, usdcAmount);
+        require(usdc.transfer(msg.sender, usdcAmount), "Transfer failed");
 
         emit Withdraw(msg.sender, usdcAmount, shareAmount);
     }
 
-    // ──────────── Trading Functions (called by Trading contract) ────────────
+    // ══════════════════════════════════════════════════════════
+    //          TRADING FUNCTIONS (called by Trading contract)
+    // ══════════════════════════════════════════════════════════
 
     /// @notice Reserve USDC as backing for a new position
     function reserveBacking(uint256 amount) external onlyTrading {
@@ -131,32 +170,77 @@ contract ConfidentialVault {
     }
 
     /// @notice Pay trader's profit from the vault
+    /// @dev Checks available liquidity and triggers circuit breaker tracking
     function payProfit(address trader, uint256 amount) external onlyTrading {
         uint256 available = totalAssets > totalBacking ? totalAssets - totalBacking : 0;
         if (amount > available) revert InsufficientLiquidity();
 
+        // Effects first (CEI)
         totalAssets -= amount;
-        usdc.transfer(trader, amount);
+
+        // Track loss in circuit breaker
+        core.trackVaultLoss(amount);
+
+        // Transfer
+        require(usdc.transfer(trader, amount), "Transfer failed");
 
         emit ProfitPaid(trader, amount);
     }
 
     /// @notice Capture trader's loss into the vault
     function captureLoss(uint256 amount) external onlyTrading {
-        // Loss has already been transferred to the vault by the Trading contract
+        // Loss USDC has already been transferred to the vault by the Trading contract
         totalAssets += amount;
 
         emit LossCaptured(msg.sender, amount);
     }
 
-    /// @notice Receive trading fees
-    function receiveFees(uint256 amount) external {
+    /// @notice Receive trading fees — ONLY callable by Trading contract
+    /// @dev SECURITY FIX: Added onlyTrading modifier (was previously unprotected)
+    function receiveFees(uint256 amount) external onlyTrading {
         // Fee USDC has been transferred to this contract already
         totalAssets += amount;
         emit FeeReceived(amount);
     }
 
-    // ──────────── View Functions ────────────
+    // ══════════════════════════════════════════════════════════
+    //                  EMERGENCY CONTROLS
+    // ══════════════════════════════════════════════════════════
+
+    /// @notice Enable emergency mode — allows instant withdrawals without lockup
+    function enableEmergencyMode() external onlyOwner {
+        emergencyMode = true;
+        depositsEnabled = false; // Prevent new deposits during emergency
+        emit EmergencyModeActivated();
+    }
+
+    /// @notice Disable emergency mode — returns to normal operation
+    function disableEmergencyMode() external onlyOwner {
+        emergencyMode = false;
+        depositsEnabled = true;
+        emit EmergencyModeDeactivated();
+    }
+
+    /// @notice Toggle deposits on/off
+    function setDepositsEnabled(bool _enabled) external onlyOwner {
+        depositsEnabled = _enabled;
+    }
+
+    /// @notice Set deposit caps
+    function setDepositCaps(uint256 _perUser, uint256 _total) external onlyOwner {
+        maxDepositPerUser = _perUser;
+        maxTotalDeposits = _total;
+    }
+
+    /// @notice Set lockup period
+    function setLockupPeriod(uint256 _seconds) external onlyOwner {
+        require(_seconds <= 30 days, "Max 30 days");
+        lockupPeriod = _seconds;
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //                    VIEW FUNCTIONS
+    // ══════════════════════════════════════════════════════════
 
     /// @notice Get the current share price (USDC per share, 6 decimals)
     function sharePrice() external view returns (uint256) {
@@ -183,6 +267,7 @@ contract ConfidentialVault {
 
     /// @notice Check if user can withdraw (lockup expired)
     function canWithdraw(address user) external view returns (bool) {
+        if (emergencyMode) return true;
         return block.timestamp >= depositTimestamp[user] + lockupPeriod;
     }
 }

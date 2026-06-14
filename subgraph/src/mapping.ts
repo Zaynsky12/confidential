@@ -6,7 +6,9 @@ import {
   PositionLiquidated,
   OrderPlaced,
   OrderCancelled,
-  OrderExecuted
+  OrderExecuted,
+  TWAPSliceExecuted,
+  TPSLTriggered
 } from "../generated/ConfidentialTrading/ConfidentialTrading"
 import {
   Deposit,
@@ -34,11 +36,15 @@ export function handlePositionOpened(event: PositionOpened): void {
   }
   
   let contract = ConfidentialTrading.bind(event.address)
-  let posCall = contract.try_getPosition(event.params.positionId)
+  let posCall = contract.try_positions(event.params.positionId)
   if (!posCall.reverted) {
-    position.liquidationPrice = posCall.value.liquidationPrice
+    position.liquidationPrice = posCall.value.getLiquidationPrice()
+    position.tpPrice = posCall.value.getTpPrice()
+    position.slPrice = posCall.value.getSlPrice()
   } else {
     position.liquidationPrice = BigInt.fromI32(0)
+    position.tpPrice = BigInt.fromI32(0)
+    position.slPrice = BigInt.fromI32(0)
   }
 
   position.isOpen = true
@@ -119,11 +125,19 @@ export function handleOrderPlaced(event: OrderPlaced): void {
     order.sizeUsd = orderCall.value.getSizeUsd()
     order.leverage = orderCall.value.getLeverage()
     order.collateral = orderCall.value.getCollateral()
+    order.tpPrice = orderCall.value.getTpPrice()
+    order.slPrice = orderCall.value.getSlPrice()
+    order.twapSlices = orderCall.value.getTwapSlices()
+    order.twapExecuted = orderCall.value.getTwapExecuted()
   } else {
     order.isLong = true
     order.sizeUsd = BigInt.fromI32(0)
     order.leverage = BigInt.fromI32(1)
     order.collateral = BigInt.fromI32(0)
+    order.tpPrice = BigInt.fromI32(0)
+    order.slPrice = BigInt.fromI32(0)
+    order.twapSlices = BigInt.fromI32(0)
+    order.twapExecuted = BigInt.fromI32(0)
   }
 
   order.isActive = true
@@ -149,6 +163,19 @@ export function handleOrderExecuted(event: OrderExecuted): void {
     order.positionId = event.params.positionId
     order.save()
   }
+}
+
+export function handleTWAPSliceExecuted(event: TWAPSliceExecuted): void {
+  let orderId = event.params.orderId.toString()
+  let order = Order.load(orderId)
+  if (order != null) {
+    order.twapExecuted = event.params.sliceNumber
+    order.save()
+  }
+}
+
+export function handleTPSLTriggered(event: TPSLTriggered): void {
+  // Logic handled in handlePositionClosed which follows immediately
 }
 
 export function handleDeposit(event: Deposit): void {

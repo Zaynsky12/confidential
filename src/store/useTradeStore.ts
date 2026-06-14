@@ -134,7 +134,7 @@ export const useTradeStore = create<TradeStore>()(
                   ...m,
                   prevPrice: m.price,
                   price,
-                  change24h: m.price > 0 ? +(((price - m.price) / m.price) * 100 + m.change24h).toFixed(2) : 0,
+                  change24h: m.prevPrice > 0 ? +(((price - m.prevPrice) / m.prevPrice) * 100).toFixed(2) : 0,
                   high24h: Math.max(m.high24h, price),
                   low24h: Math.min(m.low24h, price),
                 }

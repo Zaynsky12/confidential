@@ -25,43 +25,27 @@ const wallet = createWalletClient({ account, chain: arcTestnet, transport: http(
 
 const TRADING_ADDRESS = '0x751EA442eFE4E93392dcd934931e44c06a7C4c24';
 
-// ABI required for liquidations AND executing pending orders
+// Updated ABI for V2 (TWAP, TP/SL, Funding)
 const TRADING_ABI = [
-  {
-    "inputs": [],
-    "name": "nextPositionId",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "nextOrderId",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
+  { "inputs": [], "name": "nextPositionId", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "nextOrderId", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
   {
     "inputs": [{ "internalType": "uint256", "name": "positionId", "type": "uint256" }],
-    "name": "getPosition",
+    "name": "positions",
     "outputs": [
-      {
-        "components": [
-          { "internalType": "bytes32", "name": "pairId", "type": "bytes32" },
-          { "internalType": "address", "name": "trader", "type": "address" },
-          { "internalType": "bool", "name": "isLong", "type": "bool" },
-          { "internalType": "uint256", "name": "sizeUsd", "type": "uint256" },
-          { "internalType": "uint256", "name": "collateral", "type": "uint256" },
-          { "internalType": "uint256", "name": "entryPrice", "type": "uint256" },
-          { "internalType": "uint256", "name": "leverage", "type": "uint256" },
-          { "internalType": "uint256", "name": "liquidationPrice", "type": "uint256" },
-          { "internalType": "uint256", "name": "openedAt", "type": "uint256" },
-          { "internalType": "bool", "name": "isOpen", "type": "bool" }
-        ],
-        "internalType": "struct ConfidentialTrading.Position",
-        "name": "",
-        "type": "tuple"
-      }
+      { "internalType": "bytes32", "name": "pairId", "type": "bytes32" },
+      { "internalType": "address", "name": "trader", "type": "address" },
+      { "internalType": "bool", "name": "isLong", "type": "bool" },
+      { "internalType": "uint256", "name": "sizeUsd", "type": "uint256" },
+      { "internalType": "uint256", "name": "collateral", "type": "uint256" },
+      { "internalType": "uint256", "name": "entryPrice", "type": "uint256" },
+      { "internalType": "uint256", "name": "leverage", "type": "uint256" },
+      { "internalType": "uint256", "name": "liquidationPrice", "type": "uint256" },
+      { "internalType": "uint256", "name": "openedAt", "type": "uint256" },
+      { "internalType": "bool", "name": "isOpen", "type": "bool" },
+      { "internalType": "uint256", "name": "tpPrice", "type": "uint256" },
+      { "internalType": "uint256", "name": "slPrice", "type": "uint256" },
+      { "internalType": "int256", "name": "entryFundingIndex", "type": "int256" }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -83,31 +67,20 @@ const TRADING_ABI = [
       { "internalType": "uint256", "name": "createdAt", "type": "uint256" },
       { "internalType": "uint256", "name": "positionId", "type": "uint256" },
       { "internalType": "uint256", "name": "feePaid", "type": "uint256" },
-      { "internalType": "uint256", "name": "executionFee", "type": "uint256" }
+      { "internalType": "uint256", "name": "executionFee", "type": "uint256" },
+      { "internalType": "uint256", "name": "tpPrice", "type": "uint256" },
+      { "internalType": "uint256", "name": "slPrice", "type": "uint256" },
+      { "internalType": "uint256", "name": "twapSlices", "type": "uint256" },
+      { "internalType": "uint256", "name": "twapInterval", "type": "uint256" },
+      { "internalType": "uint256", "name": "twapExecuted", "type": "uint256" },
+      { "internalType": "uint256", "name": "twapLastExec", "type": "uint256" }
     ],
     "stateMutability": "view",
     "type": "function"
   },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "positionId", "type": "uint256" },
-      { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }
-    ],
-    "name": "liquidate",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "orderId", "type": "uint256" },
-      { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }
-    ],
-    "name": "executeOrder",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  }
+  { "inputs": [{ "internalType": "uint256", "name": "positionId", "type": "uint256" }, { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }], "name": "liquidate", "outputs": [], "stateMutability": "payable", "type": "function" },
+  { "inputs": [{ "internalType": "uint256", "name": "orderId", "type": "uint256" }, { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }], "name": "executeOrder", "outputs": [], "stateMutability": "payable", "type": "function" },
+  { "inputs": [{ "internalType": "uint256", "name": "positionId", "type": "uint256" }, { "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }], "name": "executeTPSL", "outputs": [], "stateMutability": "payable", "type": "function" }
 ];
 
 const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
@@ -134,21 +107,29 @@ const PAIRS = [
   { name: 'TSLA/USDC', pythId: '0x16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1' },
   { name: 'GOLD/USDC', pythId: '0x765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2' },
   { name: 'SILVER/USDC', pythId: '0xf2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e' },
-  { name: 'SPY/USDC', pythId: '0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5' },
+  { name: 'SPY/USDC', pythId: '0xb2a44035bd9e025a8e1a658b40a30e9da3a84e29bff4b06e83e8e96b8d82d69f' }, // FIXED: Using correct SPY Pyth ID
   { name: 'NVDA/USDC', pythId: '0xb1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593' },
   { name: 'EUR/USDC', pythId: '0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b' },
   { name: 'GBP/USDC', pythId: '0x84c2dde9633d93d1bcad84e7dc41c9d56578b7ec52fabedc1f335d673df0a7c1' },
   { name: 'USDJPY/USDC', pythId: '0xef2c98c804ba503c6a707e38be4dfbb16683775f195b091252bf24693042fd52' },
 ];
 
+let isRunning = false;
+
 async function runKeeper() {
+  if (isRunning) return; // Concurrency Lock
+  isRunning = true;
+
   try {
     // 1. Fetch Pyth Prices
     const ids = PAIRS.map(p => p.pythId).join('&ids[]=');
     const response = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${ids}`);
     const pythResponse = await response.json();
 
-    if (!pythResponse.binary || !pythResponse.binary.data) return;
+    if (!pythResponse.binary || !pythResponse.binary.data) {
+        isRunning = false;
+        return;
+    }
 
     const pythPayload = pythResponse.binary.data.map(d => '0x' + d.replace('0x', ''));
     const pythFee = await client.readContract({
@@ -178,7 +159,7 @@ async function runKeeper() {
     });
     const nextOrderId = Number(nextOrderIdStr);
 
-    for (let i = 0; i < nextOrderId; i++) {
+    for (let i = 1; i < nextOrderId; i++) { // Starts at 1
         try {
             const orderRaw = await client.readContract({
                 address: TRADING_ADDRESS,
@@ -196,6 +177,10 @@ async function runKeeper() {
                 isLong: orderRaw[2],
                 triggerPrice: orderRaw[6],
                 orderType: orderRaw[7],
+                twapSlices: Number(orderRaw[16]),
+                twapInterval: Number(orderRaw[17]),
+                twapExecuted: Number(orderRaw[18]),
+                twapLastExec: Number(orderRaw[19])
             };
 
             const currentPrice = currentPrices[order.pairId];
@@ -212,6 +197,14 @@ async function runKeeper() {
             } else if (order.orderType === 1) {
                 // Stop
                 shouldExecute = order.isLong ? (currentPrice >= order.triggerPrice) : (currentPrice <= order.triggerPrice);
+            } else if (order.orderType === 4) {
+                // TWAP
+                if (order.twapExecuted < order.twapSlices) {
+                    const now = Math.floor(Date.now() / 1000);
+                    if (order.twapExecuted === 0 || now >= order.twapLastExec + order.twapInterval) {
+                        shouldExecute = true;
+                    }
+                }
             }
 
             if (shouldExecute) {
@@ -226,11 +219,11 @@ async function runKeeper() {
                 console.log(`   ✅ EXECUTION SUCCESS! Tx: ${hash}`);
             }
         } catch (err) {
-            console.error(`❌ Failed to read or execute order #${i}:`, err.shortMessage || err.message);
+            console.error(`❌ Failed to read/execute order #${i}:`, err.shortMessage || err.message);
         }
     }
 
-    // 3. CHECK LIQUIDATIONS
+    // 3. CHECK LIQUIDATIONS AND TP/SL
     const nextPosIdStr = await client.readContract({
       address: TRADING_ADDRESS,
       abi: TRADING_ABI,
@@ -238,20 +231,31 @@ async function runKeeper() {
     });
     const nextPosId = Number(nextPosIdStr);
 
-    for (let i = 0; i < nextPosId; i++) {
+    for (let i = 1; i < nextPosId; i++) { // Starts at 1
       try {
-          const pos = await client.readContract({
+          const posRaw = await client.readContract({
             address: TRADING_ADDRESS,
             abi: TRADING_ABI,
-            functionName: 'getPosition',
+            functionName: 'positions',
             args: [BigInt(i)]
           });
 
-          if (!pos.isOpen) continue;
+          const isOpen = posRaw[9];
+          if (!isOpen) continue;
+
+          const pos = {
+              id: i,
+              pairId: posRaw[0],
+              isLong: posRaw[2],
+              liquidationPrice: posRaw[7],
+              tpPrice: posRaw[10],
+              slPrice: posRaw[11]
+          };
 
           const currentPrice = currentPrices[pos.pairId];
           if (!currentPrice) continue;
 
+          // 3A. Liquidations
           let shouldLiquidate = false;
           if (pos.isLong) {
             shouldLiquidate = currentPrice <= pos.liquidationPrice;
@@ -269,20 +273,50 @@ async function runKeeper() {
                 value: pythFee
             });
             console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
+            continue; // Skip TP/SL check if liquidated
           }
+
+          // 3B. TP / SL
+          if (pos.tpPrice > 0n || pos.slPrice > 0n) {
+              let shouldCloseTpSl = false;
+              let isTp = false;
+              
+              if (pos.tpPrice > 0n) {
+                  isTp = pos.isLong ? (currentPrice >= pos.tpPrice) : (currentPrice <= pos.tpPrice);
+                  shouldCloseTpSl = isTp;
+              }
+              if (!shouldCloseTpSl && pos.slPrice > 0n) {
+                  shouldCloseTpSl = pos.isLong ? (currentPrice <= pos.slPrice) : (currentPrice >= pos.slPrice);
+              }
+
+              if (shouldCloseTpSl) {
+                  console.log(`🎯 ${isTp ? 'TAKE PROFIT' : 'STOP LOSS'} TRIGGERED for Position #${pos.id}...`);
+                  const hash = await wallet.writeContract({
+                      address: TRADING_ADDRESS,
+                      abi: TRADING_ABI,
+                      functionName: 'executeTPSL',
+                      args: [BigInt(pos.id), pythPayload],
+                      value: pythFee
+                  });
+                  console.log(`   ✅ TP/SL EXECUTED! Tx: ${hash}`);
+              }
+          }
+
       } catch (err) {
-          console.error(`❌ Failed to read or liquidate pos #${i}:`, err.shortMessage || err.message);
+          console.error(`❌ Failed to process pos #${i}:`, err.shortMessage || err.message);
       }
     }
 
   } catch (e) {
     console.error('Error in Keeper Loop:', e.shortMessage || e.message);
+  } finally {
+      isRunning = false; // Release Lock
   }
 }
 
-console.log('🚀 Starting Keeper Bot for Arc Testnet...');
+console.log('🚀 Starting Keeper Bot V2 for Arc Testnet...');
 console.log(`📡 Connected to Trading Contract: ${TRADING_ADDRESS}`);
-console.log('Bot will monitor Liquidations and Pending Orders every 5 seconds.');
+console.log('Bot will monitor Liquidations, Pending Orders, TWAP slices, and TP/SL every 5 seconds.');
 
 // Run immediately
 runKeeper();

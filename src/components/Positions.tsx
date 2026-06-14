@@ -17,10 +17,10 @@ export default function Positions() {
   const [selectedShare, setSelectedShare] = useState<SharePositionData | null>(null)
 
   // Read from smart contract & Goldsky
-  const { activePositions } = usePositions(address)
+  const { activePositions } = usePositions(address || undefined)
   const { closePosition } = useConfidentialTrading()
-  const { orders: openOrders, isLoading: isOrdersLoading } = useOrders(address)
-  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address)
+  const { orders: openOrders, isLoading: isOrdersLoading } = useOrders(address || undefined)
+  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
 
   // Use on-chain positions for open positions tab
   const openPositions = activePositions
@@ -188,7 +188,9 @@ export default function Positions() {
                       <span className={o.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
                         {o.isLong ? 'long' : 'short'}
                       </span>
-                      <span style={{ textTransform: 'capitalize' }}>{o.orderType === 0 ? 'Limit' : 'Stop'}</span>
+                      <span style={{ textTransform: 'capitalize' }}>
+                        {o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Stop' : o.orderType === 4 ? 'TWAP' : 'Market'}
+                      </span>
                       <span className="font-mono">{o.sizeUsd.toFixed(2)}</span>
                       <span className="font-mono">${o.triggerPrice.toFixed(2)}</span>
                       <span className="font-mono">0.00%</span>
@@ -214,7 +216,7 @@ export default function Positions() {
                   <span>Size</span>
                   <span>Entry Price</span>
                   <span>Close Price</span>
-                  <span>Realized PnL</span>
+                  <span>Tx Hash</span>
                 </div>
                 {isTradesLoading ? (
                   <div className="pos-empty">Loading history from Goldsky...</div>

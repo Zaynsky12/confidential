@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Topbar from './components/Topbar'
 
@@ -9,6 +9,8 @@ import { usePythPrices } from './hooks/usePythPrices'
 
 export default function App() {
   usePythPrices()
+  const location = useLocation()
+  const isHome = location.pathname === '/'
 
   const DummyPage = ({ title }: { title: string }) => (
     <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--color-text3)' }}>
@@ -26,10 +28,11 @@ export default function App() {
           border: '1px solid #333',
         }
       }} />
-      <Topbar />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 60 }}>
+      {!isHome && <Topbar />}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: isHome ? 0 : 60 }}>
         <Routes>
-          <Route path="/" element={<Trade />} />
+          <Route path="/" element={<Navigate to="/trade" replace />} />
+          <Route path="/trade" element={<Trade />} />
           <Route path="/vault" element={<Vault />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/referrals" element={<DummyPage title="Referrals" />} />

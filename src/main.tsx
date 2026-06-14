@@ -9,6 +9,7 @@ import { injected, walletConnect } from 'wagmi/connectors'
 import { arcTestnet } from './config/chain'
 import App from './App'
 import './index.css'
+import './i18n'
 
 const queryClient = new QueryClient()
 

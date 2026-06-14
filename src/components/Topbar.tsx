@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
+import { usePrivy } from '@privy-io/react-auth'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
+import LanguageDropdown from './LanguageDropdown'
 
 const NAV_LINKS = [
-  { to: '/', label: 'Trade' },
+  { to: '/trade', label: 'Trade' },
   { to: '/portfolio', label: 'Portfolio' },
   { to: '/vault', label: 'Vault' },
   { to: '/referrals', label: 'Referrals' },
@@ -43,7 +45,9 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Topbar() {
-  const { isConnected, truncatedAddress, address, balance, disconnect, connect, isWrongNetwork, chainId, switchNetwork } = useArcWallet()
+  const { ready, login, logout } = usePrivy()
+  const { isConnected, address, balance } = useArcWallet()
+  const truncatedAddress = address ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}` : ''
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -115,10 +119,10 @@ export default function Topbar() {
           </button>
 
           <div className="topbar-logo-wrapper desktop-only">
-            <div className="topbar-logo">
+            <NavLink to="/" className="topbar-logo" style={{ textDecoration: 'none' }}>
               <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, width: 28, objectFit: 'contain' }} />
               <span className="topbar-brand">Confidential</span>
-            </div>
+            </NavLink>
           </div>
 
           <nav className="topbar-nav desktop-only">
@@ -172,32 +176,17 @@ export default function Topbar() {
         {/* Right — Wallet & Settings */}
         <div className="topbar-right">
 
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isConnected && isWrongNetwork && (
-              <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
-                <button 
-                  className="font-mono" 
-                  style={{ padding: '6px 12px', fontSize: '14px', color: '#fff', backgroundColor: 'var(--color-red)', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-                  onClick={() => switchNetwork?.()} // Trigger network switch
-                >
-                  Wrong Network (ID: {chainId || 'unknown'})
-                </button>
-              </div>
-            )}
+            
+            {/* Removed Wrong Network Warning */}
 
-            {isConnected && !isWrongNetwork && (
-              <div className="desktop-only" style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
-                <div className="font-mono" style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--color-text1)', display: 'flex', alignItems: 'center', backgroundColor: 'var(--color-bg2)', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
-                  {balance.toFixed(2)} USDC
-                </div>
-              </div>
-            )}
+
 
             {!isConnected ? (
               <button
                 className="btn btn-connect-unified desktop-only"
-                onClick={() => connect()}
+                onClick={login}
+                disabled={!ready}
               >
                 Connect Wallet
               </button>
@@ -242,7 +231,7 @@ export default function Topbar() {
                       className="btn btn-ghost"
                       style={{ width: '100%', fontSize: '13px', color: 'var(--color-red)' }}
                       onClick={() => {
-                        disconnect()
+                        logout()
                         setDropdownOpen(false)
                       }}
                     >
@@ -253,6 +242,10 @@ export default function Topbar() {
               )}
             </div>
             )}
+          </div>
+
+          <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', marginLeft: '8px' }}>
+            <LanguageDropdown />
           </div>
 
           {activeMarket && (
@@ -287,17 +280,7 @@ export default function Topbar() {
       {isMobileMenuOpen && (
         <div className="mobile-menu-backdrop" onClick={() => setIsMobileMenuOpen(false)}>
           <div className="mobile-menu-drawer" onClick={e => e.stopPropagation()}>
-            <div className="mobile-menu-header">
-              <div className="topbar-logo">
-                <img src="/logo.png" alt="Confidential Logo" style={{ height: 28, width: 28, objectFit: 'contain' }} />
-                <span className="topbar-brand">Confidential</span>
-              </div>
-              <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </button>
-            </div>
+
             <nav className="mobile-menu-nav">
               {NAV_LINKS.map((link) => (
                 <NavLink
@@ -310,15 +293,30 @@ export default function Topbar() {
                   }
                 >
                   {link.label}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="nav-arrow">
+                    <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </NavLink>
               ))}
             </nav>
             <div className="mobile-menu-footer">
               {!isConnected ? (
                 <button
-                  className="btn btn-connect-unified"
-                  style={{ width: '100%', padding: '12px' }}
-                  onClick={() => { connect(); setIsMobileMenuOpen(false); }}
+                  className="btn"
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px', 
+                    backgroundColor: 'var(--color-green, #26c68b)', 
+                    color: '#0b0e11', 
+                    fontWeight: 600, 
+                    fontSize: '15px', 
+                    borderRadius: '8px', 
+                    border: 'none',
+                    boxShadow: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => { login(); setIsMobileMenuOpen(false); }}
+                  disabled={!ready}
                 >
                   Connect Wallet
                 </button>
@@ -339,16 +337,28 @@ export default function Topbar() {
                     <button
                       className="btn btn-ghost"
                       style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--color-red)' }}
-                      onClick={() => { disconnect(); setIsMobileMenuOpen(false); }}
+                      onClick={() => { logout(); setIsMobileMenuOpen(false); }}
                     >
                       Disconnect
                     </button>
                   </div>
-                  <div className="font-mono" style={{ fontSize: '16px', color: 'var(--color-text1)', marginTop: '4px', padding: '12px', backgroundColor: 'var(--color-bg1)', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-                    Wallet Balance: <span style={{ color: 'var(--color-green)' }}>{balance.toFixed(2)} USDC</span>
-                  </div>
+
                 </div>
               )}
+              <div className="mobile-socials" style={{ display: 'flex', gap: '20px', marginTop: '24px', padding: '0 8px', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                  <a href="https://x.com/Confidentialdex" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                  <a href="https://discord.gg/confidential" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                  </a>
+                  <a href="#" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                  </a>
+                </div>
+                <LanguageDropdown />
+              </div>
             </div>
           </div>
         </div>
@@ -519,9 +529,9 @@ export default function Topbar() {
           right: 0;
           width: 100%;
           z-index: 1100;
-          background-color: var(--color-bg0);
-          border-bottom: none;
-          height: 60px;
+          background-color: #0b0e11;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          height: 56px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -529,7 +539,7 @@ export default function Topbar() {
         }
         .topbar-inner {
           width: 100%;
-          padding: 0;
+          padding: 0 16px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -537,14 +547,13 @@ export default function Topbar() {
         .topbar-left {
           display: flex;
           align-items: center;
-          gap: 0;
+          gap: 24px;
           flex: 1;
         }
         .topbar-logo-wrapper {
           display: flex;
           align-items: center;
-          padding: 0 24px;
-          height: 60px;
+          height: 56px;
           flex-shrink: 0;
         }
         .mobile-menu-btn {
@@ -561,10 +570,10 @@ export default function Topbar() {
           gap: 8px;
         }
         .topbar-brand {
-          font-size: 20px;
+          font-size: 18px;
           font-weight: 600;
-          letter-spacing: -0.02em;
-          color: var(--color-text1);
+          letter-spacing: -0.01em;
+          color: #fff;
         }
         .topbar-center {
           display: flex;
@@ -579,29 +588,27 @@ export default function Topbar() {
         .topbar-nav {
           display: flex;
           align-items: center;
-          gap: 20px;
-          padding-left: 8px;
+          gap: 24px;
         }
         .topbar-nav-link {
           padding: 8px 0;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 500;
-          color: var(--color-text2);
+          color: rgba(255, 255, 255, 0.5);
           text-decoration: none;
-          transition: color 200ms ease;
+          transition: color 150ms ease;
         }
         .topbar-nav-link:hover {
-          color: var(--color-text1);
+          color: #fff;
         }
         .topbar-nav-link.active {
-          color: #ffffff;
+          color: #fff;
         }
         .topbar-right {
           display: flex;
           align-items: center;
           justify-content: flex-end;
-          gap: 16px;
-          padding-right: 16px;
+          gap: 12px;
           flex: 1;
         }
         .btn-connect {
@@ -609,19 +616,20 @@ export default function Topbar() {
           font-size: 13px;
         }
         .btn-connect-unified {
-          background-color: var(--color-green) !important;
-          color: #070c18 !important;
-          border: none !important;
-          border-radius: 8px !important;
+          background-color: transparent !important;
+          color: #26c68b !important;
+          border: 1px solid rgba(38, 198, 139, 0.4) !important;
+          border-radius: 4px !important;
           font-size: 13px;
           font-weight: 600;
-          padding: 6px 16px;
+          padding: 6px 14px;
           letter-spacing: 0.3px;
           cursor: pointer;
-          transition: opacity 150ms;
+          transition: all 150ms;
         }
         .btn-connect-unified:hover {
-          opacity: 0.9;
+          background-color: rgba(38, 198, 139, 0.1) !important;
+          border-color: rgba(38, 198, 139, 0.6) !important;
         }
         .topbar-gas {
           display: flex;
@@ -641,19 +649,21 @@ export default function Topbar() {
         .topbar-account-btn {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 4px;
-          border-radius: var(--radius-lg);
+          gap: 6px;
+          padding: 4px 8px 4px 4px;
+          border-radius: 4px;
           cursor: pointer;
-          transition: background-color 200ms;
-          color: var(--color-text1);
+          transition: background-color 150ms;
+          color: #fff;
+          background-color: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
         }
         .topbar-account-btn:hover {
-          background-color: var(--color-bg2);
+          background-color: rgba(255,255,255,0.06);
         }
         .topbar-avatar {
-          width: 24px; height: 24px;
-          border-radius: 50%;
+          width: 20px; height: 20px;
+          border-radius: 4px;
           background: linear-gradient(135deg, #0052FF, #00d4aa, #0052FF);
           background-size: 200% 200%;
           animation: gradientShift 3s ease infinite;
@@ -682,61 +692,84 @@ export default function Topbar() {
           position: fixed;
           inset: 0;
           background-color: rgba(0,0,0,0.6);
-          backdrop-filter: blur(4px);
-          z-index: 999;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 1200;
           display: flex;
           justify-content: flex-start;
-          animation: fadeIn 200ms ease;
+          animation: fadeIn 250ms ease-out;
         }
         .mobile-menu-drawer {
           width: 80%;
-          max-width: 320px;
-          background-color: var(--color-bg0);
+          max-width: 300px;
+          background-color: rgba(11, 14, 17, 0.95);
           height: 100%;
           display: flex;
           flex-direction: column;
-          border-right: 1px solid var(--color-border);
-          animation: slideInLeft 200ms cubic-bezier(0.23, 1, 0.32, 1);
+          border-right: 1px solid rgba(255,255,255,0.06);
+          box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+          animation: slideInLeft 300ms cubic-bezier(0.16, 1, 0.3, 1);
         }
         @keyframes slideInLeft {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
+          from { transform: translateX(-100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
         .mobile-menu-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--color-border);
+          padding: 20px 24px;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
         }
         .mobile-close-btn {
           background: none;
           border: none;
-          color: var(--color-text2);
+          color: rgba(255,255,255,0.5);
           cursor: pointer;
+          transition: color 0.2s;
         }
+        .mobile-close-btn:hover { color: #fff; }
         .mobile-menu-nav {
           display: flex;
           flex-direction: column;
-          padding: 16px;
-          gap: 8px;
+          padding: 16px 0;
+          gap: 4px;
           flex: 1;
         }
         .mobile-nav-link {
-          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 24px;
           font-size: 16px;
           font-weight: 500;
-          color: var(--color-text2);
+          color: rgba(255,255,255,0.5);
           text-decoration: none;
-          border-radius: var(--radius-lg);
+          border-left: 2px solid transparent;
+          transition: all 0.2s;
+        }
+        .mobile-nav-link .nav-arrow {
+          opacity: 0;
+          transform: translateX(-8px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .mobile-nav-link.active {
           color: #fff;
-          background-color: var(--color-bg2);
+          background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+          border-left-color: #26c68b;
+        }
+        .mobile-nav-link.active .nav-arrow {
+          opacity: 1;
+          transform: translateX(0);
+          color: #26c68b;
         }
         .mobile-menu-footer {
-          padding: 20px;
-          border-top: 1px solid var(--color-border);
+          padding: 24px;
+          border-top: 1px solid rgba(255,255,255,0.06);
+          background-color: rgba(255,255,255,0.01);
+        }
+        .mobile-socials a:hover {
+          color: #fff !important;
         }
 
         /* ═══ Wide Market Selector Modal ═══ */

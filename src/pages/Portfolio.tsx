@@ -7,12 +7,13 @@ import { usePositions } from '../hooks/usePositions'
 import { useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
 import Positions from '../components/Positions'
 import { keccak256, toHex } from 'viem'
+
 export default function Portfolio() {
   const { markets } = useTradeStore()
   const { balance, address } = useArcWallet()
-  const { activePositions } = usePositions(address)
-  const { closedPositions } = useClosedPositions(address)
-  const { trades } = useTradeRecords(address)
+  const { activePositions } = usePositions(address || undefined)
+  const { closedPositions } = useClosedPositions(address || undefined)
+  const { trades } = useTradeRecords(address || undefined)
 
   const chartRef = useRef<HTMLDivElement>(null)
   const chartApiRef = useRef<IChartApi | null>(null)
@@ -94,6 +95,23 @@ export default function Portfolio() {
     return ()=>{ ro.disconnect(); chart.remove() }
   },[pnlData])
 
+  useEffect(() => {
+    if (!chartApiRef.current || !pnlData.length) return
+    const chart = chartApiRef.current
+    const now = Math.floor(Date.now() / 1000)
+    let fromTime = 0
+    if (chartTimeframe === '24h') fromTime = now - 86400
+    else if (chartTimeframe === '7d') fromTime = now - 7 * 86400
+    else if (chartTimeframe === '30d') fromTime = now - 30 * 86400
+    else if (chartTimeframe === '90d') fromTime = now - 90 * 86400
+
+    if (fromTime === 0) {
+      chart.timeScale().fitContent()
+    } else {
+      chart.timeScale().setVisibleRange({ from: fromTime as Time, to: now as Time })
+    }
+  }, [chartTimeframe, pnlData])
+
   return (
     <div className="portfolio-container">
       {/* DESKTOP LAYOUT (Hidden on Mobile) */}
@@ -116,12 +134,12 @@ export default function Portfolio() {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">30 Day Volume</div>
+            <div className="stat-label">Total Volume</div>
             <div className="stat-value font-mono">US${totalVol.toFixed(2)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Fees (Taker / Maker)</div>
-            <div className="stat-value font-mono" style={{ cursor: 'pointer', transition: 'color 0.2s' }}>0.0340% / 0.0110%</div>
+            <div className="stat-value font-mono" style={{ cursor: 'pointer', transition: 'color 0.2s' }}>0.04% / 0.02%</div>
           </div>
         </div>
 
@@ -132,18 +150,15 @@ export default function Portfolio() {
             <div className="panel-header">Overview</div>
             <div className="overview-list">
               {[
-                ['All Time Return', `${totalPnl>=0?'+':''}${totalPnl.toFixed(2)} USDC`, totalPnl>=0?'var(--color-green)':'var(--color-red)'],
-                ['Volume', `${totalVol.toFixed(2)} USDC`, 'var(--color-text1)'],
+                ['Total Equity', `${equity.toFixed(2)} USDC`, 'var(--color-text1)'],
+                ['Available Balance', `${balance.toFixed(2)} USDC`, 'var(--color-text1)'],
+                ['Active Collateral', `${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)} USDC`, 'var(--color-text1)'],
+                ['Unrealized PnL', `${unrealizedPnl>=0?'+':''}${unrealizedPnl.toFixed(2)} USDC`, unrealizedPnl>=0?'var(--color-green)':'var(--color-red)'],
+                ['Realized PnL', `${realizedPnl>=0?'+':''}${realizedPnl.toFixed(2)} USDC`, realizedPnl>=0?'var(--color-green)':'var(--color-red)'],
+                ['Total Volume', `${totalVol.toFixed(2)} USDC`, 'var(--color-text1)'],
                 ['Best Trade', `${bestTrade>0?'+':''}${bestTrade.toFixed(2)} USDC`, bestTrade>0?'var(--color-green)':'var(--color-text1)'],
-                ['Trading Portfolio', `${equity.toFixed(2)} USDC`, 'var(--color-text1)'],
-                ['Vault Allocation', '0.00 USDC', 'var(--color-text1)'],
-                ['Sharpe Ratio', '0.00', 'var(--color-text1)'],
-                ['Max Drawdown', '0.00%', 'var(--color-text1)'],
-                ['Weekly Win Rate (12w)', `${winRate}%`, 'var(--color-text1)'],
-                ['Avg. Cash Position', 'US$0.00', 'var(--color-text1)'],
-                ['Avg. Leverage', '0.00x', 'var(--color-text1)'],
-                ['Cross-margin Ratio', '0.00%', 'var(--color-text1)'],
-                ['Cross-account Position', '0.00 USDC', 'var(--color-text1)'],
+                ['Win Rate', `${winRate}%`, 'var(--color-text1)'],
+                ['Margin Type', 'Isolated', 'var(--color-text1)'],
               ].map(([label, value, color]) => (
                 <div key={label} className="overview-item">
                   <span className="overview-label">{label}</span>
@@ -179,12 +194,10 @@ export default function Portfolio() {
 
       {/* MOBILE ACCOUNT OVERVIEW (Hidden on Desktop) */}
       <div className="portfolio-mobile-only mobile-account-overview-card">
-        <div className="mobile-overview-row"><span className="label">Equity</span><span className="value">${equity.toFixed(2)}</span></div>
-        <div className="mobile-overview-row"><span className="label">Balance</span><span className="value">${balance.toFixed(2)}</span></div>
+        <div className="mobile-overview-row"><span className="label">Total Equity</span><span className="value">${equity.toFixed(2)}</span></div>
+        <div className="mobile-overview-row"><span className="label">Available Balance</span><span className="value">${balance.toFixed(2)}</span></div>
+        <div className="mobile-overview-row"><span className="label">Active Collateral</span><span className="value">${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)}</span></div>
         <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value ${unrealizedPnl >= 0 ? 'text-green' : 'text-red'}`}>${unrealizedPnl.toFixed(2)}</span></div>
-        <div className="mobile-overview-row"><span className="label">Funding Cost (Unrealized)</span><span className="value">$0.00</span></div>
-        <div className="mobile-overview-row"><span className="label">Cross-margin Ratio</span><span className="value">0.0000%</span></div>
-        <div className="mobile-overview-row"><span className="label">Maintenance Margin</span><span className="value">$0.00</span></div>
       </div>
 
       {/* BOTTOM SECTION: TABS & TABLES */}

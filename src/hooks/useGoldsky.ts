@@ -18,9 +18,9 @@ export function useVaultHistory(userAddress?: string) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchHistory() {
+    async function fetchHistory(isPolling = false) {
       try {
-        setIsLoading(true)
+        if (!isPolling) setIsLoading(true)
         let query: string
         let variables: any = {}
 
@@ -75,7 +75,7 @@ export function useVaultHistory(userAddress?: string) {
     fetchHistory()
     
     // Poll every 10 seconds
-    const interval = setInterval(fetchHistory, 10000)
+    const interval = setInterval(() => fetchHistory(true), 10000)
     return () => clearInterval(interval)
   }, [userAddress])
 
@@ -105,9 +105,9 @@ export function usePositions(userAddress?: string) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchPositions() {
+    async function fetchPositions(isPolling = false) {
       try {
-        setIsLoading(true)
+        if (!isPolling) setIsLoading(true)
         if (!userAddress) {
           setPositions([])
           return
@@ -154,7 +154,7 @@ export function usePositions(userAddress?: string) {
     }
 
     fetchPositions()
-    const interval = setInterval(fetchPositions, 5000) // Poll every 5s for fast trading updates
+    const interval = setInterval(() => fetchPositions(true), 5000) // Poll every 5s for fast trading updates
     return () => clearInterval(interval)
   }, [userAddress])
 
@@ -166,9 +166,9 @@ export function useClosedPositions(userAddress?: string) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchPositions() {
+    async function fetchPositions(isPolling = false) {
       try {
-        setIsLoading(true)
+        if (!isPolling) setIsLoading(true)
         if (!userAddress) {
           setClosedPositions([])
           return
@@ -219,7 +219,7 @@ export function useClosedPositions(userAddress?: string) {
     }
 
     fetchPositions()
-    const interval = setInterval(fetchPositions, 15000)
+    const interval = setInterval(() => fetchPositions(true), 15000)
     return () => clearInterval(interval)
   }, [userAddress])
 
@@ -246,11 +246,40 @@ export function useOrders(userAddress?: string) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchOrders() {
+    async function fetchOrders(isPolling = false) {
       try {
-        setIsLoading(true)
+        if (!isPolling) setIsLoading(true)
         if (!userAddress) {
-          setOrders([])
+          const query = gql`
+            query GetAllOrders {
+              orders(where: { isActive: true }, first: 100, orderBy: triggerPrice, orderDirection: desc) {
+                id
+                orderId
+                trader
+                pairId
+                orderType
+                triggerPrice
+                sizeUsd
+                leverage
+                collateral
+                isLong
+                isActive
+                createdAt
+              }
+            }
+          `
+          const data: any = await gqlClient.request(query)
+          const formatted = data.orders.map((o: any) => ({
+            ...o,
+            orderId: Number(o.orderId),
+            triggerPrice: Number(formatUnits(BigInt(o.triggerPrice), 18)),
+            sizeUsd: Number(formatUnits(BigInt(o.sizeUsd), 6)),
+            leverage: Number(o.leverage),
+            collateral: Number(formatUnits(BigInt(o.collateral), 6)),
+            createdAt: Number(o.createdAt) * 1000
+          }))
+          setOrders(formatted)
+          setIsLoading(false)
           return
         }
 
@@ -294,7 +323,7 @@ export function useOrders(userAddress?: string) {
     }
 
     fetchOrders()
-    const interval = setInterval(fetchOrders, 5000)
+    const interval = setInterval(() => fetchOrders(true), 5000)
     return () => clearInterval(interval)
   }, [userAddress])
 
@@ -317,11 +346,33 @@ export function useTradeRecords(userAddress?: string) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchTrades() {
+    async function fetchTrades(isPolling = false) {
       try {
-        setIsLoading(true)
+        if (!isPolling) setIsLoading(true)
         if (!userAddress) {
-          setTrades([])
+          const query = gql`
+            query GetAllTrades {
+              tradeRecords(first: 50, orderBy: timestamp, orderDirection: desc) {
+                id
+                trader
+                pairId
+                action
+                sizeUsd
+                price
+                timestamp
+                txHash
+              }
+            }
+          `
+          const data: any = await gqlClient.request(query)
+          const formatted = data.tradeRecords.map((t: any) => ({
+            ...t,
+            sizeUsd: Number(formatUnits(BigInt(t.sizeUsd), 6)),
+            price: Number(formatUnits(BigInt(t.price), 18)),
+            timestamp: Number(t.timestamp) * 1000
+          }))
+          setTrades(formatted)
+          setIsLoading(false)
           return
         }
 
@@ -358,7 +409,7 @@ export function useTradeRecords(userAddress?: string) {
     }
 
     fetchTrades()
-    const interval = setInterval(fetchTrades, 10000)
+    const interval = setInterval(() => fetchTrades(true), 10000)
     return () => clearInterval(interval)
   }, [userAddress])
 

@@ -16,6 +16,6 @@ export const CONTRACTS = {
 export const ABIS = {
   USDC: ERC20ABI,
   CORE: ConfidentialCoreABI.abi,
-  VAULT: ConfidentialVaultABI.abi,
-  TRADING: ConfidentialTradingABI.abi,
+  VAULT: ConfidentialVaultABI,
+  TRADING: ConfidentialTradingABI,
 } as const
