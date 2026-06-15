@@ -385,10 +385,12 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
             font-size: 24px !important;
           }
           .stat-card {
+            padding: 16px;
             text-align: center;
           }
           .portfolio-stats-grid {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
+            gap: 12px;
           }
           .portfolio-mid-grid {
             display: flex;
