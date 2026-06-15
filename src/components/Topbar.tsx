@@ -314,6 +314,50 @@ export default function Topbar() {
               ))}
             </nav>
             <div className="mobile-menu-footer">
+              {!isConnected ? (
+                <button
+                  className="btn"
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px', 
+                    backgroundColor: 'var(--color-green, #26c68b)', 
+                    color: '#0b0e11', 
+                    borderRadius: '8px', 
+                    border: 'none',
+                    boxShadow: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '15px'
+                  }}
+                  onClick={() => { login(); setIsMobileMenuOpen(false); }}
+                  disabled={!ready}
+                >
+                  Connect Wallet
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="topbar-avatar" />
+                      <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{truncatedAddress}</span>
+                      <button onClick={handleCopy} title="Copy Address" style={{ background: 'none', border: 'none', color: copied ? 'var(--color-green)' : 'var(--color-text2)', cursor: 'pointer', padding: 4, display: 'flex' }}>
+                        {copied ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0014.172 1.5H10a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2"/><path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2"/></svg>
+                        )}
+                      </button>
+                    </div>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--color-red)' }}
+                      onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="mobile-socials" style={{ display: 'flex', gap: '24px', marginTop: '24px', padding: '0 8px', alignItems: 'center', justifyContent: 'center' }}>
                 <a href="https://x.com/Confidentialdex" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
