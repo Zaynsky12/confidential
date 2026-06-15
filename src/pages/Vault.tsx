@@ -690,7 +690,7 @@ export default function Vault() {
             justify-content: space-between;
           }
           .pt-tab {
-            font-size: 12px;
+            font-size: 13px;
             padding: 12px 0;
             white-space: nowrap;
           }
