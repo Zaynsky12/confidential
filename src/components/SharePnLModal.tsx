@@ -71,7 +71,9 @@ export default function SharePnLModal({ isOpen, onClose, position }: SharePnLMod
             className="share-card"
             style={{
               position: 'relative',
-              width: '400px',
+              width: '100%',
+              maxWidth: '400px',
+              minWidth: '300px',
               background: 'linear-gradient(135deg, #0b0e14 0%, #1a1e28 100%)',
               border: '1px solid rgba(255,255,255,0.05)',
               borderRadius: '16px',
@@ -100,7 +102,7 @@ export default function SharePnLModal({ isOpen, onClose, position }: SharePnLMod
 
             {/* Main PnL */}
             <div style={{ marginBottom: '24px' }}>
-              <div style={{ fontSize: '52px', fontWeight: 800, color: colorHex, lineHeight: 1, letterSpacing: '-0.03em', textShadow: `0 0 40px ${colorHex}40` }}>
+              <div style={{ fontSize: '42px', fontWeight: 800, color: colorHex, lineHeight: 1, letterSpacing: '-0.03em', textShadow: `0 0 40px ${colorHex}40`, wordBreak: 'break-word' }}>
                 {isProfit ? '+' : ''}{position.pnlPercent.toFixed(2)}%
               </div>
               <div style={{ fontSize: '18px', fontWeight: 600, color: colorHex, marginTop: '8px' }}>
@@ -220,7 +222,7 @@ export default function SharePnLModal({ isOpen, onClose, position }: SharePnLMod
           display: flex;
           justify-content: center;
           background: #000;
-          padding: 32px;
+          padding: 24px;
           border-radius: 12px;
           border: 1px dashed var(--color-border-strong);
         }
@@ -253,11 +255,15 @@ export default function SharePnLModal({ isOpen, onClose, position }: SharePnLMod
         }
 
         @media (max-width: 500px) {
-          .share-card-wrapper {
+          .share-modal-container {
             padding: 16px;
-            transform: scale(0.85);
-            transform-origin: center top;
-            margin-bottom: -40px;
+            max-width: 95vw;
+          }
+          .share-card-wrapper {
+            padding: 12px;
+          }
+          .share-card {
+            padding: 16px !important;
           }
         }
       `}</style>
