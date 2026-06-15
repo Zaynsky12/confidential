@@ -112,7 +112,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
   }, [chartTimeframe, pnlData])
 
   return (
-    <div className="portfolio-container" style={isCompact ? { padding: '16px', paddingBottom: '80px' } : {}}>
+    <div className="portfolio-container" style={isCompact ? { padding: '16px 0 0 0' } : {}}>
       {isCompact ? (
         <div className="mobile-account-overview-card">
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }}>Account Overview</div>
@@ -379,7 +379,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
           .portfolio-container {
             padding: 16px;
             overflow-x: hidden;
-            padding-bottom: 80px;
+            padding-bottom: 0px;
           }
           .portfolio-header h1 {
             font-size: 24px !important;
