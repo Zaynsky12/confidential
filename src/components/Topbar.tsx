@@ -85,6 +85,17 @@ export default function Topbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  useEffect(() => {
+    if (isMobileMenuOpen || isMarketSelectorOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isMobileMenuOpen, isMarketSelectorOpen])
+
   const filteredMarkets = markets.filter((m) => {
     const matchesSearch = m.pair.toLowerCase().includes(marketSearch.toLowerCase())
     const matchesTab = marketTab === 'all'
@@ -714,7 +725,7 @@ export default function Topbar() {
           width: 80%;
           max-width: 300px;
           background-color: rgba(11, 14, 17, 0.95);
-          height: 100%;
+          height: 100dvh;
           display: flex;
           flex-direction: column;
           border-right: 1px solid rgba(255,255,255,0.06);
@@ -746,6 +757,7 @@ export default function Topbar() {
           padding: 16px 0;
           gap: 4px;
           flex: 1;
+          overflow-y: auto;
         }
         .mobile-nav-link {
           display: flex;
