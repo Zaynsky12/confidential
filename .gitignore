@@ -29,7 +29,14 @@ dist-ssr
 !.env.example
 contracts/.env
 
-# Foundry
+# Foundry & Hardhat
 contracts/broadcast/
 contracts/cache/
 contracts/out/
+contracts/artifacts/
+contracts/flattened/
+
+# Scratch and other temp
+scratch/
+artifacts/
+cache/
