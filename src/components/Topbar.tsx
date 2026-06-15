@@ -151,11 +151,11 @@ export default function Topbar() {
         </div>
 
         {/* Center — Active Market (Mobile Only) */}
-        <div className="topbar-center mobile-only" style={{ flexDirection: 'column', gap: 0, justifyContent: 'center' }}>
+        <div className="topbar-center mobile-only" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', flexDirection: 'column', gap: 0, justifyContent: 'center', textAlign: 'center', width: '60%' }}>
           {!isMarketView ? (
             <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>
               {location.pathname.startsWith('/portfolio') || (location.pathname.startsWith('/trade') && mobileNav === 'account') ? 'Portfolio' :
-               location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? 'Yield Vault' :
+               location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? 'cUSDC Yield Vault' :
                location.pathname.startsWith('/referrals') ? 'Referrals' :
                location.pathname.startsWith('/points') ? 'Points' :
                location.pathname.startsWith('/leaderboard') ? 'Leaderboard' : ''}

@@ -122,17 +122,17 @@ export default function Vault() {
     <div className="vault-container">
 
       <div className="vault-header">
-        <h1 style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>cUSDC Yield Vault</h1>
+        <h1 className="desktop-only" style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>cUSDC Yield Vault</h1>
         
         {/* Mobile Key Stats Card */}
-        <div className="mobile-only" style={{ marginTop: 24, padding: '16px', background: 'var(--color-bg1)', borderRadius: '8px', border: '1px solid var(--color-border)', justifyContent: 'space-between' }}>
+        <div className="mobile-only" style={{ marginTop: 24, padding: '16px', background: 'var(--color-bg1)', borderRadius: '8px', border: '1px solid var(--color-border)', justifyContent: 'center', gap: '48px', textAlign: 'center' }}>
            <div>
              <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Vault TVL</div>
              <div className="font-mono" style={{ fontSize: 20, fontWeight: 600 }}>US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
            </div>
-           <div style={{ textAlign: 'right' }}>
+           <div>
              <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Lockup Period</div>
-             <div className="font-mono" style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text1)' }}>7 Days</div>
+             <div className="font-mono" style={{ fontSize: 20, fontWeight: 500, color: 'var(--color-text1)' }}>7 Days</div>
            </div>
         </div>
       </div>
