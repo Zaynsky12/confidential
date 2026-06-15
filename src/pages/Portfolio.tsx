@@ -10,9 +10,10 @@ import { keccak256, toHex } from 'viem'
 export default function Portfolio({ isCompact = false }: { isCompact?: boolean }) {
   const { markets } = useTradeStore()
   const { balance, address } = useArcWallet()
-  const { positions: activePositions } = usePositions(address || undefined)
-  const { closedPositions } = useClosedPositions(address || undefined)
-  const { trades } = useTradeRecords(address || undefined)
+  const safeAddress = address || '0x0000000000000000000000000000000000000000'
+  const { positions: activePositions } = usePositions(safeAddress)
+  const { closedPositions } = useClosedPositions(safeAddress)
+  const { trades } = useTradeRecords(safeAddress)
 
   const chartRef = useRef<HTMLDivElement>(null)
   const chartApiRef = useRef<IChartApi | null>(null)
