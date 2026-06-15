@@ -684,6 +684,16 @@ export default function Vault() {
           .overview-list-grid {
             grid-template-columns: 1fr;
           }
+          .tabs-row {
+            gap: 8px;
+            padding: 0 8px;
+            justify-content: space-between;
+          }
+          .pt-tab {
+            font-size: 12px;
+            padding: 12px 0;
+            white-space: nowrap;
+          }
         }
       `}</style>
     </div>
