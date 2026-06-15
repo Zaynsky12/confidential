@@ -410,6 +410,13 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
             white-space: nowrap;
             text-align: center;
           }
+          .portfolio-bottom {
+            margin: 0 -16px;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+          }
         }
 
         @media (max-width: 480px) {
