@@ -377,7 +377,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
         }
         @media (max-width: 768px) {
           .portfolio-container {
-            padding: 16px;
+            padding: 8px;
             overflow-x: hidden;
             padding-bottom: 0px;
           }
@@ -411,11 +411,9 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
             text-align: center;
           }
           .portfolio-bottom {
-            margin: 0 -16px;
-            border-radius: 0;
-            border-left: none;
-            border-right: none;
-            border-bottom: none;
+            margin: 0;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
           }
         }
 
