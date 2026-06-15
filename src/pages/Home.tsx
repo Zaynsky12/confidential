@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import LanguageDropdown from '../components/LanguageDropdown'
+
 
 export default function Home() {
   const { t } = useTranslation()
@@ -27,7 +27,7 @@ export default function Home() {
           </div>
           <div className="home-nav-right">
             <Link to="/trade" className="home-nav-cta">Launch App</Link>
-            <LanguageDropdown />
+            
           </div>
         </div>
       </nav>
