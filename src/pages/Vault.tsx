@@ -1,30 +1,25 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
-import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialVault } from '../hooks/useConfidentialVault'
-import { useVaultHistory, useTradeRecords } from '../hooks/useGoldsky'
-import { usePositions } from '../hooks/useGoldsky'
-import { keccak256, toHex } from 'viem'
+import { useVaultHistory } from '../hooks/useGoldsky'
+import { CONTRACTS } from '../config/contracts'
 
 export default function Vault() {
-  const { markets } = useTradeStore()
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
   const { deposits: globalDeposits } = useVaultHistory() // For global TVL chart
-  const { positions: activePositions } = usePositions(address || undefined)
-  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
-  const [activeTab, setActiveTab] = useState('Activity')
+  const [activeTab, setActiveTab] = useState('Vault Performance')
   
   const chartRef = useRef<HTMLDivElement>(null)
   const chartApiRef = useRef<IChartApi | null>(null)
   const [chartTimeframe, setChartTimeframe] = useState('30d')
 
-  const tabs = ['Activity', 'Positions', 'Trade History', 'Funding History']
+  const tabs = ['Vault Performance', 'Your Activity', 'Traders PnL', 'Top Depositors']
 
   const handleAction = async () => {
     if (!isConnected || isWrongNetwork) { connect(); return }
@@ -45,6 +40,11 @@ export default function Vault() {
 
   const formatTime = (ts: number) => new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
+  const vaultVolume = useMemo(() => {
+    if (!globalDeposits) return 0
+    return globalDeposits.reduce((acc, d) => acc + d.amount, 0)
+  }, [globalDeposits])
+
   // Real Vault TVL data for chart
   const tvlData = useMemo(() => {
     if (!globalDeposits || globalDeposits.length === 0) {
@@ -55,7 +55,6 @@ export default function Vault() {
       ]
     }
 
-    // Sort ascending by time
     const sorted = [...globalDeposits].sort((a, b) => a.timestamp - b.timestamp)
     let currentTVL = 0
     const data = []
@@ -71,7 +70,6 @@ export default function Vault() {
       data.push({ time: (d.timestamp / 1000) as Time, value: +currentTVL.toFixed(2) })
     }
 
-    // Push latest tvlUsd directly from contract if greater than indexed
     if (tvlUsd > currentTVL) {
       data.push({ time: Math.floor(Date.now() / 1000) as Time, value: +tvlUsd.toFixed(2) })
     }
@@ -86,7 +84,7 @@ export default function Vault() {
       grid:{ vertLines:{color:'rgba(255,255,255,0.03)'}, horzLines:{color:'rgba(255,255,255,0.03)'} },
       rightPriceScale:{ borderColor:'rgba(255,255,255,0.06)' },
       timeScale:{ borderColor:'rgba(255,255,255,0.06)' },
-      width: chartRef.current.clientWidth, height:320,
+      width: chartRef.current.clientWidth, height:280,
     })
     const series = chart.addSeries(AreaSeries, {
       topColor:'rgba(255,255,255,0.15)', bottomColor:'rgba(255,255,255,0.0)', lineColor:'#ffffff', lineWidth:2,
@@ -99,7 +97,7 @@ export default function Vault() {
     })
     ro.observe(chartRef.current)
     return ()=>{ ro.disconnect(); chart.remove() }
-  },[tvlData])
+  },[tvlData, activeTab]) // Add activeTab to remount chart when tab switches
 
   useEffect(() => {
     if (!chartApiRef.current || !tvlData.length) return
@@ -120,90 +118,176 @@ export default function Vault() {
 
   return (
     <div className="vault-container">
-
-      <div className="vault-header">
-        <h1 className="desktop-only" style={{ fontSize:32,fontWeight:600,letterSpacing:'-0.02em',margin:0 }}>cUSDC Yield Vault</h1>
-        
-        {/* Mobile Key Stats Card */}
-        <div className="mobile-only" style={{ marginTop: 24, padding: '16px', background: 'var(--color-bg1)', borderRadius: '8px', border: '1px solid var(--color-border)', justifyContent: 'center', gap: '48px', textAlign: 'center' }}>
-           <div>
-             <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Vault TVL</div>
-             <div className="font-mono" style={{ fontSize: 20, fontWeight: 600 }}>US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-           </div>
-           <div>
-             <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Lockup Period</div>
-             <div className="font-mono" style={{ fontSize: 20, fontWeight: 500, color: 'var(--color-text1)' }}>7 Days</div>
-           </div>
+      {/* 1. VAULT HEADER STATS */}
+      <div className="vault-stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Vault TVL</div>
+          <div className="stat-value font-mono">US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Volume</div>
+          <div className="stat-value font-mono">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
         </div>
       </div>
 
-      {/* Main Grid */}
+      {/* 2. DECIBEL-STYLE TABS */}
+      <div className="decibel-tabs">
+        <div className="tabs-row">
+          {tabs.map(tab => (
+            <button key={tab} className={`pt-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. MAIN GRID */}
       <div className="vault-main-grid">
         
         {/* LEFT COLUMN */}
-        <div className="vault-left desktop-only">
-          {/* Chart Panel */}
-          <div className="chart-panel">
-            <div className="chart-header">
-              <div>
-                <div style={{ color:'var(--color-text2)', fontSize:13, marginBottom:4 }}>Vault TVL</div>
-                <div className="font-mono" style={{ fontSize:24, fontWeight:600 }}>US${(tvlUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-              </div>
-              <div className="chart-controls">
-                <div className="control-group">
-                  {['24h','7d','30d','90d','All'].map(tf => (
-                    <button key={tf} className={`control-btn ${chartTimeframe===tf?'active':''}`} onClick={()=>setChartTimeframe(tf)}>{tf}</button>
-                  ))}
+        <div className="vault-left">
+          
+          {activeTab === 'Vault Performance' ? (
+            <div className="decibel-performance-layout">
+              {/* Left: Metrics List */}
+              <div className="dp-metrics">
+                <div className="dp-metrics-header">
+                  <h2>Vault Performance</h2>
+                </div>
+                <div className="dp-list">
+                  <div className="dp-item"><span className="dp-label">TVL</span><span className="dp-value">US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+                  <div className="dp-item"><span className="dp-label">All Time Return</span><span className="dp-value text-green">+0.00%</span></div>
+                  <div className="dp-item"><span className="dp-label">PnL</span><span className="dp-value text-green">+US$0.00</span></div>
+                  <div className="dp-item"><span className="dp-label">Past Month Return (APR)</span><span className="dp-value text-green">+0.00%</span></div>
+                  <div className="dp-item"><span className="dp-label">Volume</span><span className="dp-value">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+                  <div className="dp-item"><span className="dp-label">Performance Fee</span><span className="dp-value">0%</span></div>
+                  <div className="dp-item"><span className="dp-label">Lockup Period</span><span className="dp-value">7 Days</span></div>
+                  <div className="dp-item">
+                    <span className="dp-label">Vault Manager</span>
+                    <span className="dp-value font-mono text-accent" style={{ fontSize: 13 }}>
+                      <a href={`https://explorer.arc.network/address/${CONTRACTS.VAULT}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none', display:'flex', alignItems:'center', gap:'4px'}}>
+                        {CONTRACTS.VAULT.slice(0, 6)}...{CONTRACTS.VAULT.slice(-4)}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                      </a>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div ref={chartRef} className="chart-container" />
-          </div>
-
-          {/* Overview Panel */}
-          <div className="overview-panel" style={{ marginTop: 24 }}>
-            <div className="panel-header">Performance Metrics</div>
-            <div className="overview-list-grid">
-              {[
-                ['TVL', `US$${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, 'var(--color-text1)'],
-                ['Management Fee', '0.00%', 'var(--color-text1)'],
-                ['Lockup Period', '7 Days', 'var(--color-text1)'],
-                ['Your Deposit', `US$${userCVault.toFixed(2)}`, 'var(--color-accent)'],
-              ].map(([label, value, color]) => (
-                <div key={label} className="overview-item">
-                  <span className="overview-label">{label}</span>
-                  <span className="overview-value font-mono" style={{ color }}>{value}</span>
+              
+              {/* Right: Chart Area */}
+              <div className="dp-chart-area">
+                <div className="dp-chart-header">
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Profit/Loss</span>
+                    <span className="font-mono" style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text1)' }}>
+                      US${(tvlUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
+                    </span>
+                  </div>
+                  <div className="chart-controls">
+                    <div className="control-group">
+                      {['24h','7d','30d','90d','All'].map(tf => (
+                        <button key={tf} className={`control-btn ${chartTimeframe===tf?'active':''}`} onClick={()=>setChartTimeframe(tf)}>{tf}</button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              ))}
+                <div ref={chartRef} className="chart-container" style={{ flex: 1, minHeight: 280 }} />
+              </div>
             </div>
-          </div>
+          ) : activeTab === 'Your Activity' ? (
+            <div className="vault-panel-box">
+              <div style={{ overflowX:'auto' }}>
+                <table className="portfolio-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Action</th>
+                      <th>Amount</th>
+                      <th>Tx Hash</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isHistoryLoading ? (
+                      <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>Loading from Goldsky...</td></tr>
+                    ) : vaultDeposits.length === 0 ? (
+                      <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No activity yet</td></tr>
+                    ) : vaultDeposits.map(d=>(
+                      <tr key={d.id}>
+                        <td style={{ color:'var(--color-text2)' }}>{formatTime(d.timestamp)}</td>
+                        <td><span className={d.action==='deposit'?'badge badge-green':'badge badge-red'} style={{ fontSize:10,padding:'2px 8px' }}>{d.action.toUpperCase()}</span></td>
+                        <td className="font-mono">{d.amount.toFixed(2)} USDC</td>
+                        <td className="font-mono text-accent">
+                          <a href={`https://explorer.arc.network/tx/${d.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : activeTab === 'Traders PnL' ? (
+            <div className="vault-panel-box">
+              <div style={{ overflowX:'auto' }}>
+                <table className="portfolio-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Long PnL</th>
+                      <th>Short PnL</th>
+                      <th>Net Global PnL</th>
+                      <th>Liquidations</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No data yet</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : activeTab === 'Top Depositors' ? (
+            <div className="vault-panel-box">
+              <div style={{ overflowX:'auto' }}>
+                <table className="portfolio-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Wallet Address</th>
+                      <th>Total Deposit (USDC)</th>
+                      <th>Pool Share</th>
+                      <th>Total Earned</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No data yet</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* RIGHT COLUMN (ACTION CARD) */}
         <div className="vault-right">
           <div className="action-card sticky-card">
-            <div style={{ display: 'flex', background: 'var(--color-bg0)', borderRadius: 8, padding: 4, margin: '20px 20px 0', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', background: 'var(--color-bg1)', borderRadius: 8, padding: 4, margin: '20px 20px 0', border: '1px solid var(--color-border)' }}>
               <button 
                 onClick={()=>{setActiveAction('Deposit'); setAmt('')}}
-                style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: 'none', background: activeAction === 'Deposit' ? 'var(--color-accent)' : 'transparent', color: activeAction === 'Deposit' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 6, border: 'none', background: activeAction === 'Deposit' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Deposit' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 Deposit
               </button>
               <button 
                 onClick={()=>{setActiveAction('Withdraw'); setAmt('')}}
-                style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: 'none', background: activeAction === 'Withdraw' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Withdraw' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 6, border: 'none', background: activeAction === 'Withdraw' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Withdraw' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 Withdraw
               </button>
             </div>
             
             <div className="action-body">
-              {activeAction === 'Deposit' && (
-                <div className="warning-banner">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                  <span>Funds are locked for 7 days after deposit. You earn 70% of all platform fees plus trader losses.</span>
-                </div>
-              )}
+              <div className="decibel-disclaimer">
+                After an initial deposit, there is a waiting period of 7 days before funds can be withdrawn. You earn 70% of all platform fees plus trader losses.
+              </div>
 
               <div className="input-group">
                 <div className="input-header">
@@ -222,129 +306,12 @@ export default function Vault() {
               </div>
 
               <button className="submit-btn" disabled={isPending || (!amt && !isWrongNetwork && isConnected) || (Number(amt) <= 0 && !isWrongNetwork && isConnected)} onClick={handleAction} style={{ opacity: (isPending || (!amt && !isWrongNetwork && isConnected)) ? 0.5 : 1 }}>
-                {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isWrongNetwork ? 'Switch to Arc Testnet' : activeAction}
+                {isPending ? 'Processing...' : !isConnected ? 'Connect an account first' : isWrongNetwork ? 'Switch to Arc Testnet' : activeAction}
               </button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* BOTTOM TABS */}
-      <div className="vault-bottom">
-        <div className="tab-scroll-container">
-          <div className="tabs-row">
-            {tabs.map(tab => (
-              <button key={tab} className={`pt-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div className="tab-content">
-          {activeTab === 'Activity' ? (
-            <div style={{ overflowX:'auto' }}>
-              <table className="portfolio-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Action</th>
-                    <th>Amount</th>
-                    <th>Tx Hash</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isHistoryLoading ? (
-                    <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>Loading from Goldsky...</td></tr>
-                  ) : vaultDeposits.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No activity yet</td></tr>
-                  ) : vaultDeposits.map(d=>(
-                    <tr key={d.id}>
-                      <td style={{ color:'var(--color-text2)' }}>{formatTime(d.timestamp)}</td>
-                      <td><span className={d.action==='deposit'?'badge badge-green':'badge badge-red'} style={{ fontSize:10,padding:'2px 8px' }}>{d.action.toUpperCase()}</span></td>
-                      <td className="font-mono">{d.amount.toFixed(2)} USDC</td>
-                      <td className="font-mono text-accent">
-                        <a href={`https://explorer.arc.network/tx/${d.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : activeTab === 'Positions' ? (
-            <div style={{ overflowX:'auto' }}>
-              <table className="portfolio-table">
-                <thead>
-                  <tr>
-                    <th>Market</th>
-                    <th>Side</th>
-                    <th>Size</th>
-                    <th>Entry Price</th>
-                    <th>Leverage</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activePositions.length === 0 ? (
-                    <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No open positions</td></tr>
-                  ) : activePositions.map(p => {
-                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
-                    const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
-                    return (
-                      <tr key={p.id}>
-                        <td style={{ fontWeight: 600 }}>{pairName}</td>
-                        <td><span className={p.isLong?'text-green':'text-red'} style={{ textTransform:'uppercase', fontSize:11, fontWeight:600 }}>{p.isLong?'LONG':'SHORT'}</span></td>
-                        <td className="font-mono">{p.sizeUsd.toFixed(2)}</td>
-                        <td className="font-mono">${p.entryPrice.toFixed(2)}</td>
-                        <td className="font-mono">{p.leverage}x</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : activeTab === 'Trade History' ? (
-            <div style={{ overflowX:'auto' }}>
-              <table className="portfolio-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Market</th>
-                    <th>Side</th>
-                    <th>Size</th>
-                    <th>Close Price</th>
-                    <th>Tx Hash</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isTradesLoading ? (
-                    <tr><td colSpan={6} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>Loading from Goldsky...</td></tr>
-                  ) : closedPositions.length === 0 ? (
-                    <tr><td colSpan={6} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No trade history</td></tr>
-                  ) : closedPositions.map(p => {
-                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
-                    const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
-                    return (
-                      <tr key={p.id}>
-                        <td style={{ color:'var(--color-text2)' }}>{formatTime(p.timestamp)}</td>
-                        <td style={{ fontWeight: 600 }}>{pairName}</td>
-                        <td><span className={p.action==='Open'?'text-green':'text-red'} style={{ textTransform:'uppercase', fontSize:11, fontWeight:600 }}>{p.action}</span></td>
-                        <td className="font-mono">{p.sizeUsd.toFixed(2)}</td>
-                        <td className="font-mono">${p.price.toFixed(2)}</td>
-                        <td className="font-mono text-accent">
-                          <a href={`https://explorer.arc.network/tx/${p.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div style={{ color: 'var(--color-text3)', fontSize:14 }}>No data yet</div>
-            </div>
-          )}
-        </div>
       </div>
 
       <style>{`
@@ -359,50 +326,163 @@ export default function Vault() {
           box-sizing: border-box;
           min-width: 0;
         }
-        .vault-breadcrumbs {
-          font-size: 13px;
+
+        /* Header Stats */
+        .vault-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
           margin-bottom: 24px;
+          max-width: 600px; /* Don't stretch too wide on desktop */
         }
-        .vault-header {
-          margin-bottom: 40px;
+        .stat-card {
+          padding: 20px;
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          background: var(--color-bg1);
+        }
+        .stat-label {
+          color: var(--color-text2);
+          font-size: 13px;
+          margin-bottom: 8px;
+        }
+        .stat-value {
+          font-size: 18px;
+          font-weight: 600;
+        }
+
+        /* Tabs */
+        .decibel-tabs {
+          border-bottom: 1px solid var(--color-border);
+          margin-bottom: 32px;
+        }
+        .tabs-row {
+          display: flex;
+          gap: 32px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .tabs-row::-webkit-scrollbar {
+          display: none;
+        }
+        .pt-tab {
+          background: transparent;
+          border: none;
+          color: var(--color-text3);
+          font-size: 14px;
+          font-weight: 500;
+          padding: 16px 0;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+        .pt-tab:hover {
+          color: var(--color-text2);
+        }
+        .pt-tab.active {
+          color: var(--color-text1);
+          border-bottom-color: #ffffff;
         }
 
         /* Main Grid */
         .vault-main-grid {
           display: grid;
           grid-template-columns: 1fr 380px;
-          gap: 24px;
-          margin-bottom: 32px;
+          gap: 32px;
           align-items: start;
         }
 
-        .mobile-only {
-          display: none !important;
+        /* Vault Performance Layout (Left) */
+        .decibel-performance-layout {
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 32px;
         }
 
-        /* Chart Panel */
-        .chart-panel {
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          background: var(--color-bg1);
+        .dp-metrics {
           display: flex;
           flex-direction: column;
-          overflow: hidden;
-          min-width: 0;
         }
-        .chart-header {
-          padding: 20px 24px;
+        .dp-metrics-header {
+          margin-bottom: 24px;
+        }
+        .dp-metrics-header h2 {
+          font-size: 18px;
+          font-weight: 600;
+          margin: 0;
+          color: var(--color-text1);
+        }
+        .dp-list {
+          display: flex;
+          flex-direction: column;
+        }
+        .dp-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px dashed rgba(255,255,255,0.05);
+          font-size: 14px;
+        }
+        .dp-item:last-child {
+          border-bottom: none;
+        }
+        .dp-label {
+          color: var(--color-text2);
+        }
+        .dp-value {
+          font-weight: 500;
+          text-align: right;
+        }
+
+        .dp-chart-area {
+          display: flex;
+          flex-direction: column;
+        }
+        .dp-chart-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          border-bottom: 1px solid var(--color-border);
+          margin-bottom: 24px;
         }
+
+        /* General Panel Box for other tabs */
+        .vault-panel-box {
+          background: transparent;
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        /* Action Card */
+        .sticky-card {
+          position: sticky;
+          top: 84px; /* 60px topbar + 24px */
+        }
+        .action-card {
+          background: var(--color-bg1);
+          border: 1px solid var(--color-border);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        .action-body {
+          padding: 24px;
+        }
+        .decibel-disclaimer {
+          font-size: 13px;
+          color: var(--color-text2);
+          line-height: 1.5;
+          margin-bottom: 24px;
+        }
+
+        /* Controls & Inputs */
         .chart-controls {
           display: flex;
         }
         .control-group {
           display: flex;
-          background: var(--color-bg0);
+          background: var(--color-bg1);
           border-radius: 6px;
           padding: 2px;
           border: 1px solid var(--color-border);
@@ -422,75 +502,7 @@ export default function Vault() {
           background: var(--color-bg2);
           color: var(--color-text1);
         }
-        .chart-container {
-          flex: 1;
-          height: 320px;
-          padding-top: 16px;
-        }
 
-        /* Overview Panel */
-        .overview-panel {
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          background: var(--color-bg1);
-          display: flex;
-          flex-direction: column;
-        }
-        .panel-header {
-          padding: 16px 24px;
-          font-size: 16px;
-          font-weight: 600;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .overview-list-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px 32px;
-          padding: 20px 24px;
-        }
-        .overview-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 14px;
-        }
-        .overview-label {
-          color: var(--color-text2);
-          border-bottom: 1px dashed rgba(255,255,255,0.2);
-          padding-bottom: 2px;
-        }
-
-        /* Right Column Action Card */
-        .sticky-card {
-          position: sticky;
-          top: 84px; /* 60px topbar + 24px padding */
-        }
-        .action-card {
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          background: var(--color-bg1);
-          overflow: hidden;
-        }
-        .action-body {
-          padding: 20px;
-        }
-        .warning-banner {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          background: rgba(240, 185, 11, 0.1);
-          border: 1px solid rgba(240, 185, 11, 0.2);
-          color: #f0b90b;
-          padding: 12px 16px;
-          border-radius: 6px;
-          font-size: 13px;
-          line-height: 1.4;
-          margin-bottom: 24px;
-        }
-        .warning-banner svg {
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
         .input-group {
           margin-bottom: 24px;
         }
@@ -498,8 +510,6 @@ export default function Vault() {
           display: flex;
           justify-content: space-between;
           margin-bottom: 8px;
-          flex-wrap: wrap;
-          gap: 4px;
         }
         .input-box {
           display: flex;
@@ -532,26 +542,14 @@ export default function Vault() {
           padding: 4px 8px;
           border-radius: 4px;
           cursor: pointer;
-          flex-shrink: 0;
-        }
-        .est-yield {
-          display: flex;
-          justify-content: space-between;
-          font-size: 13px;
-          color: var(--color-text2);
-          margin-bottom: 24px;
-          padding-top: 16px;
-          border-top: 1px dashed var(--color-border);
-          flex-wrap: wrap;
-          gap: 4px;
         }
         .submit-btn {
           width: 100%;
-          background: var(--color-text1);
-          color: var(--color-bg0);
+          background: var(--color-accent);
+          color: #fff;
           border: none;
-          border-radius: 8px;
-          padding: 12px 0;
+          border-radius: 6px;
+          padding: 14px 0;
           font-size: 15px;
           font-weight: 600;
           cursor: pointer;
@@ -561,54 +559,10 @@ export default function Vault() {
           opacity: 0.9;
         }
 
-        /* Bottom Section */
-        .vault-bottom {
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          background: var(--color-bg1);
-          overflow: hidden;
-        }
-        .tab-scroll-container {
-          overflow-x: auto;
-          scrollbar-width: none;
-          border-bottom: 1px solid var(--color-border);
-        }
-        .tab-scroll-container::-webkit-scrollbar {
-          display: none;
-        }
-        .tabs-row {
-          display: flex;
-          padding: 0 16px;
-          gap: 24px;
-        }
-        .pt-tab {
-          background: transparent;
-          border: none;
-          color: var(--color-text3);
-          font-size: 14px;
-          font-weight: 500;
-          padding: 16px 0;
-          cursor: pointer;
-          border-bottom: 2px solid transparent;
-          white-space: nowrap;
-          transition: all 0.2s;
-        }
-        .pt-tab:hover {
-          color: var(--color-text2);
-        }
-        .pt-tab.active {
-          color: var(--color-text1);
-          border-bottom-color: #ffffff;
-        }
-        .tab-content {
-          min-height: 200px;
-        }
-        .empty-state {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 200px;
-        }
+        .text-green { color: var(--color-green); }
+        .text-red { color: var(--color-red); }
+
+        /* Tables */
         .portfolio-table {
           width: 100%;
           border-collapse: collapse;
@@ -633,70 +587,22 @@ export default function Vault() {
           .vault-main-grid {
             grid-template-columns: 1fr;
           }
+          .decibel-performance-layout {
+            grid-template-columns: 1fr;
+          }
           .sticky-card {
             position: static;
           }
         }
         @media (max-width: 768px) {
-          .vault-main-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            width: 100%;
-          }
-          .action-card {
-            width: 100%;
-          }
-          .action-body {
-            padding: 16px;
-          }
-          .desktop-only {
-            display: none !important;
-          }
-          .mobile-only {
-            display: flex !important;
-          }
           .vault-container {
-            padding: 8px;
-            overflow-x: hidden;
-            padding-bottom: 100px;
+            padding: 16px 12px;
           }
-          .vault-header h1 {
-            font-size: 24px !important;
-          }
-          .chart-header {
-            flex-direction: column;
-            gap: 16px;
-            align-items: stretch;
-          }
-          .chart-controls {
-            width: 100%;
-          }
-          .control-group {
-            width: 100%;
-            overflow-x: auto;
-          }
-          .control-btn {
-            flex: 1;
-            white-space: nowrap;
-            text-align: center;
-          }
-          .overview-list-grid {
-            grid-template-columns: 1fr;
-          }
-          .tabs-row {
-            gap: 8px;
-            padding: 0 8px;
-            justify-content: space-between;
-          }
-          .pt-tab {
-            font-size: 13px;
-            padding: 12px 0;
-            white-space: nowrap;
+          .vault-stats-grid {
+            grid-template-columns: 1fr 1fr;
           }
         }
       `}</style>
     </div>
   )
 }
-
