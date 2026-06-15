@@ -3,7 +3,7 @@ import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialVault } from '../hooks/useConfidentialVault'
-import { useVaultHistory } from '../hooks/useGoldsky'
+import { useVaultHistory, useTradeRecords } from '../hooks/useGoldsky'
 import { CONTRACTS } from '../config/contracts'
 
 export default function Vault() {
@@ -11,6 +11,7 @@ export default function Vault() {
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
   const { deposits: globalDeposits } = useVaultHistory() // For global TVL chart
+  const { trades: globalTrades } = useTradeRecords() // For total platform volume
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
   const [activeTab, setActiveTab] = useState('Vault Performance')
@@ -41,9 +42,9 @@ export default function Vault() {
   const formatTime = (ts: number) => new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
   const vaultVolume = useMemo(() => {
-    if (!globalDeposits) return 0
-    return globalDeposits.reduce((acc, d) => acc + d.amount, 0)
-  }, [globalDeposits])
+    if (!globalTrades) return 0
+    return globalTrades.reduce((acc, t) => acc + t.sizeUsd, 0)
+  }, [globalTrades])
 
   // Real Vault TVL data for chart
   const tvlData = useMemo(() => {
@@ -178,8 +179,8 @@ export default function Vault() {
               <div className="dp-chart-area">
                 <div className="dp-chart-header">
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 4 }}>Profit/Loss</span>
-                    <span className="font-mono" style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text1)' }}>
+                    <span style={{ color: 'var(--color-text2)', fontSize: 14, marginBottom: 4 }}>Profit/Loss</span>
+                    <span className="font-mono" style={{ fontSize: 22, fontWeight: 600, color: 'var(--color-text1)' }}>
                       US${(tvlUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
                     </span>
                   </div>
@@ -269,16 +270,16 @@ export default function Vault() {
         {/* RIGHT COLUMN (ACTION CARD) */}
         <div className="vault-right">
           <div className="action-card sticky-card">
-            <div style={{ display: 'flex', background: 'var(--color-bg1)', borderRadius: 8, padding: 4, margin: '20px 20px 0', border: '1px solid var(--color-border)' }}>
+            <div className="action-tabs-container">
               <button 
+                className={`action-tab-btn ${activeAction === 'Deposit' ? 'active' : ''}`}
                 onClick={()=>{setActiveAction('Deposit'); setAmt('')}}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 6, border: 'none', background: activeAction === 'Deposit' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Deposit' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 Deposit
               </button>
               <button 
+                className={`action-tab-btn ${activeAction === 'Withdraw' ? 'active' : ''}`}
                 onClick={()=>{setActiveAction('Withdraw'); setAmt('')}}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 6, border: 'none', background: activeAction === 'Withdraw' ? 'var(--color-bg3)' : 'transparent', color: activeAction === 'Withdraw' ? '#fff' : 'var(--color-text3)', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 Withdraw
               </button>
@@ -448,6 +449,14 @@ export default function Vault() {
         }
 
         /* General Panel Box for other tabs */
+        .vault-left {
+          min-width: 0;
+          width: 100%;
+        }
+        .vault-right {
+          min-width: 0;
+          width: 100%;
+        }
         .vault-panel-box {
           background: transparent;
           border: 1px solid var(--color-border);
@@ -465,6 +474,30 @@ export default function Vault() {
           border: 1px solid var(--color-border);
           border-radius: 12px;
           overflow: hidden;
+        }
+        .action-tabs-container {
+          display: flex;
+          background: var(--color-bg0);
+          border-radius: 8px;
+          padding: 4px;
+          margin: 20px 20px 0;
+          border: 1px solid var(--color-border);
+        }
+        .action-tab-btn {
+          flex: 1;
+          padding: 12px 0;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          color: var(--color-text3);
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .action-tab-btn.active {
+          background: var(--color-bg3);
+          color: #fff;
         }
         .action-body {
           padding: 24px;
@@ -599,7 +632,57 @@ export default function Vault() {
             padding: 16px 12px;
           }
           .vault-stats-grid {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr; /* Stack stats on mobile */
+            gap: 12px;
+          }
+          .stat-card {
+            padding: 16px;
+            text-align: center;
+          }
+          .dp-chart-header {
+            align-items: center;
+          }
+          .dp-metrics-header {
+            margin-bottom: 16px;
+          }
+          .dp-metrics-header h2 {
+            font-size: 16px;
+          }
+          .dp-item {
+            padding: 6px 0;
+            font-size: 13px;
+          }
+          .control-btn {
+            padding: 4px 6px;
+            font-size: 10px;
+          }
+          .pt-tab {
+            font-size: 13px;
+            padding: 12px 0;
+          }
+          .action-tabs-container {
+            margin: 16px 16px 0;
+          }
+          .action-tab-btn {
+            padding: 10px 0;
+            font-size: 13px;
+          }
+          .action-body {
+            padding: 16px;
+          }
+          .decibel-disclaimer {
+            font-size: 12px;
+            margin-bottom: 16px;
+          }
+          .input-group {
+            margin-bottom: 16px;
+          }
+          .input-box {
+            padding: 10px 12px;
+          }
+          .submit-btn {
+            padding: 12px 0;
+            font-size: 14px;
           }
         }
       `}</style>
