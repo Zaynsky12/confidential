@@ -376,7 +376,8 @@ export default function Positions() {
           }
           .pos-tabs {
             display: flex !important;
-            justify-content: center;
+            justify-content: space-between;
+            width: 100%;
             flex-shrink: 0;
             min-height: 36px;
             overflow-x: auto;
@@ -395,8 +396,17 @@ export default function Positions() {
             -webkit-overflow-scrolling: touch;
           }
           .pos-tab {
-            padding: 10px 12px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px 2px;
             font-size: 12px;
+            white-space: nowrap;
+          }
+          .tab-count {
+            flex-shrink: 0;
           }
           .pos-header, .pos-row {
             padding: 8px 12px;
