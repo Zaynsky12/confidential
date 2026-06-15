@@ -118,7 +118,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }}>Account Overview</div>
           <div className="mobile-overview-row"><span className="label">Total Equity</span><span className="value font-mono">${equity.toFixed(2)}</span></div>
           <div className="mobile-overview-row"><span className="label">Available Balance</span><span className="value font-mono">${balance.toFixed(2)}</span></div>
-          <div className="mobile-overview-row"><span className="label">Active Collateral</span><span className="value font-mono">${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)}</span></div>
+          <div className="mobile-overview-row"><span className="label">Used Margin</span><span className="value font-mono">${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)}</span></div>
           <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value font-mono ${unrealizedPnl >= 0 ? 'text-green' : 'text-red'}`}>{unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)}</span></div>
           <div className="mobile-overview-row"><span className="label">Margin Type</span><span className="value">Isolated</span></div>
         </div>
@@ -155,7 +155,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
               {[
                 ['Total Equity', `${equity.toFixed(2)} USDC`, 'var(--color-text1)'],
                 ['Available Balance', `${balance.toFixed(2)} USDC`, 'var(--color-text1)'],
-                ['Active Collateral', `${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)} USDC`, 'var(--color-text1)'],
+                ['Used Margin', `${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)} USDC`, 'var(--color-text1)'],
                 ['Unrealized PnL', `${unrealizedPnl>=0?'+':''}${unrealizedPnl.toFixed(2)} USDC`, unrealizedPnl>=0?'var(--color-green)':'var(--color-red)'],
                 ['Realized PnL', `${realizedPnl>=0?'+':''}${realizedPnl.toFixed(2)} USDC`, realizedPnl>=0?'var(--color-green)':'var(--color-red)'],
                 ['Total Volume', `${totalVol.toFixed(2)} USDC`, 'var(--color-text1)'],
