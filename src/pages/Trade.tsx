@@ -67,13 +67,13 @@ export default function Trade() {
     totalOI = longOIVal + shortOIVal
   }
 
-  // Dynamic Funding Rate — mirrors ConfidentialCore.getProjectedFundingRate()
-  // Formula: (netOI / maxOI) * coefficient * (3600 / 86400) * 100  → hourly %
-  const maxOI = 500000 // $500k default maxLongOI per pair
-  const coefficient = 100
+  // Dynamic Funding Rate — mirrors ConfidentialCore.updateFunding()
+  // Formula: (netOI / maxOI) * (coefficient / 10000) * (3600 / 86400) * 100% 
+  const maxOI = 10000000 // $10M default maxLongOI per pair on V2 Contract
+  const coefficient = 100 // 1% max daily rate
   const netOI = longOIVal - shortOIVal
   const hourlyFundingRate = totalOI > 0
-    ? (netOI / maxOI) * coefficient * (3600 / 86400) * 100
+    ? (netOI / maxOI) * (coefficient / 10000) * (3600 / 86400) * 100
     : 0
   // For Long: positive netOI means longs pay (negative rate for longs)
   // For Short: positive netOI means shorts receive (positive rate for shorts)

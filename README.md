@@ -1,73 +1,69 @@
-# Confidential Perpetual DEX
+# Confidential DEX (V2)
 
-A decentralized, high-performance perpetual trading platform built on the Arc Network Testnet. Confidential offers a professional trading experience with 1-click trading (infinite approval), dynamic charting, and a dedicated yield vault.
+A decentralized, high-performance perpetual trading platform built on the **Arc Network Testnet**. Confidential DEX offers a professional, institutional-grade trading experience with instantaneous order execution, dynamic charts, and an isolated yield vault architecture that rivals centralized exchanges (CEXs) like Binance while maintaining 100% self-custody.
 
-## Features
+## 🚀 Key Features
 
-- ⚡ **1-Click Trading**: Enjoy a seamless CEX-like experience. Approve USDC once and trade effortlessly without repeated Metamask pop-ups.
-- 📈 **Professional Charting**: Integrated TradingView Advanced Charts for real-time technical analysis.
-- 🏦 **Yield Vault**: Deposit USDC to provide liquidity to the platform and earn a portion of the trading fees.
-- 📱 **Mobile Optimized**: A fully responsive interface with native mobile navigation, optimized for touch interaction.
-- 🔐 **Secure & Decentralized**: Fully self-custodial, operating via audited smart contracts on Arc Network.
+- **⚡ Instant Execution & Zero Slippage:** Frontend-injected Pyth Oracle updates ensure your orders execute exactly when you click, removing the need for a secondary keeper for market orders.
+- **🛡️ 1-Click Trading:** Approve USDC once and trade effortlessly without repeated Metamask confirmations.
+- **🏦 Real Yield Vault:** Liquidity Providers (LPs) can deposit USDC to earn a real yield powered by trading fees and liquidations.
+- **📈 Advanced Charting:** Fully integrated interactive charts for real-time technical analysis of Crypto, Forex, and RWA (Metals/Equities).
+- **🔒 Decentralized & Secure:** Fully transparent, isolated contracts audited through multiple iterations.
+- **📱 Mobile-First Design:** A highly responsive, app-like interface designed specifically for mobile and desktop efficiency.
 
-## Tech Stack
+## 🛠️ Architecture & Tech Stack
 
-- **Frontend**: React, TypeScript, Vite
-- **Web3 Integration**: Wagmi v2, Viem, Privy (for Email/Wallet login)
-- **State Management**: Zustand
-- **Styling**: Vanilla CSS (Custom Design System)
-- **Smart Contracts**: Solidity, Foundry
-- **Oracle**: Pyth Network
+### Frontend Application
+- **Framework:** React 18, TypeScript, Vite
+- **Web3 Integrations:** Wagmi v2, Viem, Privy (Email/Social/Wallet login abstraction)
+- **State Management:** Zustand
+- **UI/UX:** Custom Design System (Vanilla CSS with dynamic themes)
 
-## Quick Start
+### Smart Contracts (Solidity)
+The V2 Architecture separates concerns into three primary contracts to maximize security:
+- **`ConfidentialCore.sol`**: The central registry. Manages pairs, oracle integration, maximum open interest limits, fee distribution routing, and dynamic funding rate calculation.
+- **`ConfidentialVault.sol`**: The treasury. Holds all user deposits (LPs) and trader collaterals. Responsible for paying out PnL and collecting losses.
+- **`ConfidentialTrading.sol`**: The execution engine. Processes Market Orders, Limit Orders, Stop Losses, Take Profits, and Liquidations seamlessly.
 
-### Prerequisites
-- Node.js (v18+)
-- Foundry (for smart contract deployment)
+### Infrastructure
+- **Blockchain:** Arc Testnet (`rpc.testnet.arc.network`)
+- **Data Subgraph:** Goldsky Subgraph (`1.0.4`)
+- **Oracle Network:** Pyth Network
+- **Keeper Bot:** Custom Node.js Bot running on PM2 for background liquidations and Limit Orders.
 
-### Frontend Setup
+## 📜 Contract Addresses (Arc Testnet V2)
 
-1. Clone the repository and install dependencies:
-   ```bash
-   npm install
-   ```
+- **ConfidentialCore**: `0x87000e8eA781B9fdBEaF0A479386efD5b38C2da9`
+- **ConfidentialTrading**: `0x92361Ea75DdFdc7F7aa89AA0917D1B9a3A2c77C0`
+- **ConfidentialVault**: `0x6e70367215F067632d3a94EB9a7A3f63C21A680C`
+- **USDC Token (Mock)**: `0xfdf510e1D7039aB26BA7898d91b402D69643d93E`
+- **Pyth Oracle**: `0x04bdb3A7Ea3bCf895c6E7e8495F8cf11602Fc3F4`
 
-2. Create a `.env` file in the root directory and add your Privy App ID:
-   ```env
-   VITE_PRIVY_APP_ID=your_privy_app_id
-   VITE_ARC_RPC=https://rpc.testnet.arc.io
-   ```
+## 💻 Quick Start Guide
 
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
+### 1. Installation
+Clone the repository and install dependencies using NPM:
+```bash
+npm install
+```
 
-### Smart Contract Setup
+### 2. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+VITE_PRIVY_APP_ID=your_privy_app_id
+VITE_ARC_RPC=https://rpc.testnet.arc.network
+```
 
-1. Navigate to the `contracts` folder:
-   ```bash
-   cd contracts
-   ```
+### 3. Run Development Server
+```bash
+npm run dev
+```
+The application will launch on `http://localhost:5173`.
 
-2. Create a `.env` file for your deployment keys (NEVER commit this file):
-   ```env
-   PRIVATE_KEY=0x...
-   ARC_RPC_URL=https://rpc.testnet.arc.io
-   ```
+---
 
-3. Deploy the contracts to Arc Testnet:
-   ```bash
-   forge script script/Deploy.s.sol:DeployScript --rpc-url $ARC_RPC_URL --broadcast
-   ```
+## 🔒 Security & Contribution
 
-## Contract Addresses (Arc Testnet)
+This is currently a Testnet deployment. While the architecture mimics production environments, do not deposit real funds into these contracts. For security reports or contributions, please open an issue or submit a pull request.
 
-- **ConfidentialCore**: `0xe7713624d3dd7d7c2e360de47114401c31f1dd76`
-- **ConfidentialTrading**: `0x6b6de0047bbddad1d8b3b18b34a115b482650e9c`
-- **ConfidentialVault**: `0xb38ed2873e8e74486cbbfeb646ddaf73238ec958`
-- **PythPriceOracle**: `0x04bdb3a7ea3bcf895c6e7e8495f8cf11602fc3f4`
-
-## Disclaimer
-
-This is a testnet application. Use only for testing and development purposes. Do not deposit real funds into these contracts.
+**Confidential DEX © 2026**
