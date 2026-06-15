@@ -4,15 +4,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
 import LanguageDropdown from './LanguageDropdown'
-
-const NAV_LINKS = [
-  { to: '/trade', label: 'Trade' },
-  { to: '/portfolio', label: 'Portfolio' },
-  { to: '/vault', label: 'Vault' },
-  { to: '/referrals', label: 'Referrals' },
-  { to: '/points', label: 'Points' },
-  { to: '/leaderboard', label: 'Leaderboard' },
-]
+import { useTranslation } from 'react-i18next'
 
 const getAssetLogo = (pair: string) => {
   const base = pair.split('/')[0].toLowerCase()
@@ -45,6 +37,16 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Topbar() {
+  const { t } = useTranslation()
+  const NAV_LINKS = [
+    { to: '/trade', label: t('nav.trade') },
+    { to: '/portfolio', label: t('nav.portfolio') },
+    { to: '/vault', label: t('nav.vault') },
+    { to: '/referrals', label: t('nav.referrals') },
+    { to: '/points', label: t('nav.points') },
+    { to: '/leaderboard', label: t('nav.leaderboard') },
+  ]
+
   const { ready, login, logout } = usePrivy()
   const { isConnected, address, balance } = useArcWallet()
   const location = useLocation()
@@ -154,11 +156,11 @@ export default function Topbar() {
         <div className="topbar-center mobile-only" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', flexDirection: 'column', gap: 0, justifyContent: 'center', textAlign: 'center', width: '60%' }}>
           {!isMarketView ? (
             <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>
-              {location.pathname.startsWith('/portfolio') || (location.pathname.startsWith('/trade') && mobileNav === 'account') ? 'Portfolio' :
-               location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? 'cUSDC Yield Vault' :
-               location.pathname.startsWith('/referrals') ? 'Referrals' :
-               location.pathname.startsWith('/points') ? 'Points' :
-               location.pathname.startsWith('/leaderboard') ? 'Leaderboard' : ''}
+              {location.pathname.startsWith('/portfolio') || (location.pathname.startsWith('/trade') && mobileNav === 'account') ? t('nav.portfolio') :
+               location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? t('nav.vault') :
+               location.pathname.startsWith('/referrals') ? t('nav.referrals') :
+               location.pathname.startsWith('/points') ? t('nav.points') :
+               location.pathname.startsWith('/leaderboard') ? t('nav.leaderboard') : ''}
             </span>
           ) : (
             <>
@@ -171,7 +173,7 @@ export default function Topbar() {
                   <img src={getAssetLogo(activeMarket.pair)} alt={activeMarket.pair} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', background: activeMarket.category === 'crypto' ? 'transparent' : '#fff', padding: activeMarket.category === 'rwa' ? '2px' : '0', flexShrink: 0 }} onError={(e) => e.currentTarget.style.display = 'none'} />
                 )}
                 <span className="font-mono" style={{ fontWeight: 600, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1, lineHeight: 1 }}>
-                  {activeMarket ? activeMarket.pair : 'Trade'}
+                  {activeMarket ? activeMarket.pair : t('nav.trade')}
                 </span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
