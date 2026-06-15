@@ -118,6 +118,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }}>Account Overview</div>
           <div className="mobile-overview-row"><span className="label">Total Equity</span><span className="value font-mono">${equity.toFixed(2)}</span></div>
           <div className="mobile-overview-row"><span className="label">Available Balance</span><span className="value font-mono">${balance.toFixed(2)}</span></div>
+          <div className="mobile-overview-row"><span className="label">Active Collateral</span><span className="value font-mono">${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)}</span></div>
           <div className="mobile-overview-row"><span className="label">PnL (Unrealized)</span><span className={`value font-mono ${unrealizedPnl >= 0 ? 'text-green' : 'text-red'}`}>{unrealizedPnl >= 0 ? '+' : ''}${unrealizedPnl.toFixed(2)}</span></div>
           <div className="mobile-overview-row"><span className="label">Margin Type</span><span className="value">Isolated</span></div>
         </div>
