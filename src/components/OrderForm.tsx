@@ -68,7 +68,6 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       setLeverage(leveragePresets[leveragePresets.length - 1])
     }
   }, [activeMarket?.id]) // Only run when the market ID itself changes
-  const [reduceOnly, setReduceOnly] = useState(false)
   const [showTpSl, setShowTpSl] = useState(false)
   const [takeProfit, setTakeProfit] = useState('')
   const [stopLoss, setStopLoss] = useState('')
@@ -186,7 +185,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           leverage,
           Number(triggerPrice || price),
           orderType === 'limit' ? 0 : 1,
-          reduceOnly,
+          false,
           tpNum,
           slNum
         )
@@ -398,39 +397,28 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
 
       {/* Checkboxes */}
       <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        <div style={{ display:'flex', gap: 16 }}>
-          <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-            <input type="checkbox" checked={reduceOnly} onChange={()=>setReduceOnly(!reduceOnly)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
-            <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Reduce Only</span>
-          </label>
-        </div>
-        
-        {!reduceOnly && (
-          <>
-            <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-              <input type="checkbox" checked={showTpSl} onChange={()=>setShowTpSl(!showTpSl)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
-              <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Take Profit / Stop Loss</span>
-            </label>
+        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+          <input type="checkbox" checked={showTpSl} onChange={()=>setShowTpSl(!showTpSl)} style={{ accentColor:'#8e8e93', width:14, height:14, cursor:'pointer', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:4 }} />
+          <span style={{ fontSize:12, color:'#8e8e93', borderBottom:'1px dashed var(--color-border)', paddingBottom:2 }}>Take Profit / Stop Loss</span>
+        </label>
 
-            {showTpSl && (
-              <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, animationDuration: '200ms' }}>
-                <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
-                  <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Take Profit</span>
-                  <div style={{ display:'flex', alignItems:'center' }}>
-                    <input type="number" placeholder="0.00" value={takeProfit} onChange={e=>setTakeProfit(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
-                    <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
-                  </div>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
-                  <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Stop Loss</span>
-                  <div style={{ display:'flex', alignItems:'center' }}>
-                    <input type="number" placeholder="0.00" value={stopLoss} onChange={e=>setStopLoss(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
-                    <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
-                  </div>
-                </div>
+        {showTpSl && (
+          <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, animationDuration: '200ms' }}>
+            <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
+              <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Take Profit</span>
+              <div style={{ display:'flex', alignItems:'center' }}>
+                <input type="number" placeholder="0.00" value={takeProfit} onChange={e=>setTakeProfit(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
+                <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
               </div>
-            )}
-          </>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
+              <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Stop Loss</span>
+              <div style={{ display:'flex', alignItems:'center' }}>
+                <input type="number" placeholder="0.00" value={stopLoss} onChange={e=>setStopLoss(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
+                <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
