@@ -67,13 +67,13 @@ export default function Topbar() {
     }
   }
 
-  const isMarketView = !location.pathname.startsWith('/portfolio') && 
-                       !(location.pathname.startsWith('/trade') && mobileNav === 'account') &&
-                       !location.pathname.startsWith('/vault') &&
-                       !(location.pathname.startsWith('/trade') && mobileNav === 'vaults') &&
-                       !location.pathname.startsWith('/referrals') &&
-                       !location.pathname.startsWith('/points') &&
-                       !location.pathname.startsWith('/leaderboard');
+  const isMarketView = !location.pathname.startsWith('/portfolio') &&
+    !(location.pathname.startsWith('/trade') && mobileNav === 'account') &&
+    !location.pathname.startsWith('/vault') &&
+    !(location.pathname.startsWith('/trade') && mobileNav === 'vaults') &&
+    !location.pathname.startsWith('/referrals') &&
+    !location.pathname.startsWith('/points') &&
+    !location.pathname.startsWith('/leaderboard');
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -87,9 +87,9 @@ export default function Topbar() {
 
   const filteredMarkets = markets.filter((m) => {
     const matchesSearch = m.pair.toLowerCase().includes(marketSearch.toLowerCase())
-    const matchesTab = marketTab === 'all' 
-      ? true 
-      : marketTab === 'watchlist' 
+    const matchesTab = marketTab === 'all'
+      ? true
+      : marketTab === 'watchlist'
         ? watchlist.includes(m.id)
         : m.category === marketTab
     return matchesSearch && matchesTab
@@ -119,12 +119,12 @@ export default function Topbar() {
         {/* Left — Logo & Desktop Nav */}
         <div className="topbar-left">
           {/* Mobile Hamburger */}
-          <button 
+          <button
             className="mobile-menu-btn"
             onClick={() => setIsMobileMenuOpen(true)}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
 
@@ -156,14 +156,14 @@ export default function Topbar() {
           {!isMarketView ? (
             <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>
               {location.pathname.startsWith('/portfolio') || (location.pathname.startsWith('/trade') && mobileNav === 'account') ? t('nav.portfolio') :
-               location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? t('nav.vault') :
-               location.pathname.startsWith('/referrals') ? t('nav.referrals') :
-               location.pathname.startsWith('/points') ? t('nav.points') :
-               location.pathname.startsWith('/leaderboard') ? t('nav.leaderboard') : ''}
+                location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? t('nav.vault') :
+                  location.pathname.startsWith('/referrals') ? t('nav.referrals') :
+                    location.pathname.startsWith('/points') ? t('nav.points') :
+                      location.pathname.startsWith('/leaderboard') ? t('nav.leaderboard') : ''}
             </span>
           ) : (
             <>
-              <button 
+              <button
                 className="market-selector-trigger"
                 onClick={() => setMarketSelectorOpen(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-text1)', cursor: 'pointer', marginLeft: 0, maxWidth: '100%', padding: '2px 0', minHeight: 0 }}
@@ -175,7 +175,7 @@ export default function Topbar() {
                   {activeMarket ? activeMarket.pair : t('nav.trade')}
                 </span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               {activeMarket && (
@@ -191,7 +191,7 @@ export default function Topbar() {
         <div className="topbar-right">
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            
+
             {/* Removed Wrong Network Warning */}
 
 
@@ -206,65 +206,65 @@ export default function Topbar() {
               </button>
             ) : (
               <div className="topbar-account" ref={dropdownRef}>
-              <button
-                className="topbar-account-btn"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-              >
-                <div className="topbar-avatar" />
-                <span className="font-mono desktop-only" style={{ fontSize: '13px' }}>
-                  {truncatedAddress}
-                </span>
-                <svg className="desktop-only" width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: dropdownOpen ? 'rotate(180deg)' : '', transition: 'transform 200ms' }}>
-                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </button>
+                <button
+                  className="topbar-account-btn"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                >
+                  <div className="topbar-avatar" />
+                  <span className="font-mono desktop-only" style={{ fontSize: '13px' }}>
+                    {truncatedAddress}
+                  </span>
+                  <svg className="desktop-only" width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: dropdownOpen ? 'rotate(180deg)' : '', transition: 'transform 200ms' }}>
+                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
 
-              {dropdownOpen && (
-                <div className="topbar-dropdown animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
-                    <div className="label" style={{ marginBottom: '4px' }}>Connected Wallet</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div className="font-mono" style={{ fontSize: '13px' }}>{truncatedAddress}</div>
-                      <button onClick={handleCopy} title="Copy Address" style={{ background: 'none', border: 'none', color: copied ? 'var(--color-green)' : 'var(--color-text2)', cursor: 'pointer', display: 'flex', padding: 0 }}>
-                        {copied ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0014.172 1.5H10a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2"/><path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2"/></svg>
-                        )}
+                {dropdownOpen && (
+                  <div className="topbar-dropdown animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                      <div className="label" style={{ marginBottom: '4px' }}>Connected Wallet</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div className="font-mono" style={{ fontSize: '13px' }}>{truncatedAddress}</div>
+                        <button onClick={handleCopy} title="Copy Address" style={{ background: 'none', border: 'none', color: copied ? 'var(--color-green)' : 'var(--color-text2)', cursor: 'pointer', display: 'flex', padding: 0 }}>
+                          {copied ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0014.172 1.5H10a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2" /><path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2" /></svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                      <div className="label" style={{ marginBottom: '4px' }}>Balance</div>
+                      <div className="font-mono" style={{ fontSize: '16px', color: 'var(--color-green)' }}>
+                        {balance.toFixed(2)} USDC
+                      </div>
+                    </div>
+                    <div style={{ padding: '8px' }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ width: '100%', fontSize: '13px', color: 'var(--color-red)' }}
+                        onClick={() => {
+                          logout()
+                          setDropdownOpen(false)
+                        }}
+                      >
+                        Disconnect
                       </button>
                     </div>
                   </div>
-                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
-                    <div className="label" style={{ marginBottom: '4px' }}>Balance</div>
-                    <div className="font-mono" style={{ fontSize: '16px', color: 'var(--color-green)' }}>
-                      {balance.toFixed(2)} USDC
-                    </div>
-                  </div>
-                  <div style={{ padding: '8px' }}>
-                    <button
-                      className="btn btn-ghost"
-                      style={{ width: '100%', fontSize: '13px', color: 'var(--color-red)' }}
-                      onClick={() => {
-                        logout()
-                        setDropdownOpen(false)
-                      }}
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             )}
           </div>
 
           <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', marginLeft: '8px' }}>
-            
+
           </div>
 
           {activeMarket && isMarketView && (
-            <button 
-              className="favorite-btn mobile-only" 
+            <button
+              className="favorite-btn mobile-only"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -278,9 +278,9 @@ export default function Topbar() {
               }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', zIndex: 10 }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" 
-                fill={watchlist.includes(activeMarket.id) ? '#F7931A' : 'none'} 
-                stroke={watchlist.includes(activeMarket.id) ? '#F7931A' : 'currentColor'} 
+              <svg width="22" height="22" viewBox="0 0 24 24"
+                fill={watchlist.includes(activeMarket.id) ? '#F7931A' : 'none'}
+                stroke={watchlist.includes(activeMarket.id) ? '#F7931A' : 'currentColor'}
                 strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
                 style={{ color: 'var(--color-text3)' }}>
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -308,63 +308,18 @@ export default function Topbar() {
                 >
                   {link.label}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="nav-arrow">
-                    <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </NavLink>
               ))}
             </nav>
             <div className="mobile-menu-footer">
-              {!isConnected ? (
-                <button
-                  className="btn"
-                  style={{ 
-                    width: '100%', 
-                    padding: '10px', 
-                    backgroundColor: 'var(--color-green, #26c68b)', 
-                    color: '#0b0e11', 
-                    fontWeight: 600, 
-                    fontSize: '15px', 
-                    borderRadius: '8px', 
-                    border: 'none',
-                    boxShadow: 'none',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => { login(); setIsMobileMenuOpen(false); }}
-                  disabled={!ready}
-                >
-                  Connect Wallet
-                </button>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div className="topbar-avatar" />
-                      <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{truncatedAddress}</span>
-                      <button onClick={handleCopy} title="Copy Address" style={{ background: 'none', border: 'none', color: copied ? 'var(--color-green)' : 'var(--color-text2)', cursor: 'pointer', padding: 4, display: 'flex' }}>
-                        {copied ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.586-1.414l-3.828-3.828A2 2 0 0014.172 1.5H10a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2"/><path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke="currentColor" strokeWidth="2"/></svg>
-                        )}
-                      </button>
-                    </div>
-                    <button
-                      className="btn btn-ghost"
-                      style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--color-red)' }}
-                      onClick={() => { logout(); setIsMobileMenuOpen(false); }}
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-
-                </div>
-              )}
               <div className="mobile-socials" style={{ display: 'flex', gap: '24px', marginTop: '24px', padding: '0 8px', alignItems: 'center', justifyContent: 'center' }}>
                 <a href="https://x.com/Confidentialdex" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
                 </a>
                 <a href="https://discord.gg/confidential" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" /></svg>
                 </a>
                 <a href="https://github.com/Zaynsky12/arctrade" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
@@ -393,7 +348,7 @@ export default function Topbar() {
                 onClick={() => setMarketSelectorOpen(false)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
             </div>
@@ -402,8 +357,8 @@ export default function Topbar() {
             <div className="msp-search-wrapper">
               <div className="msp-search">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, color: 'var(--color-text3)' }}>
-                  <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.3"/>
-                  <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                  <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                 </svg>
                 <input
                   className="msp-search-input"
@@ -417,32 +372,32 @@ export default function Topbar() {
 
             {/* Category Tabs */}
             <div className="msp-tabs">
-              <button 
-                className={`msp-tab ${marketTab === 'all' ? 'active' : ''}`} 
+              <button
+                className={`msp-tab ${marketTab === 'all' ? 'active' : ''}`}
                 onClick={() => setMarketTab('all')}
               >
                 All
               </button>
-              <button 
-                className={`msp-tab ${marketTab === 'crypto' ? 'active' : ''}`} 
+              <button
+                className={`msp-tab ${marketTab === 'crypto' ? 'active' : ''}`}
                 onClick={() => setMarketTab('crypto')}
               >
                 Crypto
               </button>
-              <button 
-                className={`msp-tab ${marketTab === 'rwa' ? 'active' : ''}`} 
+              <button
+                className={`msp-tab ${marketTab === 'rwa' ? 'active' : ''}`}
                 onClick={() => setMarketTab('rwa')}
               >
                 TradFi (RWA)
               </button>
-              <button 
-                className={`msp-tab ${marketTab === 'forex' ? 'active' : ''}`} 
+              <button
+                className={`msp-tab ${marketTab === 'forex' ? 'active' : ''}`}
                 onClick={() => setMarketTab('forex')}
               >
                 Forex
               </button>
-              <button 
-                className={`msp-tab ${marketTab === 'watchlist' ? 'active' : ''}`} 
+              <button
+                className={`msp-tab ${marketTab === 'watchlist' ? 'active' : ''}`}
                 onClick={() => setMarketTab('watchlist')}
               >
                 Watchlist
@@ -489,19 +444,19 @@ export default function Topbar() {
                                 e.stopPropagation();
                                 toggleWatchlist(m.id);
                               }}
-                              style={{ 
+                              style={{
                                 position: 'relative',
-                                background: 'none', border: 'none', 
+                                background: 'none', border: 'none',
                                 padding: '12px', margin: '-12px',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer', zIndex: 10
                               }}
                             >
-                              <svg 
-                                width="14" height="14" viewBox="0 0 24 24" 
-                                fill={watchlist.includes(m.id) ? '#F7931A' : 'none'} 
-                                stroke={watchlist.includes(m.id) ? '#F7931A' : 'currentColor'} 
-                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+                              <svg
+                                width="14" height="14" viewBox="0 0 24 24"
+                                fill={watchlist.includes(m.id) ? '#F7931A' : 'none'}
+                                stroke={watchlist.includes(m.id) ? '#F7931A' : 'currentColor'}
+                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                                 style={{ color: 'var(--color-text3)' }}
                               >
                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
