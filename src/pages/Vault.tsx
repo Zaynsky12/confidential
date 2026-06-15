@@ -5,7 +5,7 @@ import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialVault } from '../hooks/useConfidentialVault'
 import { useVaultHistory, useTradeRecords } from '../hooks/useGoldsky'
-import { usePositions } from '../hooks/usePositions'
+import { usePositions } from '../hooks/useGoldsky'
 import { keccak256, toHex } from 'viem'
 
 export default function Vault() {
@@ -14,7 +14,7 @@ export default function Vault() {
   const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
   const { deposits: globalDeposits } = useVaultHistory() // For global TVL chart
-  const { activePositions } = usePositions(address || undefined)
+  const { positions: activePositions } = usePositions(address || undefined)
   const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')

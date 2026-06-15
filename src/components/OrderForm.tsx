@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
-import { usePositions } from '../hooks/usePositions'
+import { usePositions } from '../hooks/useGoldsky'
 import type { OrderSide, OrderType } from '../types'
 import { keccak256, toHex } from 'viem'
 
@@ -15,7 +15,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const { markets, activeMarketId, placeOrder: placeMockOrder } = useTradeStore()
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
   const { openPosition, placeOrder, createTwapOrder, isTxPending } = useConfidentialTrading()
-  const { activePositions } = usePositions(address || undefined)
+  const { positions: activePositions } = usePositions(address || undefined)
   
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   
@@ -169,11 +169,6 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           slNum
         )
       } else if (orderType === 'market') {
-        const slippageDecimal = Number(slippage) / 100
-        const triggerPriceUsd = side === 'long' 
-          ? activeMarket.price * (1 + slippageDecimal)
-          : activeMarket.price * (1 - slippageDecimal)
-
         await openPosition(
           activeMarket.pair, // e.g. "BTC/USDC"
           side === 'long',
@@ -181,8 +176,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           leverage,
           Number(orderSummary.collateral),
           tpNum,
-          slNum,
-          triggerPriceUsd
+          slNum
         )
       } else {
         await placeOrder(

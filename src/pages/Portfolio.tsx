@@ -3,15 +3,14 @@ import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
-import { usePositions } from '../hooks/usePositions'
-import { useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
+import { usePositions, useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
 import Positions from '../components/Positions'
 import { keccak256, toHex } from 'viem'
 
 export default function Portfolio({ isCompact = false }: { isCompact?: boolean }) {
   const { markets } = useTradeStore()
   const { balance, address } = useArcWallet()
-  const { activePositions } = usePositions(address || undefined)
+  const { positions: activePositions } = usePositions(address || undefined)
   const { closedPositions } = useClosedPositions(address || undefined)
   const { trades } = useTradeRecords(address || undefined)
 

@@ -234,7 +234,7 @@ contract ConfidentialVault is ReentrancyGuard {
     ///      Vault's share stays in totalAssets. Treasury/insurance shares are sent out.
     /// @param totalFee Total closing fee to distribute
     function distributeClosingFee(uint256 totalFee) external onlyTrading {
-        (uint256 toVault, uint256 toTreasury, uint256 toInsurance) = core.getFeeSplit(totalFee);
+        (uint256 toVault, uint256 toTreasury) = core.getFeeSplit(totalFee);
 
         // Vault's share: already implicitly in totalAssets, no action needed
         // (settlePosition subtracted netPnl which had fees deducted, so fee stayed in totalAssets)
@@ -243,12 +243,6 @@ contract ConfidentialVault is ReentrancyGuard {
         if (toTreasury > 0) {
             totalAssets -= toTreasury;
             require(usdc.transfer(core.treasury(), toTreasury), "Transfer failed");
-        }
-
-        // Insurance share: send out from vault
-        if (toInsurance > 0 && core.insuranceFund() != address(0)) {
-            totalAssets -= toInsurance;
-            require(usdc.transfer(core.insuranceFund(), toInsurance), "Transfer failed");
         }
 
         emit FeeReceived(totalFee);

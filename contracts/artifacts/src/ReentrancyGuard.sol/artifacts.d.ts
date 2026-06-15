@@ -15,7 +15,7 @@ export interface ReentrancyGuard$Type {
   readonly deployedLinkReferences: {};
   readonly immutableReferences: {};
   readonly inputSourceName: "project/src/ReentrancyGuard.sol";
-  readonly buildInfoId: "solc-0_8_24-0b724f6de738795327e329d48bf3483e54e0d3c8";
+  readonly buildInfoId: "solc-0_8_24-60f953a579e55ea861bf2ee8ebdfc0b5bda7b680";
 };
 
 import "hardhat/types/artifacts";

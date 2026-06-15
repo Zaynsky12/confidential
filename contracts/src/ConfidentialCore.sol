@@ -27,7 +27,6 @@ contract ConfidentialCore {
     address public vault;
     address public trading;
     address public treasury;
-    address public insuranceFund;
 
     // ── Fee Configuration (Maker/Taker Split) ──
     uint256 public takerFeeBps = 4;   // 0.04% — Market, Stop Market, TWAP
@@ -36,7 +35,6 @@ contract ConfidentialCore {
     // Fee split in basis points (total must = 10000)
     uint256 public vaultFeeBps   = 7000;  // 70% → LP rewards
     uint256 public treasuryFeeBps = 3000; // 30% → Team + Airdrop fund
-    uint256 public insuranceFeeBps = 0;   // 0%  → Disabled for now
 
     // ── Vault Utilization Cap ──
     uint256 public utilizationCapBps = 8000; // 80%
@@ -75,7 +73,7 @@ contract ConfidentialCore {
     event PairAdded(bytes32 indexed pairId, uint256 maxLeverage, uint256 maxLongOI, uint256 maxShortOI);
     event PairUpdated(bytes32 indexed pairId);
     event PairToggled(bytes32 indexed pairId, bool active);
-    event FeeDistributed(uint256 toVault, uint256 toTreasury, uint256 toInsurance);
+    event FeeDistributed(uint256 toVault, uint256 toTreasury);
     event FundingUpdated(bytes32 indexed pairId, int256 newCumulativeIndex, int256 delta);
     event Paused();
     event Unpaused();
@@ -137,11 +135,6 @@ contract ConfidentialCore {
         treasury = _treasury;
     }
 
-    function setInsuranceFund(address _insuranceFund) external onlyOwner {
-        if (_insuranceFund == address(0)) revert ZeroAddress();
-        insuranceFund = _insuranceFund;
-    }
-
     function pause() external onlyOwner {
         paused = true;
         emit Paused();
@@ -177,11 +170,10 @@ contract ConfidentialCore {
         makerFeeBps = _makerBps;
     }
 
-    function setFeeSplit(uint256 _vaultBps, uint256 _treasuryBps, uint256 _insuranceBps) external onlyOwner {
-        if (_vaultBps + _treasuryBps + _insuranceBps != 10000) revert InvalidFeeSplit();
+    function setFeeSplit(uint256 _vaultBps, uint256 _treasuryBps) external onlyOwner {
+        if (_vaultBps + _treasuryBps != 10000) revert InvalidFeeSplit();
         vaultFeeBps = _vaultBps;
         treasuryFeeBps = _treasuryBps;
-        insuranceFeeBps = _insuranceBps;
     }
 
     function setUtilizationCap(uint256 _capBps) external onlyOwner {
@@ -327,7 +319,7 @@ contract ConfidentialCore {
         // fundingDelta = netOI / maxOI * coefficient * elapsed / 86400
         // Scaled to 1e18 for precision
         int256 fundingDelta = (netOI * int256(fundingRateCoefficient) * int256(elapsed) * 1e18) 
-            / (int256(maxOI) * 86400);
+            / (int256(maxOI) * 86400 * 10000);
 
         cumulativeFundingIndex[pairId] += fundingDelta;
         lastFundingUpdate[pairId] = block.timestamp;
@@ -345,7 +337,7 @@ contract ConfidentialCore {
 
         int256 netOI = int256(longOI[pairId]) - int256(shortOI[pairId]);
         // Project for 8 hours (28800 seconds)
-        return (netOI * int256(fundingRateCoefficient) * 28800 * 1e18) / (int256(maxOI) * 86400);
+        return (netOI * int256(fundingRateCoefficient) * 28800 * 1e18) / (int256(maxOI) * 86400 * 10000);
     }
 
     // ══════════════════════════════════════════════════════════
@@ -401,10 +393,9 @@ contract ConfidentialCore {
         return (sizeUsd * takerFeeBps) / 10000;
     }
 
-    function getFeeSplit(uint256 totalFee) external view returns (uint256 toVault, uint256 toTreasury, uint256 toInsurance) {
+    function getFeeSplit(uint256 totalFee) external view returns (uint256 toVault, uint256 toTreasury) {
         toVault = (totalFee * vaultFeeBps) / 10000;
-        toTreasury = (totalFee * treasuryFeeBps) / 10000;
-        toInsurance = totalFee - toVault - toTreasury; // remainder avoids rounding loss
+        toTreasury = totalFee - toVault; // remainder avoids rounding loss
     }
 
     // ══════════════════════════════════════════════════════════

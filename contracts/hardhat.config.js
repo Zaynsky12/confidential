@@ -3,6 +3,7 @@ dotenv.config();
 
 import ethersPlugin from "@nomicfoundation/hardhat-ethers";
 
+/** @type import('hardhat/config').HardhatUserConfig */
 export default {
   solidity: {
     version: "0.8.24",
@@ -17,7 +18,7 @@ export default {
   networks: {
     arc: {
       type: "http",
-      url: "https://rpc.testnet.arc.network",
+      url: process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
     }
   },
@@ -27,5 +28,5 @@ export default {
     cache: "./cache",
     artifacts: "./artifacts"
   },
-  plugins: [ethersPlugin]
+  plugins: [ethersPlugin.default || ethersPlugin]
 };

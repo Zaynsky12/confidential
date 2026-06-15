@@ -262,7 +262,7 @@
   "linkReferences": {},
   "deployedLinkReferences": {},
   "immutableReferences": {
-    "4839": [
+    "5000": [
       {
         "length": 32,
         "start": 173
@@ -282,5 +282,5 @@
     ]
   },
   "inputSourceName": "project/src/PythPriceOracle.sol",
-  "buildInfoId": "solc-0_8_24-0b724f6de738795327e329d48bf3483e54e0d3c8"
+  "buildInfoId": "solc-0_8_24-60f953a579e55ea861bf2ee8ebdfc0b5bda7b680"
 }

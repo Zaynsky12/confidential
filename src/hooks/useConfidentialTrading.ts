@@ -4,6 +4,15 @@ import { CONTRACTS, ABIS } from '../config/contracts'
 import { useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useUSDCApproval } from './useUSDCApproval'
+import { useTradeStore } from '../store/useTradeStore'
+
+const fetchPythVaa = async (pythPriceId: string) => {
+  const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${pythPriceId}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error("Failed to fetch Pyth VAA")
+  const data = await res.json()
+  return data.binary.data.map((hex: string) => `0x${hex}`)
+}
 
 export function useConfidentialTrading() {
   const { writeContractAsync, data: hash, isPending } = useWriteContract()
@@ -35,8 +44,7 @@ export function useConfidentialTrading() {
     leverage: number, 
     collateralUsd: number,
     tpPriceUsd: number = 0,
-    slPriceUsd: number = 0,
-    triggerPriceUsd: number = 0
+    slPriceUsd: number = 0
   ) => {
     try {
       const fee = sizeUsd * 0.0004
@@ -54,24 +62,27 @@ export function useConfidentialTrading() {
       const sizeUnits = parseUnits(sizeUsd.toFixed(6), 6)
       const tpUnits = tpPriceUsd > 0 ? parseUnits(tpPriceUsd.toFixed(18), 18) : 0n
       const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
-      const triggerUnits = triggerPriceUsd > 0 ? parseUnits(triggerPriceUsd.toFixed(18), 18) : 0n
+
+      const market = useTradeStore.getState().markets.find(m => m.pair === pairName)
+      if (!market) throw new Error("Market not found")
+      
+      const updateData = await fetchPythVaa(market.pythPriceId)
+      const pythFee = parseUnits('0.001', 18) // 0.001 ARC for Pyth update fee
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'placeOrder',
+        functionName: 'placeMarketOrder',
         args: [
           pairId,
           isLong,
           sizeUnits,
           BigInt(leverage),
-          triggerUnits, // Used for market order slippage check
-          2,  // orderType 2 = market_open
-          false, // reduceOnly false for open
           tpUnits,
-          slUnits
+          slUnits,
+          updateData
         ],
-        value: EXECUTION_FEE,
+        value: pythFee,
       } as any)
 
       toast.dismiss('trade')
@@ -85,15 +96,20 @@ export function useConfidentialTrading() {
   }
 
   // Close Position
-  const closePosition = async (positionId: bigint) => {
+  const closePosition = async (positionId: bigint, pythPriceId: string) => {
     try {
-      toast.loading('Creating Close Request...', { id: 'close' })
+      if (!pythPriceId) throw new Error("Pyth Price ID is required for instant close")
+      toast.loading('Closing Position Instantly...', { id: 'close' })
+      
+      const updateData = await fetchPythVaa(pythPriceId)
+      const pythFee = parseUnits('0.001', 18)
+
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'createCloseRequest',
-        args: [positionId],
-        value: EXECUTION_FEE,
+        functionName: 'closePositionInstantly',
+        args: [positionId, updateData],
+        value: pythFee,
       } as any)
       
       toast.dismiss('close')
@@ -223,11 +239,33 @@ export function useConfidentialTrading() {
     }
   }
 
+  // Cancel Order
+  const cancelOrder = async (orderId: bigint) => {
+    try {
+      toast.loading('Cancelling Order...', { id: 'cancel' })
+      const tx = await writeContractAsync({
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
+        functionName: 'cancelOrder',
+        args: [orderId],
+      } as any)
+      
+      toast.dismiss('cancel')
+      toast.success('Order cancelled successfully!')
+      return tx
+    } catch (error: any) {
+      toast.dismiss('cancel')
+      toast.error(error.shortMessage || 'Failed to cancel order')
+      throw error
+    }
+  }
+
   return {
     openPosition,
     closePosition,
     placeOrder,
     createTwapOrder,
+    cancelOrder,
     isTxPending: isPending || isConfirming || isApproving,
   }
 }

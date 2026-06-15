@@ -2,23 +2,22 @@ import { useState } from 'react'
 import { keccak256, toHex } from 'viem'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
-import { usePositions } from '../hooks/usePositions'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
-import { useOrders, useTradeRecords } from '../hooks/useGoldsky'
+import { usePositions, useOrders, useTradeRecords } from '../hooks/useGoldsky'
 
 import SharePnLModal, { type SharePositionData } from './SharePnLModal'
 
 type Tab = 'balances' | 'positions' | 'orders' | 'trades'
 
 export default function Positions() {
-  const { cancelOrder, markets } = useTradeStore()
+  const { markets } = useTradeStore()
   const { isConnected, balance, address } = useArcWallet()
   const [tab, setTab] = useState<Tab>('positions')
   const [selectedShare, setSelectedShare] = useState<SharePositionData | null>(null)
 
   // Read from smart contract & Goldsky
-  const { activePositions } = usePositions(address || undefined)
-  const { closePosition } = useConfidentialTrading()
+  const { positions: activePositions } = usePositions(address || undefined)
+  const { closePosition, cancelOrder } = useConfidentialTrading()
   const { orders: openOrders, isLoading: isOrdersLoading } = useOrders(address || undefined)
   const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
 
@@ -146,7 +145,7 @@ export default function Positions() {
                               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </button>
-                          <button onClick={() => closePosition(BigInt(p.id))} className="btn-close">
+                          <button onClick={() => closePosition(BigInt(p.positionId), matchedMarket?.pythPriceId || '')} className="btn-close">
                             Close
                           </button>
                         </div>
@@ -194,7 +193,7 @@ export default function Positions() {
                       <span className="font-mono">{o.sizeUsd.toFixed(2)}</span>
                       <span className="font-mono">${o.triggerPrice.toFixed(2)}</span>
                       <span className="font-mono">0.00%</span>
-                      <button onClick={() => cancelOrder(o.id)} className="btn-close">
+                      <button onClick={() => cancelOrder(BigInt(o.orderId))} className="btn-close">
                         Cancel
                       </button>
                     </div>

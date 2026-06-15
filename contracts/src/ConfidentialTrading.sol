@@ -115,7 +115,7 @@ contract ConfidentialTrading is ReentrancyGuard {
         uint256 slPrice
     ) external payable nonReentrant returns (uint256 orderId) {
         require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
-        require(orderType <= 2, "Invalid order type"); // 0=limit, 1=stop, 2=market
+        require(orderType <= 1, "Use placeMarketOrder for market"); // 0=limit, 1=stop
 
         // Validate TP/SL prices if set
         if (tpPrice > 0) {
@@ -155,6 +155,74 @@ contract ConfidentialTrading is ReentrancyGuard {
         userOrders[msg.sender].push(orderId);
 
         emit OrderPlaced(orderId, msg.sender, pairId, orderType, triggerPrice);
+    }
+
+    /// @notice Place a Market Order with instant execution using frontend-injected Pyth data
+    function placeMarketOrder(
+        bytes32 pairId,
+        bool isLong,
+        uint256 sizeUsd,
+        uint256 leverage,
+        uint256 tpPrice,
+        uint256 slPrice,
+        bytes[] calldata updateData
+    ) external payable nonReentrant returns (uint256 posId) {
+        require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
+
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
+        // Validate TP/SL prices if set (using current Pyth price instead of trigger)
+        (uint256 currentPrice, ) = oracle.getPrice(pairId);
+        if (tpPrice > 0) {
+            require(isLong ? tpPrice > currentPrice : tpPrice < currentPrice, "Invalid TP price");
+        }
+        if (slPrice > 0) {
+            require(isLong ? slPrice < currentPrice : slPrice > currentPrice, "Invalid SL price");
+        }
+
+        core.validateOpenPosition(pairId, msg.sender, isLong, sizeUsd, leverage);
+
+        uint256 fee = core.calculateFee(sizeUsd, false);
+        uint256 collateral = sizeUsd / leverage;
+
+        _safeTransferFrom(msg.sender, address(this), collateral + fee);
+
+        // Dummy order struct for _executeOpen
+        PendingOrder memory o;
+        o.pairId = pairId;
+        o.trader = msg.sender;
+        o.isLong = isLong;
+        o.sizeUsd = sizeUsd;
+        o.collateral = collateral;
+        o.leverage = leverage;
+        o.orderType = 2; // market
+        o.isActive = true;
+        o.feePaid = fee;
+        o.tpPrice = tpPrice;
+        o.slPrice = slPrice;
+
+        _executeOpen(o, currentPrice, 0, false);
+        return nextPositionId - 1;
+    }
+
+    /// @notice Close a position instantly using frontend-injected Pyth data
+    function closePositionInstantly(uint256 positionId, bytes[] calldata updateData) external payable nonReentrant {
+        Position storage pos = positions[positionId];
+        require(pos.isOpen, "Not open");
+        require(pos.trader == msg.sender, "Not owner");
+        
+        // Cooldown check to prevent flash loan manipulation
+        require(block.timestamp >= pos.openedAt + core.minPositionDuration(), "Cooldown active");
+
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
+        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
+        
+        _executeClose(positionId, currentPrice);
     }
 
     /// @notice Create a TWAP Order
@@ -487,7 +555,7 @@ contract ConfidentialTrading is ReentrancyGuard {
     // ══════════════════════════════════════════════════════════
 
     function _distributeFee(uint256 totalFee) internal {
-        (uint256 toVault, uint256 toTreasury, uint256 toInsurance) = core.getFeeSplit(totalFee);
+        (uint256 toVault, uint256 toTreasury) = core.getFeeSplit(totalFee);
         
         if (toVault > 0) {
             _safeTransfer(address(vault), toVault);
@@ -496,12 +564,6 @@ contract ConfidentialTrading is ReentrancyGuard {
         
         if (toTreasury > 0) {
             _safeTransfer(core.treasury(), toTreasury);
-        }
-        
-        if (toInsurance > 0) {
-            address insurance = core.insuranceFund();
-            require(insurance != address(0), "Insurance fund not set");
-            _safeTransfer(insurance, toInsurance);
         }
     }
 
