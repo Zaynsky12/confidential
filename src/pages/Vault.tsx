@@ -646,9 +646,6 @@ export default function Vault() {
           }
           .action-card {
             width: 100%;
-            border-left: none;
-            border-right: none;
-            border-radius: 0;
           }
           .action-body {
             padding: 16px;
@@ -660,7 +657,7 @@ export default function Vault() {
             display: flex !important;
           }
           .vault-container {
-            padding: 16px;
+            padding: 8px;
             overflow-x: hidden;
             padding-bottom: 100px;
           }
@@ -686,14 +683,6 @@ export default function Vault() {
           }
           .overview-list-grid {
             grid-template-columns: 1fr;
-          }
-          .tabs-row {
-            gap: 16px;
-            padding: 0 12px;
-          }
-          .pt-tab {
-            font-size: 13px;
-            padding: 12px 0;
           }
         }
       `}</style>
