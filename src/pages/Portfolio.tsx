@@ -384,6 +384,9 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
           .portfolio-header h1 {
             font-size: 24px !important;
           }
+          .stat-card {
+            text-align: center;
+          }
           .portfolio-stats-grid {
             grid-template-columns: 1fr 1fr;
           }
