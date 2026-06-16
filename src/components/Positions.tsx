@@ -120,9 +120,9 @@ export default function Positions() {
                           {p.isLong ? 'long' : 'short'} {p.leverage}x
                         </span>
                         <span className="font-mono" style={{ textAlign: 'right' }}>{p.sizeUsd.toFixed(2)}</span>
-                        <span className="font-mono" style={{ textAlign: 'right' }}>${p.entryPrice.toFixed(2)}</span>
-                        <span className="font-mono" style={{ textAlign: 'right' }}>${markPrice.toFixed(2)}</span>
-                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'right' }}>${p.liquidationPrice.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'right' }}>${formatPrice(p.entryPrice)}</span>
+                        <span className="font-mono" style={{ textAlign: 'right' }}>${formatPrice(markPrice)}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'right' }}>${formatPrice(p.liquidationPrice)}</span>
                         <span className="font-mono" style={{ textAlign: 'right' }}>${p.collateral.toFixed(2)}</span>
                         <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, textAlign: 'right' }}>
                           {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
