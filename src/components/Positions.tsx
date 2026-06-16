@@ -15,6 +15,13 @@ export default function Positions() {
   const [tab, setTab] = useState<Tab>('positions')
   const [selectedShare, setSelectedShare] = useState<SharePositionData | null>(null)
 
+  const formatPrice = (p: number) => {
+    if (!p) return '0.00'
+    if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    if (p >= 1) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 })
+    return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 10 })
+  }
+
   // Read from smart contract & Goldsky
   const { positions: activePositions } = usePositions(address || undefined)
   const { closePosition, cancelOrder } = useConfidentialTrading()
