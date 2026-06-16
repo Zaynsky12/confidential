@@ -84,7 +84,13 @@ export default function Trade() {
 
 
 
-  const fp = (p: number) => p >= 1000 ? p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : p >= 100 ? p.toFixed(2) : p.toFixed(3)
+  const fp = (p: number) => {
+    if (!p) return '0.00'
+    if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    if (p >= 100) return p.toFixed(2)
+    if (p >= 1) return p.toFixed(3)
+    return p.toPrecision(4)
+  }
   const fvCompact = (v: number) => {
     if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B'
     if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M'

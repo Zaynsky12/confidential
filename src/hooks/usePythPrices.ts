@@ -38,7 +38,7 @@ export function usePythPrices() {
           // Convert Pyth price: price * 10^expo
           const rawPrice = Number(priceData.price)
           const expo = Number(priceData.expo)
-          const newPrice = +(rawPrice * Math.pow(10, expo)).toFixed(2)
+          const newPrice = Number(rawPrice * Math.pow(10, expo))
 
           if (newPrice > 0) {
             // On first load, also set high/low/prevPrice
