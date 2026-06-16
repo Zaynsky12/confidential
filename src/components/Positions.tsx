@@ -91,15 +91,15 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view positions</div>
             ) : (
               <>
-                <div className="pos-header">
+                <div className="pos-header" style={{ gridTemplateColumns: "130px 90px 100px 140px 140px 140px 100px 160px 110px", minWidth: "1110px" }}>
                   <span style={{ textAlign: 'left' }}>Market</span>
                   <span style={{ textAlign: 'left' }}>Side</span>
-                  <span style={{ textAlign: 'right' }}>Size</span>
-                  <span style={{ textAlign: 'right' }}>Entry Price</span>
-                  <span style={{ textAlign: 'right' }}>Mark Price</span>
-                  <span style={{ textAlign: 'right' }}>Liq. Price</span>
-                  <span style={{ textAlign: 'right' }}>Margin</span>
-                  <span style={{ textAlign: 'right' }}>PnL</span>
+                  <span style={{ textAlign: 'center' }}>Size</span>
+                  <span style={{ textAlign: 'center' }}>Entry Price</span>
+                  <span style={{ textAlign: 'center' }}>Mark Price</span>
+                  <span style={{ textAlign: 'center' }}>Liq. Price</span>
+                  <span style={{ textAlign: 'center' }}>Margin</span>
+                  <span style={{ textAlign: 'center' }}>PnL</span>
                   <span></span>
                 </div>
                 {openPositions.length === 0 ? (
@@ -121,17 +121,17 @@ export default function Positions() {
                     const pnlPercent = p.collateral > 0 ? (pnl / p.collateral) * 100 : 0
                     
                     return (
-                      <div key={p.id} className="pos-row">
+                      <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "130px 90px 100px 140px 140px 140px 100px 160px 110px", minWidth: "1110px" }}>
                         <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
                         <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'left' }}>
                           {p.isLong ? 'long' : 'short'} {p.leverage}x
                         </span>
-                        <span className="font-mono" style={{ textAlign: 'right' }}>{p.sizeUsd.toFixed(2)}</span>
-                        <span className="font-mono" style={{ textAlign: 'right' }}>${formatPrice(p.entryPrice)}</span>
-                        <span className="font-mono" style={{ textAlign: 'right' }}>${formatPrice(markPrice)}</span>
-                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'right' }}>${formatPrice(p.liquidationPrice)}</span>
-                        <span className="font-mono" style={{ textAlign: 'right' }}>${p.collateral.toFixed(2)}</span>
-                        <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, textAlign: 'right' }}>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>{p.sizeUsd.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(p.entryPrice)}</span>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(markPrice)}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'center' }}>${formatPrice(p.liquidationPrice)}</span>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>${p.collateral.toFixed(2)}</span>
+                        <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, textAlign: 'center' }}>
                           {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
@@ -169,7 +169,7 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view open orders</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px' }}>
                   <span>Time</span>
                   <span>Market</span>
                   <span>Side</span>
@@ -188,7 +188,7 @@ export default function Positions() {
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === o.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : o.pairId.slice(0, 10) + '...'
                     return (
-                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 100px' }}>
+                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px' }}>
                       <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.createdAt)}</span>
                       <span style={{ fontWeight: 600 }}>{pairName}</span>
                       <span className={o.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
@@ -215,7 +215,7 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view history</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
                   <span>Time Closed</span>
                   <span>Market</span>
                   <span>Side</span>
@@ -233,7 +233,7 @@ export default function Positions() {
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
                     return (
-                    <div key={p.id} className="pos-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr' }}>
+                    <div key={p.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
                       <span style={{ color: 'var(--color-text3)' }}>{formatTime(p.timestamp)}</span>
                       <span style={{ fontWeight: 600 }}>{pairName}</span>
                       <span className={p.action === 'Open' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
@@ -321,21 +321,21 @@ export default function Positions() {
         }
         .pos-header {
           display: grid;
-          grid-template-columns: 1.2fr 0.8fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1.5fr 110px;
+          grid-template-columns: minmax(0,1.2fr) minmax(0,0.8fr) minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.5fr) 110px;
           padding: 8px 16px;
           font-size: 11px;
           color: var(--color-text3);
           border-bottom: 1px solid var(--color-border);
-          min-width: 1000px;
+          min-width: 1050px;
         }
         .pos-row {
           display: grid;
-          grid-template-columns: 1.2fr 0.8fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1.5fr 110px;
+          grid-template-columns: minmax(0,1.2fr) minmax(0,0.8fr) minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.5fr) 110px;
           padding: 10px 16px;
           font-size: 12px;
           align-items: center;
           border-bottom: 1px solid var(--color-border);
-          min-width: 1000px;
+          min-width: 1050px;
           transition: background-color 150ms;
         }
         .pos-row:hover {
@@ -430,4 +430,9 @@ export default function Positions() {
     </div>
   )
 }
+
+
+
+
+
 
