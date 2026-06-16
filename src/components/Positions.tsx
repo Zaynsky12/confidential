@@ -91,16 +91,15 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view positions</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: "130px 90px 100px 140px 140px 140px 100px 160px 110px", minWidth: "1110px" }}>
+                <div className="pos-header" style={{ gridTemplateColumns: "140px 110px 110px 140px 140px 140px 110px 220px", minWidth: "1110px" }}>
                   <span style={{ textAlign: 'left' }}>Market</span>
                   <span style={{ textAlign: 'left' }}>Side</span>
-                  <span style={{ textAlign: 'center' }}>Size</span>
-                  <span style={{ textAlign: 'center' }}>Entry Price</span>
-                  <span style={{ textAlign: 'center' }}>Mark Price</span>
-                  <span style={{ textAlign: 'center' }}>Liq. Price</span>
-                  <span style={{ textAlign: 'center' }}>Margin</span>
+                  <span style={{ textAlign: 'left' }}>Size</span>
+                  <span style={{ textAlign: 'left' }}>Entry Price</span>
+                  <span style={{ textAlign: 'left' }}>Mark Price</span>
+                  <span style={{ textAlign: 'left' }}>Liq. Price</span>
+                  <span style={{ textAlign: 'left' }}>Margin</span>
                   <span style={{ textAlign: 'center' }}>PnL</span>
-                  <span></span>
                 </div>
                 {openPositions.length === 0 ? (
                   <div className="pos-empty">No open positions</div>
@@ -121,40 +120,42 @@ export default function Positions() {
                     const pnlPercent = p.collateral > 0 ? (pnl / p.collateral) * 100 : 0
                     
                     return (
-                      <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "130px 90px 100px 140px 140px 140px 100px 160px 110px", minWidth: "1110px" }}>
+                      <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "140px 110px 110px 140px 140px 140px 110px 220px", minWidth: "1110px" }}>
                         <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
                         <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'left' }}>
                           {p.isLong ? 'long' : 'short'} {p.leverage}x
                         </span>
-                        <span className="font-mono" style={{ textAlign: 'center' }}>{p.sizeUsd.toFixed(2)}</span>
-                        <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(p.entryPrice)}</span>
-                        <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(markPrice)}</span>
-                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'center' }}>${formatPrice(p.liquidationPrice)}</span>
-                        <span className="font-mono" style={{ textAlign: 'center' }}>${p.collateral.toFixed(2)}</span>
-                        <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, textAlign: 'center' }}>
-                          {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                          <button 
-                            className="btn-share"
-                            onClick={() => setSelectedShare({
-                              pair: pairName,
-                              side: p.isLong ? 'long' : 'short',
-                              leverage: Number(p.leverage),
-                              entryPrice: p.entryPrice,
-                              markPrice: markPrice,
-                              pnlPercent: pnlPercent,
-                              pnlUsd: pnl
-                            })}
-                            title="Share PnL"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </button>
-                          <button onClick={() => closePosition(BigInt(p.positionId), matchedMarket?.pythPriceId || '')} className="btn-close">
-                            Close
-                          </button>
+                        <span className="font-mono" style={{ textAlign: 'left' }}>{p.sizeUsd.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'left' }}>${formatPrice(p.entryPrice)}</span>
+                        <span className="font-mono" style={{ textAlign: 'left' }}>${formatPrice(markPrice)}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'left' }}>${formatPrice(p.liquidationPrice)}</span>
+                        <span className="font-mono" style={{ textAlign: 'left' }}>${p.collateral.toFixed(2)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                          <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
+                            {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button 
+                              className="btn-share"
+                              onClick={() => setSelectedShare({
+                                pair: pairName,
+                                side: p.isLong ? 'long' : 'short',
+                                leverage: Number(p.leverage),
+                                entryPrice: p.entryPrice,
+                                markPrice: markPrice,
+                                pnlPercent: pnlPercent,
+                                pnlUsd: pnl
+                              })}
+                              title="Share PnL"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
+                            <button onClick={() => closePosition(BigInt(p.positionId), matchedMarket?.pythPriceId || '')} className="btn-close">
+                              Close
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )
@@ -430,6 +431,8 @@ export default function Positions() {
     </div>
   )
 }
+
+
 
 
 
