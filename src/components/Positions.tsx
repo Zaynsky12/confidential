@@ -321,21 +321,21 @@ export default function Positions() {
         }
         .pos-header {
           display: grid;
-          grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1.5fr 110px;
+          grid-template-columns: 1.2fr 0.8fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1.5fr 110px;
           padding: 8px 16px;
           font-size: 11px;
           color: var(--color-text3);
           border-bottom: 1px solid var(--color-border);
-          min-width: 800px;
+          min-width: 1000px;
         }
         .pos-row {
           display: grid;
-          grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1.5fr 110px;
+          grid-template-columns: 1.2fr 0.8fr 1fr 1.2fr 1.2fr 1.2fr 1fr 1.5fr 110px;
           padding: 10px 16px;
           font-size: 12px;
           align-items: center;
           border-bottom: 1px solid var(--color-border);
-          min-width: 800px;
+          min-width: 1000px;
           transition: background-color 150ms;
         }
         .pos-row:hover {
@@ -430,3 +430,4 @@ export default function Positions() {
     </div>
   )
 }
+
