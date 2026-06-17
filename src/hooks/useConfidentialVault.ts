@@ -42,6 +42,35 @@ export function useConfidentialVault() {
     args: address ? [address] : undefined,
   })
 
+  // Read Share Price
+  const { data: sharePriceData, refetch: refetchSharePrice } = useReadContract({
+    address: CONTRACTS.VAULT,
+    abi: ABIS.VAULT,
+    functionName: 'sharePrice',
+  })
+
+  // Read Utilization
+  const { data: utilizationData, refetch: refetchUtilization } = useReadContract({
+    address: CONTRACTS.VAULT,
+    abi: ABIS.VAULT,
+    functionName: 'utilization',
+  })
+
+  // Read Available Liquidity
+  const { data: availableLiquidityData, refetch: refetchAvailableLiquidity } = useReadContract({
+    address: CONTRACTS.VAULT,
+    abi: ABIS.VAULT,
+    functionName: 'availableLiquidity',
+  })
+
+  // Read if user can withdraw (lockup expired)
+  const { data: canWithdrawData, refetch: refetchCanWithdraw } = useReadContract({
+    address: CONTRACTS.VAULT,
+    abi: ABIS.VAULT,
+    functionName: 'canWithdraw',
+    args: address ? [address] : undefined,
+  })
+
   const deposit = async (amountUsdc: number) => {
     try {
       if (!isApproved(amountUsdc)) {
@@ -66,23 +95,21 @@ export function useConfidentialVault() {
     }
   }
 
-  const withdraw = async (amountUsdc: number) => {
+  const withdraw = async (amountShares: number) => {
     try {
-      if (!underlyingBalance || !sharesData) throw new Error("Vault balances not loaded")
+      if (!sharesData) throw new Error("Vault balances not loaded")
       
-      const underlyingNum = Number(formatUnits(underlyingBalance as bigint, 6))
-      if (amountUsdc > underlyingNum) throw new Error("Insufficient vault balance")
+      const sharesNum = Number(formatUnits(sharesData as bigint, 6))
+      if (amountShares > sharesNum) throw new Error("Insufficient cUSDC balance")
 
       toast.loading('Withdrawing from Vault...', { id: 'withdraw' })
 
       let shareAmount: bigint
       // If user is withdrawing MAX or close to MAX, burn all shares to avoid dust
-      if (amountUsdc >= underlyingNum * 0.999) {
+      if (amountShares >= sharesNum * 0.999) {
         shareAmount = sharesData as bigint
       } else {
-        // Calculate proportional shares to burn
-        const ratio = amountUsdc / underlyingNum
-        shareAmount = (BigInt(sharesData as bigint) * BigInt(Math.floor(ratio * 1000000))) / 1000000n
+        shareAmount = parseUnits(amountShares.toString(), 6)
       }
 
       const tx = await writeContractAsync({
@@ -106,11 +133,20 @@ export function useConfidentialVault() {
     withdraw,
     tvlUsd: totalAssets ? Number(formatUnits(totalAssets as bigint, 6)) : 0,
     userCVault: underlyingBalance ? Number(formatUnits(underlyingBalance as bigint, 6)) : 0,
+    userCVaultShares: sharesData ? Number(formatUnits(sharesData as bigint, 6)) : 0,
+    canWithdraw: !!canWithdrawData,
+    sharePrice: sharePriceData ? Number(formatUnits(sharePriceData as bigint, 6)) : 1,
+    utilization: utilizationData ? Number(utilizationData as bigint) / 100 : 0, // basis points to percentage
+    availableLiquidity: availableLiquidityData ? Number(formatUnits(availableLiquidityData as bigint, 6)) : 0,
     isPending: isPending || isConfirming || isApproving,
     refetchAll: () => {
       refetchTvl()
       refetchShares()
       refetchBalance()
+      refetchSharePrice()
+      refetchUtilization()
+      refetchAvailableLiquidity()
+      refetchCanWithdraw()
     }
   }
 }

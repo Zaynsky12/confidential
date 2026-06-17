@@ -3,15 +3,15 @@ import { createChart, ColorType, AreaSeries } from 'lightweight-charts'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialVault } from '../hooks/useConfidentialVault'
-import { useVaultHistory, useTradeRecords } from '../hooks/useGoldsky'
+import { useVaultHistory } from '../hooks/useGoldsky'
 import { CONTRACTS } from '../config/contracts'
 
 export default function Vault() {
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
-  const { deposit, withdraw, tvlUsd, userCVault, isPending } = useConfidentialVault()
+  const { deposit, withdraw, tvlUsd, userCVault, userCVaultShares, canWithdraw, isPending, sharePrice, utilization, availableLiquidity } = useConfidentialVault()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
   const { deposits: globalDeposits } = useVaultHistory() // For global TVL chart
-  const { trades: globalTrades } = useTradeRecords() // For total platform volume
+
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
   const [activeTab, setActiveTab] = useState('Vault Performance')
@@ -20,7 +20,7 @@ export default function Vault() {
   const chartApiRef = useRef<IChartApi | null>(null)
   const [chartTimeframe, setChartTimeframe] = useState('30d')
 
-  const tabs = ['Vault Performance', 'Your Activity', 'Traders PnL', 'Top Depositors']
+  const tabs = ['Vault Performance', 'Your Activity']
 
   const handleAction = async () => {
     if (!isConnected || isWrongNetwork) { connect(); return }
@@ -42,9 +42,21 @@ export default function Vault() {
   const formatTime = (ts: number) => new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
   const vaultVolume = useMemo(() => {
-    if (!globalTrades) return 0
-    return globalTrades.reduce((acc, t) => acc + t.sizeUsd, 0)
-  }, [globalTrades])
+    if (!globalDeposits) return 0
+    return globalDeposits.reduce((acc, d) => acc + d.amount, 0)
+  }, [globalDeposits])
+
+  // Calculate personal net deposits and earnings
+  const { estEarnings } = useMemo(() => {
+    if (!vaultDeposits || vaultDeposits.length === 0) return { netDeposits: 0, estEarnings: 0 }
+    let net = 0
+    for (const d of vaultDeposits) {
+      if (d.action === 'deposit') net += d.amount
+      else net -= d.amount
+    }
+    const est = userCVault > 0 ? userCVault - net : 0
+    return { netDeposits: net, estEarnings: est }
+  }, [vaultDeposits, userCVault])
 
   // Real Vault TVL data for chart
   const tvlData = useMemo(() => {
@@ -126,7 +138,7 @@ export default function Vault() {
           <div className="stat-value font-mono">US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Volume</div>
+          <div className="stat-label">Vault Volume</div>
           <div className="stat-value font-mono">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
         </div>
       </div>
@@ -157,11 +169,12 @@ export default function Vault() {
                 </div>
                 <div className="dp-list">
                   <div className="dp-item"><span className="dp-label">TVL</span><span className="dp-value">US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
-                  <div className="dp-item"><span className="dp-label">All Time Return</span><span className="dp-value text-green">+0.00%</span></div>
-                  <div className="dp-item"><span className="dp-label">PnL</span><span className="dp-value text-green">+US$0.00</span></div>
-                  <div className="dp-item"><span className="dp-label">Past Month Return (APR)</span><span className="dp-value text-green">+0.00%</span></div>
-                  <div className="dp-item"><span className="dp-label">Volume</span><span className="dp-value">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
-                  <div className="dp-item"><span className="dp-label">Performance Fee</span><span className="dp-value">0%</span></div>
+                  <div className="dp-item"><span className="dp-label">cUSDC Price</span><span className="dp-value font-mono">US${sharePrice?.toLocaleString(undefined, {minimumFractionDigits:4, maximumFractionDigits:4}) || '1.0000'}</span></div>
+                  <div className="dp-item"><span className="dp-label">Vault Utilization</span><span className="dp-value font-mono">{(utilization || 0).toFixed(2)}%</span></div>
+                  <div className="dp-item"><span className="dp-label">Available Liquidity</span><span className="dp-value font-mono">US${availableLiquidity >= 1e6 ? (availableLiquidity / 1e6).toFixed(2) + 'M' : (availableLiquidity || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+                  <div className="dp-item"><span className="dp-label">All Time Return</span><span className={`dp-value ${sharePrice >= 1 ? 'text-green' : 'text-red'}`}>{(sharePrice >= 1 ? '+' : '')}{((sharePrice - 1) * 100).toFixed(2)}%</span></div>
+                  <div className="dp-item"><span className="dp-label">Vault Volume</span><span className="dp-value">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+
                   <div className="dp-item"><span className="dp-label">Lockup Period</span><span className="dp-value">7 Days</span></div>
                   <div className="dp-item">
                     <span className="dp-label">Vault Manager</span>
@@ -179,7 +192,7 @@ export default function Vault() {
               <div className="dp-chart-area">
                 <div className="dp-chart-header">
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ color: 'var(--color-text2)', fontSize: 14, marginBottom: 4 }}>Profit/Loss</span>
+                    <span style={{ color: 'var(--color-text2)', fontSize: 14, marginBottom: 4 }}>Vault TVL</span>
                     <span className="font-mono" style={{ fontSize: 22, fontWeight: 600, color: 'var(--color-text1)' }}>
                       US${(tvlUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
                     </span>
@@ -196,27 +209,58 @@ export default function Vault() {
               </div>
             </div>
           ) : activeTab === 'Your Activity' ? (
-            <div className="vault-panel-box">
-              <div style={{ overflowX:'auto' }}>
+            <div className="vault-activity-container">
+              {/* Personal Stats Grid */}
+              <div className="personal-stats-grid">
+                <div className="p-stat-card">
+                  <div className="p-stat-label">Available</div>
+                  <div className="p-stat-value font-mono">
+                    {canWithdraw ? userCVaultShares.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '0.00'} <span className="p-stat-symbol">cUSDC</span>
+                  </div>
+                </div>
+                <div className="p-stat-card">
+                  <div className="p-stat-label">Locked</div>
+                  <div className="p-stat-value font-mono">
+                    {!canWithdraw ? userCVaultShares.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '0.00'} <span className="p-stat-symbol">cUSDC</span>
+                  </div>
+                </div>
+                <div className="p-stat-card">
+                  <div className="p-stat-label">Total Value</div>
+                  <div className="p-stat-value font-mono">
+                    {userCVault.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} <span className="p-stat-symbol">USDC</span>
+                  </div>
+                </div>
+                <div className="p-stat-card">
+                  <div className="p-stat-label">Est. Earnings</div>
+                  <div className={`p-stat-value font-mono ${estEarnings > 0 ? 'text-green' : estEarnings < 0 ? 'text-red' : ''}`}>
+                    {estEarnings > 0 ? '+' : ''}{estEarnings.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} <span className="p-stat-symbol">USDC</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="vault-panel-box mt-4">
+                <div style={{ overflowX:'auto' }}>
                 <table className="portfolio-table">
                   <thead>
                     <tr>
                       <th>Time</th>
                       <th>Action</th>
-                      <th>Amount</th>
+                      <th>USDC Amount</th>
+                      <th>cUSDC Shares</th>
                       <th>Tx Hash</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isHistoryLoading ? (
-                      <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>Loading from Goldsky...</td></tr>
+                      <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>Loading from Goldsky...</td></tr>
                     ) : vaultDeposits.length === 0 ? (
-                      <tr><td colSpan={4} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No activity yet</td></tr>
+                      <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No activity yet</td></tr>
                     ) : vaultDeposits.map(d=>(
                       <tr key={d.id}>
                         <td style={{ color:'var(--color-text2)' }}>{formatTime(d.timestamp)}</td>
                         <td><span className={d.action==='deposit'?'badge badge-green':'badge badge-red'} style={{ fontSize:10,padding:'2px 8px' }}>{d.action.toUpperCase()}</span></td>
                         <td className="font-mono">{d.amount.toFixed(2)} USDC</td>
+                        <td className="font-mono">{d.shares?.toFixed(2) || '0.00'} cUSDC</td>
                         <td className="font-mono text-accent">
                           <a href={`https://explorer.arc.network/tx/${d.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
                         </td>
@@ -226,44 +270,7 @@ export default function Vault() {
                 </table>
               </div>
             </div>
-          ) : activeTab === 'Traders PnL' ? (
-            <div className="vault-panel-box">
-              <div style={{ overflowX:'auto' }}>
-                <table className="portfolio-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Long PnL</th>
-                      <th>Short PnL</th>
-                      <th>Net Global PnL</th>
-                      <th>Liquidations</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No data yet</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : activeTab === 'Top Depositors' ? (
-            <div className="vault-panel-box">
-              <div style={{ overflowX:'auto' }}>
-                <table className="portfolio-table">
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Wallet Address</th>
-                      <th>Total Deposit (USDC)</th>
-                      <th>Pool Share</th>
-                      <th>Total Earned</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--color-text3)' }}>No data yet</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          </div>
           ) : null}
         </div>
 
@@ -287,23 +294,47 @@ export default function Vault() {
             
             <div className="action-body">
               <div className="decibel-disclaimer">
-                After an initial deposit, there is a waiting period of 7 days before funds can be withdrawn. You earn 70% of all platform fees plus trader losses.
+                {activeAction === 'Deposit' ? (
+                  <>Deposit USDC to receive cUSDC, an ERC-20 token representing your share of the vault. Liquidity providers earn fees from every trade placed on the platform as a reward for serving as the counterparty. The cUSDC token automatically accumulates these fees in real-time.</>
+                ) : (
+                  <>
+                    <strong style={{ color: 'var(--color-text1)', marginBottom: '8px', display: 'block' }}>Withdrawals</strong>
+                    To ensure the stability of the vault and protect against front-running attacks, all deposits are subject to a 7-day lockup period.<br/><br/>
+                    Once your 7-day lockup period has expired, your cUSDC becomes "Available" and you can withdraw it for USDC at any time based on the current exchange rate.<br/><br/>
+                    <span style={{ color: 'var(--color-text1)' }}>Note: Making a new deposit will reset the 7-day lockup timer for your entire balance.</span>
+                  </>
+                )}
               </div>
 
               <div className="input-group">
                 <div className="input-header">
-                  <span style={{ color:'var(--color-text2)', fontSize:13 }}>Amount</span>
+                  <span style={{ color:'var(--color-text2)', fontSize:13 }}>{activeAction === 'Deposit' ? 'Pay' : 'Withdraw'}</span>
                   <span style={{ color:'var(--color-text3)', fontSize:13 }}>
-                    {activeAction === 'Deposit' ? 'Wallet:' : 'Vault:'} <span className="font-mono text-white">{activeAction==='Deposit'?balance.toFixed(2):userCVault.toFixed(2)} USDC</span>
+                    {activeAction === 'Deposit' ? 'Wallet:' : 'Vault:'} <span className="font-mono text-white">{activeAction==='Deposit'?balance.toFixed(2):userCVaultShares.toFixed(2)} {activeAction==='Deposit'?'USDC':'cUSDC'}</span>
                   </span>
                 </div>
                 <div className="input-box">
                   <input type="number" placeholder="0.00" value={amt} onChange={e=>setAmt(e.target.value)} className="font-mono" />
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <button className="max-btn" onClick={()=>setAmt(activeAction==='Deposit'?String(balance):String(userCVault))}>MAX</button>
-                    <span style={{ fontWeight:600, fontSize:14 }}>USDC</span>
+                    <button className="max-btn" onClick={()=>setAmt(activeAction==='Deposit'?String(balance):String(userCVaultShares))}>MAX</button>
+                    <span style={{ fontWeight:600, fontSize:14 }}>{activeAction === 'Deposit' ? 'USDC' : 'cUSDC'}</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="receive-section" style={{ background: 'var(--color-bg0)', borderRadius: 8, padding: '12px 16px', marginBottom: 12, border: '1px solid var(--color-border)' }}>
+                <div style={{ color: 'var(--color-text2)', fontSize: 13, marginBottom: 8 }}>You receive</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="font-mono" style={{ fontSize: 20, color: 'var(--color-text1)' }}>
+                    {activeAction === 'Deposit' ? (Number(amt) / (sharePrice || 1) || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : (Number(amt) * (sharePrice || 1) || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
+                  </span>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{activeAction === 'Deposit' ? 'cUSDC' : 'USDC'}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-text2)', marginBottom: 16 }}>
+                <span>Exchange Rate</span>
+                <span className="font-mono">1 cUSDC = {sharePrice.toFixed(4)} USDC</span>
               </div>
 
               <button className="submit-btn" disabled={isPending || (!amt && !isWrongNetwork && isConnected) || (Number(amt) <= 0 && !isWrongNetwork && isConnected)} onClick={handleAction} style={{ opacity: (isPending || (!amt && !isWrongNetwork && isConnected)) ? 0.5 : 1 }}>
@@ -500,13 +531,13 @@ export default function Vault() {
           color: #fff;
         }
         .action-body {
-          padding: 24px;
+          padding: 20px;
         }
         .decibel-disclaimer {
           font-size: 13px;
           color: var(--color-text2);
           line-height: 1.5;
-          margin-bottom: 24px;
+          margin-bottom: 16px;
         }
 
         /* Controls & Inputs */
@@ -537,7 +568,7 @@ export default function Vault() {
         }
 
         .input-group {
-          margin-bottom: 24px;
+          margin-bottom: 16px;
         }
         .input-header {
           display: flex;
@@ -615,6 +646,48 @@ export default function Vault() {
           white-space: nowrap;
         }
 
+        /* Personal Stats Grid in Your Activity */
+        .vault-activity-container {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+        .personal-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+        }
+        .p-stat-card {
+          background: var(--color-bg1);
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+        }
+        .p-stat-label {
+          color: var(--color-text2);
+          font-size: 13px;
+          margin-bottom: 8px;
+        }
+        .p-stat-value {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--color-text1);
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+        .p-stat-symbol {
+          font-size: 12px;
+          color: var(--color-text3);
+          font-family: 'Inter', sans-serif;
+          font-weight: 500;
+        }
+        .mt-4 {
+          margin-top: 16px;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
           .vault-main-grid {
@@ -623,6 +696,9 @@ export default function Vault() {
           .decibel-performance-layout {
             grid-template-columns: 1fr;
           }
+          .personal-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
           .sticky-card {
             position: static;
           }
@@ -630,6 +706,9 @@ export default function Vault() {
         @media (max-width: 768px) {
           .vault-container {
             padding: 16px 12px;
+          }
+          .tabs-row {
+            justify-content: center;
           }
           .vault-stats-grid {
             grid-template-columns: 1fr; /* Stack stats on mobile */
