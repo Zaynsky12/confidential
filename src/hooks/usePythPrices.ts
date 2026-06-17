@@ -49,8 +49,8 @@ export function usePythPrices() {
                   ? {
                       ...m,
                       price: newPrice,
-                      prevPrice: m.prevPrice > 0 ? m.prevPrice : newPrice,
-                      change24h: m.prevPrice > 0 ? +(((newPrice - m.prevPrice) / m.prevPrice) * 100).toFixed(2) : 0,
+                      prevPrice: newPrice,
+                      change24h: 0,
                       high24h: newPrice * 1.005,
                       low24h: newPrice * 0.995,
                     }
@@ -64,27 +64,38 @@ export function usePythPrices() {
         }
 
         // Fetch historical prices once to get accurate 24h change
+        // We fetch per-ID because Hermes V2 historical bulk fetch fails if even ONE ID is missing data.
         if (!initializedRef.current) {
-          try {
-            const ts = Math.floor(Date.now() / 1000) - 86400
-            const histUrl = `https://hermes.pyth.network/v2/updates/price/${ts}?${ids}`
-            const histRes = await fetch(histUrl)
-            if (histRes.ok) {
+          const ts = Math.floor(Date.now() / 1000) - 86400
+          
+          Promise.allSettled(
+            markets.map(async (m) => {
+              const histUrl = `https://hermes.pyth.network/v2/updates/price/${ts}?ids[]=${m.pythPriceId}`
+              const histRes = await fetch(histUrl)
+              if (!histRes.ok) throw new Error('Failed')
               const histData = await histRes.json()
-              const histPrices: Record<string, number> = {}
-              if (histData.parsed && Array.isArray(histData.parsed)) {
-                for (const feed of histData.parsed) {
-                  if (feed.price) {
-                    const p = Number(feed.price.price) * Math.pow(10, Number(feed.price.expo))
-                    if (p > 0) histPrices[feed.id] = p
+              if (histData.parsed && histData.parsed.length > 0) {
+                const feed = histData.parsed[0]
+                if (feed.price) {
+                  return {
+                    id: m.pythPriceId,
+                    price: Number(feed.price.price) * Math.pow(10, Number(feed.price.expo))
                   }
                 }
-                useTradeStore.getState().setMarketHistoricalPrices(histPrices)
+              }
+              throw new Error('No data')
+            })
+          ).then((results) => {
+            const histPrices: Record<string, number> = {}
+            for (const result of results) {
+              if (result.status === 'fulfilled' && result.value.price > 0) {
+                histPrices[result.value.id] = result.value.price
               }
             }
-          } catch (e) {
-            console.warn('[Pyth] Failed to fetch historical prices', e)
-          }
+            if (Object.keys(histPrices).length > 0) {
+              useTradeStore.getState().setMarketHistoricalPrices(histPrices)
+            }
+          }).catch((e) => console.warn('[Pyth] Historical batch error', e))
         }
 
         initializedRef.current = true
