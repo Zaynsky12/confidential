@@ -59,3 +59,10 @@ type VaultDeposit @entity {
   timestamp: BigInt!
   txHash: Bytes!
 }
+
+type PairDayData @entity {
+  id: ID! # pairId-dayId
+  pairId: Bytes!
+  date: Int! # dayId * 86400
+  volumeUsd: BigInt!
+}

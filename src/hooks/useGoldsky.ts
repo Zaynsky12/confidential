@@ -415,3 +415,41 @@ export function useTradeRecords(userAddress?: string) {
 
   return { trades, isLoading }
 }
+
+export function useAll24hVolumes() {
+  const [volumes, setVolumes] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    async function fetchVolumes() {
+      try {
+        // Get start of yesterday (UTC)
+        const yesterday = Math.floor(Date.now() / 1000) - 86400
+        const query = gql`
+          query GetAllVolumes($date: Int!) {
+            pairDayDatas(where: { date_gte: $date }, first: 1000) {
+              pairId
+              volumeUsd
+            }
+          }
+        `
+        const data: any = await gqlClient.request(query, { date: yesterday })
+        
+        const volMap: Record<string, number> = {}
+        data.pairDayDatas.forEach((d: any) => {
+          const pid = d.pairId.toLowerCase()
+          const vol = Number(formatUnits(BigInt(d.volumeUsd), 6))
+          volMap[pid] = (volMap[pid] || 0) + vol
+        })
+        setVolumes(volMap)
+      } catch (e) {
+        console.error("Goldsky Fetch Volumes Error:", e)
+      }
+    }
+    
+    fetchVolumes()
+    const interval = setInterval(fetchVolumes, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return volumes
+}

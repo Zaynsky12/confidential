@@ -14,7 +14,23 @@ import {
   Deposit,
   Withdraw
 } from "../generated/ConfidentialVault/ConfidentialVault"
-import { Position, Order, TradeRecord, VaultDeposit } from "../generated/schema"
+import { Position, Order, TradeRecord, VaultDeposit, PairDayData } from "../generated/schema"
+
+function updatePairDayData(pairId: Bytes, timestamp: BigInt, volumeUsd: BigInt): void {
+  let dayId = timestamp.toI32() / 86400
+  let id = pairId.toHexString() + "-" + dayId.toString()
+  
+  let dayData = PairDayData.load(id)
+  if (dayData == null) {
+    dayData = new PairDayData(id)
+    dayData.pairId = pairId
+    dayData.date = dayId * 86400
+    dayData.volumeUsd = BigInt.fromI32(0)
+  }
+  
+  dayData.volumeUsd = dayData.volumeUsd.plus(volumeUsd)
+  dayData.save()
+}
 
 export function handlePositionOpened(event: PositionOpened): void {
   let positionId = event.params.positionId.toString()
@@ -61,6 +77,9 @@ export function handlePositionOpened(event: PositionOpened): void {
   trade.timestamp = event.block.timestamp
   trade.txHash = event.transaction.hash
   trade.save()
+
+  // Update Daily Volume
+  updatePairDayData(event.params.pairId, event.block.timestamp, event.params.sizeUsd)
 }
 
 export function handlePositionClosed(event: PositionClosed): void {
@@ -83,6 +102,9 @@ export function handlePositionClosed(event: PositionClosed): void {
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
+
+    // Update Daily Volume
+    updatePairDayData(position.pairId, event.block.timestamp, position.sizeUsd)
   }
 }
 
@@ -104,6 +126,9 @@ export function handlePositionLiquidated(event: PositionLiquidated): void {
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
+
+    // Update Daily Volume
+    updatePairDayData(position.pairId, event.block.timestamp, position.sizeUsd)
   }
 }
 

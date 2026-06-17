@@ -70,6 +70,7 @@ interface TradeStore {
   setActiveMarket: (id: string) => void
   toggleWatchlist: (id: string) => void
   updateMarketPrice: (id: string, price: number) => void
+  setMarketHistoricalPrices: (prices: Record<string, number>) => void
 
   // Order Book
   orderBook: { bids: OrderBookEntry[]; asks: OrderBookEntry[] }
@@ -132,14 +133,30 @@ export const useTradeStore = create<TradeStore>()(
             m.id === id
               ? {
                   ...m,
-                  prevPrice: m.price,
+                  // Do not overwrite prevPrice! It represents the 24h old price.
                   price,
                   change24h: m.prevPrice > 0 ? +(((price - m.prevPrice) / m.prevPrice) * 100).toFixed(2) : 0,
                   high24h: Math.max(m.high24h, price),
-                  low24h: Math.min(m.low24h, price),
+                  low24h: m.low24h > 0 ? Math.min(m.low24h, price) : price,
                 }
               : m
           ),
+        }))
+      },
+      setMarketHistoricalPrices: (prices) => {
+        set((state) => ({
+          markets: state.markets.map((m) => {
+            const historicalPrice = prices[m.pythPriceId]
+            if (historicalPrice) {
+              return {
+                ...m,
+                prevPrice: historicalPrice,
+                // Recalculate change24h immediately if we already have a current price
+                change24h: m.price > 0 ? +(((m.price - historicalPrice) / historicalPrice) * 100).toFixed(2) : 0
+              }
+            }
+            return m
+          })
         }))
       },
 

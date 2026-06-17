@@ -4,6 +4,10 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
 import { useTranslation } from 'react-i18next'
+import { useReadContracts } from 'wagmi'
+import { keccak256, toHex, formatUnits } from 'viem'
+import { CONTRACTS, ABIS } from '../config/contracts'
+import { useAll24hVolumes } from '../hooks/useGoldsky'
 
 const getAssetLogo = (pair: string) => {
   const base = pair.split('/')[0].toLowerCase()
@@ -51,6 +55,20 @@ export default function Topbar() {
   const location = useLocation()
   const truncatedAddress = address ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}` : ''
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
+  const volumes = useAll24hVolumes()
+
+  // Fetch real Open Interest for all markets
+  const oiContracts = markets.map(m => ({
+    address: CONTRACTS.CORE as `0x${string}`,
+    abi: ABIS.CORE,
+    functionName: 'getOIInfo',
+    args: [keccak256(toHex(m.pair))]
+  }))
+
+  const { data: oiData } = useReadContracts({
+    contracts: oiContracts,
+    query: { refetchInterval: 10000 }
+  })
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -121,7 +139,10 @@ export default function Topbar() {
   }
 
   const formatOI = (v: number) => {
-    return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`
+    if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`
+    if (v >= 1e3) return `$${(v / 1e3).toFixed(2)}K`
+    return `$${v.toFixed(2)}`
   }
 
   return (
@@ -469,13 +490,24 @@ export default function Topbar() {
                     <th className="msp-th msp-th-right">Price</th>
                     <th className="msp-th msp-th-right">24h Change</th>
                     <th className="msp-th msp-th-right desktop-col">24h Vol</th>
-                    <th className="msp-th msp-th-right desktop-col">Open Interest</th>
+                    <th className="msp-th msp-th-right">Open Interest</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredMarkets.map((m) => {
                     const isActive = m.id === activeMarketId
                     const leverage = `${m.maxLeverage}x`
+                    const pairIdHash = keccak256(toHex(m.pair)).toLowerCase()
+                    const realVolume = volumes[pairIdHash] || 0
+                    
+                    // Extract real OI from multicall
+                    const marketIndex = markets.findIndex(orig => orig.id === m.id)
+                    let realOI = 0
+                    if (oiData && oiData[marketIndex] && oiData[marketIndex].status === 'success') {
+                      const [longOI, shortOI] = oiData[marketIndex].result as any
+                      realOI = Number(formatUnits(longOI, 6)) + Number(formatUnits(shortOI, 6))
+                    }
+
                     return (
                       <tr
                         key={m.id}
@@ -531,8 +563,8 @@ export default function Topbar() {
                         <td className={`msp-td msp-td-change font-mono ${m.change24h >= 0 ? 'text-green' : 'text-red'}`}>
                           {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
                         </td>
-                        <td className="msp-td msp-td-vol font-mono desktop-col">{formatVol(m.volume24h)}</td>
-                        <td className="msp-td msp-td-oi font-mono desktop-col">{formatOI(m.openInterest)}</td>
+                        <td className="msp-td msp-td-vol font-mono desktop-col">{formatVol(realVolume)}</td>
+                        <td className="msp-td msp-td-oi font-mono">{formatOI(realOI)}</td>
                       </tr>
                     )
                   })}
@@ -890,6 +922,7 @@ export default function Topbar() {
         .msp-table-wrapper {
           flex: 1;
           overflow-y: auto;
+          overflow-x: auto;
           /* Removed padding-top to eliminate the empty gap */
         }
         .msp-table {
@@ -967,6 +1000,33 @@ export default function Topbar() {
           }
           .market-selector-backdrop {
             padding: 0;
+          }
+          .msp-th {
+            font-size: 8px;
+            padding: 6px 4px;
+            letter-spacing: 0.5px;
+          }
+          .msp-td {
+            font-size: 10px;
+            padding: 8px 4px;
+          }
+          .msp-td-pair img {
+            width: 18px !important;
+            height: 18px !important;
+          }
+          .msp-td-pair svg {
+            width: 12px !important;
+            height: 12px !important;
+          }
+          .msp-td-pair span {
+            font-size: 11px !important;
+          }
+          .msp-td-pair button {
+            padding: 8px !important;
+            margin: -8px !important;
+          }
+          .msp-td-pair div {
+            gap: 6px !important;
           }
         }
 

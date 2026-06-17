@@ -49,7 +49,8 @@ export function usePythPrices() {
                   ? {
                       ...m,
                       price: newPrice,
-                      prevPrice: newPrice,
+                      prevPrice: m.prevPrice > 0 ? m.prevPrice : newPrice,
+                      change24h: m.prevPrice > 0 ? +(((newPrice - m.prevPrice) / m.prevPrice) * 100).toFixed(2) : 0,
                       high24h: newPrice * 1.005,
                       low24h: newPrice * 0.995,
                     }
@@ -59,6 +60,30 @@ export function usePythPrices() {
             } else {
               state.updateMarketPrice(market.id, newPrice)
             }
+          }
+        }
+
+        // Fetch historical prices once to get accurate 24h change
+        if (!initializedRef.current) {
+          try {
+            const ts = Math.floor(Date.now() / 1000) - 86400
+            const histUrl = `https://hermes.pyth.network/v2/updates/price/${ts}?${ids}`
+            const histRes = await fetch(histUrl)
+            if (histRes.ok) {
+              const histData = await histRes.json()
+              const histPrices: Record<string, number> = {}
+              if (histData.parsed && Array.isArray(histData.parsed)) {
+                for (const feed of histData.parsed) {
+                  if (feed.price) {
+                    const p = Number(feed.price.price) * Math.pow(10, Number(feed.price.expo))
+                    if (p > 0) histPrices[feed.id] = p
+                  }
+                }
+                useTradeStore.getState().setMarketHistoricalPrices(histPrices)
+              }
+            }
+          } catch (e) {
+            console.warn('[Pyth] Failed to fetch historical prices', e)
           }
         }
 

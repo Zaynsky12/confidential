@@ -67,13 +67,13 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view balances</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+                <div className="pos-header" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr', minWidth: '100%' }}>
                   <span>Asset</span>
                   <span>Total</span>
                   <span>Available</span>
                   <span>Value (USD)</span>
                 </div>
-                <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+                <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr', minWidth: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <img src="/usdc.png" alt="USDC" style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0 }} />
                     <span style={{ fontWeight: 600 }}>USDC</span>
@@ -91,7 +91,7 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view positions</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: "140px 110px 110px 140px 140px 140px 110px 220px", minWidth: "1110px" }}>
+                <div className="pos-header" style={{ gridTemplateColumns: "120px 100px 100px 120px 120px 120px 100px 200px", minWidth: "980px" }}>
                   <span style={{ textAlign: 'left' }}>Market</span>
                   <span style={{ textAlign: 'left' }}>Side</span>
                   <span style={{ textAlign: 'left' }}>Size</span>
@@ -120,7 +120,7 @@ export default function Positions() {
                     const pnlPercent = p.collateral > 0 ? (pnl / p.collateral) * 100 : 0
                     
                     return (
-                      <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "140px 110px 110px 140px 140px 140px 110px 220px", minWidth: "1110px" }}>
+                      <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "120px 100px 100px 120px 120px 120px 100px 200px", minWidth: "980px" }}>
                         <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
                         <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'left' }}>
                           {p.isLong ? 'long' : 'short'} {p.leverage}x
@@ -130,11 +130,11 @@ export default function Positions() {
                         <span className="font-mono" style={{ textAlign: 'left' }}>${formatPrice(markPrice)}</span>
                         <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'left' }}>${formatPrice(p.liquidationPrice)}</span>
                         <span className="font-mono" style={{ textAlign: 'left' }}>${p.collateral.toFixed(2)}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                          <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingRight: '4px' }}>
+                          <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
                             {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                           </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <button 
                               className="btn-share"
                               onClick={() => setSelectedShare({
@@ -148,7 +148,7 @@ export default function Positions() {
                               })}
                               title="Share PnL"
                             >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             </button>
@@ -199,7 +199,7 @@ export default function Positions() {
                         {o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Stop' : o.orderType === 4 ? 'TWAP' : 'Market'}
                       </span>
                       <span className="font-mono">{o.sizeUsd.toFixed(2)}</span>
-                      <span className="font-mono">${o.triggerPrice.toFixed(2)}</span>
+                      <span className="font-mono">${formatPrice(o.triggerPrice)}</span>
                       <span className="font-mono">0.00%</span>
                       <button onClick={() => cancelOrder(BigInt(o.orderId))} className="btn-close">
                         Cancel
@@ -216,13 +216,12 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view history</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
-                  <span>Time Closed</span>
+                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
+                  <span>Time</span>
                   <span>Market</span>
-                  <span>Side</span>
+                  <span>Action</span>
                   <span>Size</span>
-                  <span>Entry Price</span>
-                  <span>Close Price</span>
+                  <span>Price</span>
                   <span>Tx Hash</span>
                 </div>
                 {isTradesLoading ? (
@@ -234,15 +233,14 @@ export default function Positions() {
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
                     return (
-                    <div key={p.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
+                    <div key={p.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
                       <span style={{ color: 'var(--color-text3)' }}>{formatTime(p.timestamp)}</span>
                       <span style={{ fontWeight: 600 }}>{pairName}</span>
                       <span className={p.action === 'Open' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
                         {p.action}
                       </span>
                       <span className="font-mono">{p.sizeUsd.toFixed(2)}</span>
-                      <span className="font-mono">-</span>
-                      <span className="font-mono">${p.price.toFixed(2)}</span>
+                      <span className="font-mono">${formatPrice(p.price)}</span>
                       <span className="font-mono text-accent">
                         <a href={`https://explorer.arc.network/tx/${p.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
                       </span>

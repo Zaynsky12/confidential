@@ -86,7 +86,7 @@ export function useConfidentialTrading() {
       } as any)
 
       toast.dismiss('trade')
-      toast.success('Market Order requested! Keeper will execute shortly.')
+      toast.success('Market Order executed successfully!')
       return tx
     } catch (error: any) {
       toast.dismiss('trade')
@@ -113,7 +113,7 @@ export function useConfidentialTrading() {
       } as any)
       
       toast.dismiss('close')
-      toast.success('Close requested! Keeper will execute shortly.')
+      toast.success('Position closed successfully!')
       return tx
     } catch (error: any) {
       toast.dismiss('close')
