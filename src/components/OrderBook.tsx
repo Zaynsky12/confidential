@@ -43,7 +43,12 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
     if (!activeMarket || !activeMarket.price) return { asks: [], bids: [], maxTotal: 0 }
     
     const currentPrice = activeMarket.price
-    const priceStepPct = 0.0005 // 0.05% step per level
+    
+    // Spread disinkronkan dengan estetika gTrade (GNS) di kisaran 0.0101%
+    // Karena bid dan ask ditarik setengah jarak dari harga tengah,
+    // maka step per level adalah 0.00505% (0.0000505) agar total spread menjadi ~0.0101%
+    const priceStepPct = 0.0000505
+    
     const baseLiquidityUsd = 100000 // Base liquidity scaling factor
     
     const genAsks = []
@@ -134,11 +139,8 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
             {/* Spread / Mark Price */}
             <div className="ob-spread">
               <span className="font-mono" style={{ color: '#60a5fa', fontWeight: 600 }}>{activeMarket ? `$${formatPrice(activeMarket.price)}` : '---'}</span>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="font-mono" style={{ color: 'var(--color-text3)', fontSize: 11 }}>
-                  Spread: {spreadDiff > 0 ? formatPrice(spreadDiff) : '0.00'} <span style={{ opacity: 0.7 }}>({spreadPct > 0 ? spreadPct.toFixed(3) : '0.000'}%)</span>
-                </span>
-              </div>
+              <span className="font-mono">Spread</span>
+              <span className="font-mono">{spreadPct > 0 ? spreadPct.toFixed(3) : '0.000'}%</span>
             </div>
 
             {/* Bids */}
@@ -287,17 +289,18 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
           overflow: hidden;
         }
         .ob-spread {
-          display: flex;
-          height: 34px;
+          display: grid;
+          grid-template-columns: 1.2fr 1fr 1fr;
           align-items: center;
-          justify-content: space-between;
-          padding: 0 12px;
-          font-size: 14px;
-          background-color: var(--color-bg2);
+          padding: 8px 12px;
+          background-color: rgba(96, 165, 250, 0.05);
           border-top: 1px solid var(--color-border);
           border-bottom: 1px solid var(--color-border);
-          flex-shrink: 0;
+          z-index: 2;
         }
+        .ob-spread > span:nth-child(1) { text-align: left; }
+        .ob-spread > span:nth-child(2) { text-align: center; color: var(--color-text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ob-spread > span:nth-child(3) { text-align: right; color: var(--color-text3); font-size: 11px; }
         .trade-row {
           grid-template-columns: 1.2fr 1fr 1fr;
           height: 30px;

@@ -37,8 +37,10 @@ export function usePythPrices() {
 
           // Convert Pyth price: price * 10^expo
           const rawPrice = Number(priceData.price)
+          const rawConf = Number(priceData.conf || 0)
           const expo = Number(priceData.expo)
           const newPrice = Number(rawPrice * Math.pow(10, expo))
+          const newConf = Number(rawConf * Math.pow(10, expo))
 
           if (newPrice > 0) {
             // On first load, also set high/low/prevPrice
@@ -49,6 +51,7 @@ export function usePythPrices() {
                   ? {
                       ...m,
                       price: newPrice,
+                      conf: newConf,
                       prevPrice: newPrice,
                       change24h: 0,
                       high24h: newPrice * 1.005,
@@ -58,7 +61,7 @@ export function usePythPrices() {
               )
               useTradeStore.setState({ markets: updatedMarkets })
             } else {
-              state.updateMarketPrice(market.id, newPrice)
+              state.updateMarketPrice(market.id, newPrice, newConf)
             }
           }
         }

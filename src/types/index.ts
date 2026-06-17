@@ -14,6 +14,7 @@ export interface Market {
   pythSymbol: string;
   price: number;
   prevPrice: number;
+  conf?: number;
   change24h: number;
   volume24h: number;
   high24h: number;
