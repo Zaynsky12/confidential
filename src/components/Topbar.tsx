@@ -988,6 +988,16 @@ export default function Topbar() {
         }
         
         @media (max-width: 768px) {
+          .msp-tabs {
+            gap: 10px;
+            padding: 0 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+          }
+          .msp-tab {
+            font-size: 11px;
+            padding: 8px 2px;
+          }
           .desktop-col {
             display: none;
           }
