@@ -98,6 +98,8 @@ export interface IndexerPosition {
   closedAt?: number
   exitPrice?: number
   pnl?: number
+  tpPrice?: number
+  slPrice?: number
 }
 
 export function usePositions(userAddress?: string) {
@@ -128,6 +130,8 @@ export function usePositions(userAddress?: string) {
               liquidationPrice
               isOpen
               openedAt
+              tpPrice
+              slPrice
             }
           }
         `
@@ -142,7 +146,9 @@ export function usePositions(userAddress?: string) {
           leverage: Number(p.leverage),
           collateral: Number(formatUnits(BigInt(p.collateral), 6)),
           liquidationPrice: Number(formatUnits(BigInt(p.liquidationPrice), 18)),
-          openedAt: Number(p.openedAt) * 1000
+          openedAt: Number(p.openedAt) * 1000,
+          tpPrice: p.tpPrice ? Number(formatUnits(BigInt(p.tpPrice), 18)) : 0,
+          slPrice: p.slPrice ? Number(formatUnits(BigInt(p.slPrice), 18)) : 0
         }))
 
         setPositions(formatted)

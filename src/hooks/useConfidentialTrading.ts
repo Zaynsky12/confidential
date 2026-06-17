@@ -260,12 +260,38 @@ export function useConfidentialTrading() {
     }
   }
 
+  // Update TP/SL
+  const updateTpSl = async (positionId: bigint, tpPriceUsd: number, slPriceUsd: number) => {
+    try {
+      toast.loading('Updating TP/SL...', { id: 'updateTpSl' })
+      const { parseUnits } = await import('viem')
+      const tpUnits = tpPriceUsd > 0 ? parseUnits(tpPriceUsd.toFixed(18), 18) : 0n
+      const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
+
+      const tx = await writeContractAsync({
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
+        functionName: 'updateTpSl',
+        args: [positionId, tpUnits, slUnits],
+      } as any)
+      
+      toast.dismiss('updateTpSl')
+      toast.success('TP/SL updated successfully!')
+      return tx
+    } catch (error: any) {
+      toast.dismiss('updateTpSl')
+      toast.error(error.shortMessage || 'Failed to update TP/SL')
+      throw error
+    }
+  }
+
   return {
     openPosition,
     closePosition,
     placeOrder,
     createTwapOrder,
     cancelOrder,
+    updateTpSl,
     isTxPending: isPending || isConfirming || isApproving,
   }
 }

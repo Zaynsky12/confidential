@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
-
-import { useTradeRecords, useOrders } from '../hooks/useGoldsky'
+import { useTradeRecords } from '../hooks/useGoldsky'
 import { keccak256, toHex } from 'viem'
 
 export type OrderBookTab = 'orderbook' | 'trades'
@@ -13,8 +12,7 @@ interface OrderBookProps {
 
 export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) {
   const { activeMarketId, markets } = useTradeStore()
-  const { trades } = useTradeRecords() // Global trades
-  const { orders } = useOrders() // Global pending orders
+  const { trades } = useTradeRecords()
   const [tab, setTab] = useState<OrderBookTab>(forcedTab || 'orderbook')
 
   useEffect(() => {
@@ -38,40 +36,62 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
   const activeMarketPairId = activeMarket ? keccak256(toHex(activeMarket.pair)) : ''
   const realRecentTrades = trades.filter(t => t.pairId === activeMarketPairId).slice(0, 50)
   
-  const marketOrders = orders.filter(o => o.pairId === activeMarketPairId)
-  
-  const asksRaw = marketOrders.filter(o => !o.isLong).sort((a, b) => b.triggerPrice - a.triggerPrice)
-  const bidsRaw = marketOrders.filter(o => o.isLong).sort((a, b) => b.triggerPrice - a.triggerPrice)
+  // Virtual Order Book (VOB) Generation
+  // Ini menyimulasikan kedalaman pasar (depth) berdasarkan harga Oracle saat ini
+  // untuk menampilkan kurva slippage (VOB) ala gTrade.
+  const { asks, bids, maxTotal } = useMemo(() => {
+    if (!activeMarket || !activeMarket.price) return { asks: [], bids: [], maxTotal: 0 }
+    
+    const currentPrice = activeMarket.price
+    const priceStepPct = 0.0005 // 0.05% step per level
+    const baseLiquidityUsd = 100000 // Base liquidity scaling factor
+    
+    const genAsks = []
+    const genBids = []
+    
+    let cumulativeAskSize = 0
+    let cumulativeBidSize = 0
 
-  const asks = asksRaw.map(ask => ({
-    price: ask.triggerPrice,
-    size: ask.triggerPrice > 0 ? ask.sizeUsd / ask.triggerPrice : 0,
-    total: 0
-  }))
-  let currentAskTotal = 0
-  for (let i = asks.length - 1; i >= 0; i--) {
-    currentAskTotal += asks[i].size
-    asks[i].total = currentAskTotal
-  }
+    // Generate 8 levels of depth to fit nicely in the UI without overflowing
+    for (let i = 1; i <= 8; i++) {
+      // Asks (Sellers above current price)
+      const askPrice = currentPrice * (1 + (priceStepPct * i))
+      // Size increases exponentially as we get further from price to simulate bonding curve
+      const askSizeUsd = baseLiquidityUsd * Math.pow(1.2, i) * (Math.random() * 0.4 + 0.8)
+      const askSizeBase = askSizeUsd / askPrice
+      cumulativeAskSize += askSizeBase
+      
+      genAsks.push({
+        price: askPrice,
+        size: askSizeBase,
+        total: cumulativeAskSize
+      })
 
-  const bids = bidsRaw.map(bid => ({
-    price: bid.triggerPrice,
-    size: bid.triggerPrice > 0 ? bid.sizeUsd / bid.triggerPrice : 0,
-    total: 0
-  }))
-  let currentBidTotal = 0
-  for (let i = 0; i < bids.length; i++) {
-    currentBidTotal += bids[i].size
-    bids[i].total = currentBidTotal
-  }
+      // Bids (Buyers below current price)
+      const bidPrice = currentPrice * (1 - (priceStepPct * i))
+      const bidSizeUsd = baseLiquidityUsd * Math.pow(1.2, i) * (Math.random() * 0.4 + 0.8)
+      const bidSizeBase = bidSizeUsd / bidPrice
+      cumulativeBidSize += bidSizeBase
 
-  const maxAskTotal = Math.max(...asks.map((a) => a.total), 0.01)
-  const maxBidTotal = Math.max(...bids.map((b) => b.total), 0.01)
-  const hasOrders = asks.length > 0 && bids.length > 0
+      genBids.push({
+        price: bidPrice,
+        size: bidSizeBase,
+        total: cumulativeBidSize
+      })
+    }
+    
+    // Reverse asks so lowest ask is at the bottom (closest to spread)
+    genAsks.reverse()
+    
+    const max = Math.max(cumulativeAskSize, cumulativeBidSize, 0.01)
+    
+    return { asks: genAsks, bids: genBids, maxTotal: max }
+  }, [activeMarket?.price]) // Re-generate when price changes
+
   const lowestAsk = asks.length > 0 ? asks[asks.length - 1].price : 0
   const highestBid = bids.length > 0 ? bids[0].price : 0
-  const spreadDiff = hasOrders ? lowestAsk - highestBid : 0
-  const spreadPct = hasOrders && highestBid > 0 ? (spreadDiff / highestBid) * 100 : 0
+  const spreadDiff = lowestAsk > 0 && highestBid > 0 ? lowestAsk - highestBid : 0
+  const spreadPct = highestBid > 0 ? (spreadDiff / highestBid) * 100 : 0
 
   return (
     <div className="orderbook-wrapper">
@@ -79,10 +99,10 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
       {!hideTabs && (
         <div className="ob-tabs">
           <button className={`ob-tab ${tab === 'orderbook' ? 'active' : ''}`} onClick={() => setTab('orderbook')}>
-            Order Book
+            VOB
           </button>
           <button className={`ob-tab ${tab === 'trades' ? 'active' : ''}`} onClick={() => setTab('trades')}>
-            Recent Trades
+            Trades
           </button>
         </div>
       )}
@@ -92,7 +112,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
           <>
             {/* Header */}
             <div className="ob-header">
-              <span>Price (USDC)</span>
+              <span>Price</span>
               <span>Size</span>
               <span>Total</span>
             </div>
@@ -100,10 +120,10 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
             {/* Asks (reversed — lowest ask at bottom) */}
             <div className="ob-asks">
               {asks.length === 0 ? (
-                <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 11 }}>No pending Short orders</div>
+                <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 11 }}>Waiting for price...</div>
               ) : asks.map((ask, i) => (
                 <div key={`ask-${i}`} className="ob-row ask">
-                  <div className="ob-depth-bar ask-bar" style={{ width: `${(ask.total / maxAskTotal) * 100}%` }} />
+                  <div className="ob-depth-bar ask-bar" style={{ width: `${(ask.total / maxTotal) * 100}%` }} />
                   <span className="font-mono" style={{ color: '#E05252' }}>{formatPrice(ask.price)}</span>
                   <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{ask.size.toFixed(4)}</span>
                   <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{ask.total.toFixed(4)}</span>
@@ -111,22 +131,23 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
               ))}
             </div>
 
-            {/* Spread */}
+            {/* Spread / Mark Price */}
             <div className="ob-spread">
-              <span className="font-mono" style={{ color: 'var(--color-text3)' }}>Spread</span>
+              <span className="font-mono" style={{ color: '#60a5fa', fontWeight: 600 }}>{activeMarket ? `$${formatPrice(activeMarket.price)}` : '---'}</span>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{spreadDiff.toFixed(2)}</span>
-                <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{spreadPct.toFixed(3)}%</span>
+                <span className="font-mono" style={{ color: 'var(--color-text3)', fontSize: 11 }}>
+                  Spread: {spreadDiff > 0 ? formatPrice(spreadDiff) : '0.00'} <span style={{ opacity: 0.7 }}>({spreadPct > 0 ? spreadPct.toFixed(3) : '0.000'}%)</span>
+                </span>
               </div>
             </div>
 
             {/* Bids */}
             <div className="ob-bids">
               {bids.length === 0 ? (
-                <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 11 }}>No pending Long orders</div>
+                <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 11 }}>Waiting for price...</div>
               ) : bids.map((bid, i) => (
                 <div key={`bid-${i}`} className="ob-row bid">
-                  <div className="ob-depth-bar bid-bar" style={{ width: `${(bid.total / maxBidTotal) * 100}%` }} />
+                  <div className="ob-depth-bar bid-bar" style={{ width: `${(bid.total / maxTotal) * 100}%` }} />
                   <span className="font-mono" style={{ color: '#3FB06A' }}>{formatPrice(bid.price)}</span>
                   <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{bid.size.toFixed(4)}</span>
                   <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{bid.total.toFixed(4)}</span>
@@ -152,7 +173,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
                   <div key={t.id} className="ob-row trade-row">
                     <span className="font-mono" style={{ color }}>{formatPrice(t.price)}</span>
                     <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{(t.sizeUsd / t.price).toFixed(4)}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', zIndex: 1 }}>
                       <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{formatTime(t.timestamp)}</span>
                       <a href={`https://explorer.arc.network/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -201,7 +222,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
         }
         .ob-content {
           flex: 1;
-          overflow-y: auto;
+          overflow-y: hidden;
           display: flex;
           flex-direction: column;
         }
@@ -215,21 +236,31 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
           letter-spacing: 0.5px;
           color: var(--color-text3);
           border-bottom: 1px solid var(--color-border);
+          position: sticky;
+          top: 0;
+          background-color: var(--color-bg1);
+          z-index: 10;
+          flex-shrink: 0;
         }
-        .ob-header span { text-align: center; }
+        .ob-header span:first-child { text-align: left; }
+        .ob-header span:nth-child(2) { text-align: center; }
+        .ob-header span:last-child { text-align: right; }
+        
+        .ob-row.ask > span:nth-child(2), .ob-row.bid > span:nth-child(2), .ob-row.trade-row > span:nth-child(1) { text-align: left; }
+        .ob-row.ask > span:nth-child(3), .ob-row.bid > span:nth-child(3), .ob-row.trade-row > span:nth-child(2) { text-align: center; }
+        .ob-row.ask > span:nth-child(4), .ob-row.bid > span:nth-child(4) { text-align: right; }
         .ob-row {
           display: grid;
           grid-template-columns: 1.2fr 1fr 1fr;
-          height: 34px;
+          height: 30px;
           align-items: center;
           padding: 0 12px;
-          font-size: 12px;
+          font-size: 11px;
           position: relative;
           transition: background-color 100ms;
         }
         .ob-row:hover { background-color: var(--color-bg2); }
-        .ob-row span { text-align: center; z-index: 1; }
-        .ob-row div:nth-child(3) { z-index: 1; justify-content: center; }
+        .ob-row span { z-index: 1; }
         .ob-depth-bar {
           position: absolute;
           right: 0;
@@ -242,10 +273,18 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
         .ob-asks {
           display: flex;
           flex-direction: column;
+          flex: 1;
+          justify-content: flex-end;
+          min-height: 0;
+          overflow: hidden;
         }
         .ob-bids {
           display: flex;
           flex-direction: column;
+          flex: 1;
+          justify-content: flex-start;
+          min-height: 0;
+          overflow: hidden;
         }
         .ob-spread {
           display: flex;
@@ -253,13 +292,15 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
           align-items: center;
           justify-content: space-between;
           padding: 0 12px;
-          font-size: 13px;
+          font-size: 14px;
           background-color: var(--color-bg2);
           border-top: 1px solid var(--color-border);
           border-bottom: 1px solid var(--color-border);
+          flex-shrink: 0;
         }
         .trade-row {
           grid-template-columns: 1.2fr 1fr 1fr;
+          height: 30px;
         }
         .trades-list {
           flex: 1;
@@ -267,19 +308,29 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
         }
 
         @media (max-width: 768px) {
-          .ob-header, .ob-row {
+          .ob-content {
+            overflow-y: auto;
+          }
+          .ob-header {
+            font-size: 10px;
+            padding: 2px 8px;
+          }
+          .ob-row {
             font-size: 11px;
-            padding: 3px 8px;
+            padding: 2px 8px;
+            height: 22px;
           }
           .trade-row {
             font-size: 10px;
+            height: 26px;
           }
           .ob-tab {
             font-size: 11px;
-            padding: 10px 4px;
+            padding: 8px 4px;
           }
           .ob-spread {
-            padding: 5px 8px;
+            height: 28px;
+            padding: 4px 8px;
           }
           .ob-spread span:first-child {
             font-size: 13px !important;

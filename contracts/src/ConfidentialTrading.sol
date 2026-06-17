@@ -493,6 +493,16 @@ contract ConfidentialTrading is ReentrancyGuard {
     //              TP / SL / LIQUIDATION
     // ══════════════════════════════════════════════════════════
 
+    /// @notice Update TP and SL for an open position
+    function updateTpSl(uint256 positionId, uint256 newTpPrice, uint256 newSlPrice) external nonReentrant {
+        Position storage pos = positions[positionId];
+        require(pos.isOpen, "Not open");
+        require(pos.trader == msg.sender, "Not owner");
+        
+        pos.tpPrice = newTpPrice;
+        pos.slPrice = newSlPrice;
+    }
+
     /// @notice Execute Take Profit or Stop Loss for an open position
     function executeTPSL(uint256 positionId, bytes[] calldata updateData) external payable nonReentrant {
         if (updateData.length > 0) {

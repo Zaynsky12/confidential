@@ -426,6 +426,29 @@
           "type": "uint256"
         },
         {
+          "internalType": "uint256",
+          "name": "newTpPrice",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newSlPrice",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateTpSl",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "positionId",
+          "type": "uint256"
+        },
+        {
           "internalType": "bytes[]",
           "name": "updateData",
           "type": "bytes[]"

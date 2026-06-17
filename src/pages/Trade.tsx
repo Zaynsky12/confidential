@@ -203,27 +203,28 @@ export default function Trade() {
             Chart
           </button>
           <button className={`tm-tab ${mobileView === 'orderbook' ? 'active' : ''}`} onClick={() => setMobileView('orderbook')}>
-            Order Book
+            VOB
           </button>
           <button className={`tm-tab ${mobileView === 'trades' ? 'active' : ''}`} onClick={() => setMobileView('trades')}>
             Trades
           </button>
         </div>
 
-        {mobileView === 'chart' && (
-          <div className="trade-chart">
-            <PriceChart />
-          </div>
-        )}
+        {/* Desktop ALWAYS shows Chart. Mobile ONLY shows it when mobileView === 'chart' */}
+        <div className={`trade-chart ${mobileView !== 'chart' ? 'mobile-hidden' : ''}`}>
+          <PriceChart />
+        </div>
 
+        {/* Mobile VOB */}
         {mobileView === 'orderbook' && (
-          <div className="trade-chart mobile-only" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="trade-chart mobile-only" style={{ flexDirection: 'column' }}>
             <OrderBook forcedTab="orderbook" hideTabs />
           </div>
         )}
 
+        {/* Mobile Trades */}
         {mobileView === 'trades' && (
-          <div className="trade-chart mobile-only" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="trade-chart mobile-only" style={{ flexDirection: 'column' }}>
             <OrderBook forcedTab="trades" hideTabs />
           </div>
         )}
@@ -416,6 +417,9 @@ export default function Trade() {
         }
 
         /* Hidden by default on desktop */
+        .mobile-only {
+          display: none !important;
+        }
         .trade-mobile-action-bar {
           display: none;
         }
@@ -626,6 +630,8 @@ export default function Trade() {
           }
 
           .trade-desktop-only { display: none !important; }
+          .mobile-only { display: flex !important; }
+          
           .trade-mobile-action-bar {
             display: flex;
             position: sticky;
