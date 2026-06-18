@@ -138,7 +138,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
 
             {/* Spread / Mark Price */}
             <div className="ob-spread">
-              <span className="font-mono" style={{ color: '#60a5fa', fontWeight: 600 }}>{activeMarket ? `$${formatPrice(activeMarket.price)}` : '---'}</span>
+              <span className="font-mono" style={{ color: '#fff', fontWeight: 600, fontSize: '12px' }}>{activeMarket ? `$${formatPrice(activeMarket.price)}` : '---'}</span>
               <span className="font-mono">Spread</span>
               <span className="font-mono">{spreadPct > 0 ? spreadPct.toFixed(3) : '0.000'}%</span>
             </div>
@@ -336,7 +336,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
             padding: 4px 8px;
           }
           .ob-spread span:first-child {
-            font-size: 13px !important;
+            font-size: 12px !important;
           }
           .ob-spread span:last-child {
             font-size: 10px !important;

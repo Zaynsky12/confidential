@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { keccak256, toHex } from 'viem'
+import { keccak256, toHex, formatUnits } from 'viem'
+import { useReadContracts } from 'wagmi'
+import { CONTRACTS, ABIS } from '../config/contracts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
@@ -32,6 +34,19 @@ export default function Positions() {
 
   // Use on-chain positions for open positions tab
   const openPositions = activePositions
+
+  // Read live TP/SL from contract since subgraph might miss them (not emitted in event)
+  const { data: contractPositions } = useReadContracts({
+    contracts: openPositions.map(p => ({
+      address: CONTRACTS.TRADING as any,
+      abi: ABIS.TRADING as any,
+      functionName: 'positions',
+      args: [BigInt(p.positionId)]
+    })),
+    query: {
+      refetchInterval: 5000
+    }
+  })
 
   const formatTime = (ts: number) => {
     const d = new Date(ts)
@@ -93,7 +108,7 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view positions</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: "120px 100px 100px 120px 120px 120px 100px 200px", minWidth: "980px" }}>
+                <div className="pos-header" style={{ gridTemplateColumns: "120px 100px 100px 120px 120px 120px 80px 220px", minWidth: "980px" }}>
                   <span style={{ textAlign: 'left' }}>Market</span>
                   <span style={{ textAlign: 'left' }}>Side</span>
                   <span style={{ textAlign: 'left' }}>Size</span>
@@ -106,7 +121,7 @@ export default function Positions() {
                 {openPositions.length === 0 ? (
                   <div className="pos-empty">No open positions</div>
                 ) : (
-                  openPositions.map((p) => {
+                  openPositions.map((p, i) => {
                     // Match pairId (Hash) to actual market to get live price and pair name
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
@@ -121,6 +136,10 @@ export default function Positions() {
                     
                     const pnlPercent = p.collateral > 0 ? (pnl / p.collateral) * 100 : 0
                     
+                    const cp = contractPositions?.[i]?.result as any[] | undefined
+                    const liveTp = cp && cp[10] ? Number(formatUnits(cp[10], 18)) : (p.tpPrice || 0)
+                    const liveSl = cp && cp[11] ? Number(formatUnits(cp[11], 18)) : (p.slPrice || 0)
+                    
                     return (
                       <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "120px 100px 100px 120px 120px 120px 100px 200px", minWidth: "980px" }}>
                         <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
@@ -132,7 +151,7 @@ export default function Positions() {
                         <span className="font-mono" style={{ textAlign: 'left' }}>${formatPrice(markPrice)}</span>
                         <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'left' }}>${formatPrice(p.liquidationPrice)}</span>
                         <span className="font-mono" style={{ textAlign: 'left' }}>${p.collateral.toFixed(2)}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingRight: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
                           <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
                             {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                           </span>
@@ -160,8 +179,8 @@ export default function Positions() {
                                 positionId: p.positionId,
                                 pair: pairName,
                                 isLong: p.isLong,
-                                currentTp: p.tpPrice || 0,
-                                currentSl: p.slPrice || 0
+                                currentTp: liveTp,
+                                currentSl: liveSl
                               })}
                               title="Edit TP/SL"
                             >

@@ -36,7 +36,6 @@ contract ConfidentialTrading is ReentrancyGuard {
         uint256 leverage;
         uint256 triggerPrice;
         uint8 orderType; // 0=limit, 1=stop_market, 2=market_open, 3=market_close, 4=twap
-        bool reduceOnly;
         bool isActive;
         uint256 createdAt;
         uint256 positionId;
@@ -110,7 +109,6 @@ contract ConfidentialTrading is ReentrancyGuard {
         uint256 leverage,
         uint256 triggerPrice,
         uint8 orderType,
-        bool reduceOnly,
         uint256 tpPrice,
         uint256 slPrice
     ) external payable nonReentrant returns (uint256 orderId) {
@@ -144,7 +142,6 @@ contract ConfidentialTrading is ReentrancyGuard {
         o.leverage = leverage;
         o.triggerPrice = triggerPrice;
         o.orderType = orderType;
-        o.reduceOnly = reduceOnly;
         o.isActive = true;
         o.createdAt = block.timestamp;
         o.feePaid = fee;

@@ -130,7 +130,6 @@ export function useConfidentialTrading() {
     leverage: number,
     triggerPriceUsd: number,
     orderType: number, // 0 = limit, 1 = stop
-    reduceOnly: boolean,
     tpPriceUsd: number = 0,
     slPriceUsd: number = 0
   ) => {
@@ -166,7 +165,6 @@ export function useConfidentialTrading() {
           BigInt(leverage),
           priceUnits,
           orderType,
-          reduceOnly,
           tpUnits,
           slUnits
         ],

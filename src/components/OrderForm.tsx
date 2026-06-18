@@ -91,7 +91,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     if (!effectivePrice || !sizeNum) return null
     const notional = usdSize
     const collateral = notional / leverage
-    const fees = notional * 0.0004
+    const feeMultiplier = orderType === 'limit' ? 0.0002 : 0.0004
+    const fees = notional * feeMultiplier
     const liqMul = side === 'long' ? 1 - 0.9 / leverage : 1 + 0.9 / leverage
     return {
       collateral: collateral.toFixed(2),
@@ -105,7 +106,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const handleSizePercentChange = (percent: number) => {
     setSizePercent(percent)
     if (!activeMarket || !effectivePrice || !isConnected || balance <= 0) return
-    const maxNotional = balance / (1 / leverage + 0.0004)
+    const feeMultiplier = orderType === 'limit' ? 0.0002 : 0.0004
+    const maxNotional = balance / (1 / leverage + feeMultiplier)
     
     if (inputCurrency === 'USD') {
       const newSize = ((maxNotional * percent) / 100).toFixed(2)
@@ -120,7 +122,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const handleSizeChange = (val: string) => {
     setSize(val)
     if (!activeMarket || !effectivePrice || !isConnected || balance <= 0) return
-    const maxNotional = balance / (1 / leverage + 0.0004)
+    const feeMultiplier = orderType === 'limit' ? 0.0002 : 0.0004
+    const maxNotional = balance / (1 / leverage + feeMultiplier)
     const valNum = Number(val) || 0
     
     if (inputCurrency === 'USD') {
@@ -185,7 +188,6 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           leverage,
           Number(triggerPrice || price),
           orderType === 'limit' ? 0 : 1,
-          false,
           tpNum,
           slNum
         )
@@ -456,7 +458,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Position Size</span><span style={{ color:'#60a5fa' }}>{baseSize ? baseSize.toFixed(4) : '0.00'} {activeMarket.baseAsset} / ${orderSummary?.notional || '0.00'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Liq. Price</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>{orderSummary?.liqPrice ? `$${orderSummary.liqPrice}` : 'N/A'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Margin Required</span><span>${orderSummary?.collateral || '0.00'}</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Fee (0.04%)</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>${orderSummary?.fees || '0.00'}</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Fee ({orderType === 'limit' ? '0.02%' : '0.04%'})</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>${orderSummary?.fees || '0.00'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Price Impact</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>N/A</span></div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <span style={{ color:'#8e8e93' }}>Allowed Slippage</span>
