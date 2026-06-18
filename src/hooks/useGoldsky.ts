@@ -256,35 +256,7 @@ export function useOrders(userAddress?: string) {
       try {
         if (!isPolling) setIsLoading(true)
         if (!userAddress) {
-          const query = gql`
-            query GetAllOrders {
-              orders(where: { isActive: true }, first: 100, orderBy: triggerPrice, orderDirection: desc) {
-                id
-                orderId
-                trader
-                pairId
-                orderType
-                triggerPrice
-                sizeUsd
-                leverage
-                collateral
-                isLong
-                isActive
-                createdAt
-              }
-            }
-          `
-          const data: any = await gqlClient.request(query)
-          const formatted = data.orders.map((o: any) => ({
-            ...o,
-            orderId: Number(o.orderId),
-            triggerPrice: Number(formatUnits(BigInt(o.triggerPrice), 18)),
-            sizeUsd: Number(formatUnits(BigInt(o.sizeUsd), 6)),
-            leverage: Number(o.leverage),
-            collateral: Number(formatUnits(BigInt(o.collateral), 6)),
-            createdAt: Number(o.createdAt) * 1000
-          }))
-          setOrders(formatted)
+          setOrders([])
           setIsLoading(false)
           return
         }
