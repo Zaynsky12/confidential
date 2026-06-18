@@ -225,16 +225,16 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view open orders</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px', minWidth: '1000px' }}>
-                  <span>Time</span>
-                  <span>Market</span>
-                  <span>Side</span>
-                  <span>Type</span>
-                  <span>Size</span>
-                  <span>Price</span>
-                  <span>TP / SL</span>
-                  <span>Filled</span>
-                  <span></span>
+                <div className="pos-header" style={{ gridTemplateColumns: '170px 80px 70px 80px 90px 110px 110px 90px 210px', minWidth: '1010px', width: '100%' }}>
+                  <span style={{ textAlign: 'left' }}>Time</span>
+                  <span style={{ textAlign: 'left' }}>Market</span>
+                  <span style={{ textAlign: 'center' }}>Side</span>
+                  <span style={{ textAlign: 'center' }}>Type</span>
+                  <span style={{ textAlign: 'center' }}>Size</span>
+                  <span style={{ textAlign: 'center' }}>Price</span>
+                  <span style={{ textAlign: 'center' }}>TP / SL</span>
+                  <span style={{ textAlign: 'center' }}>Filled</span>
+                  <span style={{ textAlign: 'center' }}>Action</span>
                 </div>
                 {isOrdersLoading ? (
                   <div className="pos-empty">Loading orders from Goldsky...</div>
@@ -250,25 +250,27 @@ export default function Positions() {
                     const slPrice = co && co[14] ? Number(formatUnits(co[14], 18)) : 0
                     
                     return (
-                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px', minWidth: '1000px' }}>
-                      <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.createdAt)}</span>
-                      <span style={{ fontWeight: 600 }}>{pairName}</span>
-                      <span className={o.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '170px 80px 70px 80px 90px 110px 110px 90px 210px', minWidth: '1010px', width: '100%' }}>
+                      <span style={{ color: 'var(--color-text3)', textAlign: 'left' }}>{formatTime(o.createdAt)}</span>
+                      <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
+                      <span className={o.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'center' }}>
                         {o.isLong ? 'long' : 'short'}
                       </span>
-                      <span style={{ textTransform: 'capitalize' }}>
+                      <span style={{ textTransform: 'capitalize', textAlign: 'center' }}>
                         {o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Stop' : o.orderType === 4 ? 'TWAP' : 'Market'}
                       </span>
-                      <span className="font-mono">{o.sizeUsd.toFixed(2)}</span>
-                      <span className="font-mono">${formatPrice(o.triggerPrice)}</span>
-                      <span className="font-mono" style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px' }}>
+                      <span className="font-mono" style={{ textAlign: 'center' }}>{o.sizeUsd.toFixed(2)}</span>
+                      <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(o.triggerPrice)}</span>
+                      <span className="font-mono" style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px', textAlign: 'center' }}>
                         <span style={{ color: tpPrice > 0 ? 'var(--color-green)' : 'var(--color-text3)' }}>{tpPrice > 0 ? `$${formatPrice(tpPrice)}` : '-'}</span>
                         <span style={{ color: slPrice > 0 ? 'var(--color-red)' : 'var(--color-text3)' }}>{slPrice > 0 ? `$${formatPrice(slPrice)}` : '-'}</span>
                       </span>
-                      <span className="font-mono">0.00%</span>
-                      <button onClick={() => cancelOrder(BigInt(o.orderId))} className="btn-close">
-                        Cancel
-                      </button>
+                      <span className="font-mono" style={{ textAlign: 'center' }}>0.00%</span>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <button onClick={() => cancelOrder(BigInt(o.orderId))} className="btn-close">
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   )})
                 )}
