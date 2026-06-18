@@ -48,6 +48,19 @@ export default function Positions() {
     }
   })
 
+  // Read live orders from contract to get TP/SL
+  const { data: contractOrders } = useReadContracts({
+    contracts: openOrders.map(o => ({
+      address: CONTRACTS.TRADING as any,
+      abi: ABIS.TRADING as any,
+      functionName: 'pendingOrders',
+      args: [BigInt(o.orderId)]
+    })),
+    query: {
+      refetchInterval: 5000
+    }
+  })
+
   const formatTime = (ts: number) => {
     const d = new Date(ts)
     return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -207,13 +220,14 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view open orders</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px' }}>
+                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px', minWidth: '1000px' }}>
                   <span>Time</span>
                   <span>Market</span>
                   <span>Side</span>
                   <span>Type</span>
                   <span>Size</span>
                   <span>Price</span>
+                  <span>TP / SL</span>
                   <span>Filled</span>
                   <span></span>
                 </div>
@@ -222,11 +236,16 @@ export default function Positions() {
                 ) : openOrders.length === 0 ? (
                   <div className="pos-empty">No open orders</div>
                 ) : (
-                  openOrders.map((o) => {
+                  openOrders.map((o, i) => {
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === o.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : o.pairId.slice(0, 10) + '...'
+                    
+                    const co = contractOrders?.[i]?.result as any[] | undefined
+                    const tpPrice = co && co[13] ? Number(formatUnits(co[13], 18)) : 0
+                    const slPrice = co && co[14] ? Number(formatUnits(co[14], 18)) : 0
+                    
                     return (
-                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px' }}>
+                    <div key={o.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 100px', minWidth: '1000px' }}>
                       <span style={{ color: 'var(--color-text3)' }}>{formatTime(o.createdAt)}</span>
                       <span style={{ fontWeight: 600 }}>{pairName}</span>
                       <span className={o.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
@@ -237,6 +256,10 @@ export default function Positions() {
                       </span>
                       <span className="font-mono">{o.sizeUsd.toFixed(2)}</span>
                       <span className="font-mono">${formatPrice(o.triggerPrice)}</span>
+                      <span className="font-mono" style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px' }}>
+                        <span style={{ color: tpPrice > 0 ? 'var(--color-green)' : 'var(--color-text3)' }}>{tpPrice > 0 ? `$${formatPrice(tpPrice)}` : '-'}</span>
+                        <span style={{ color: slPrice > 0 ? 'var(--color-red)' : 'var(--color-text3)' }}>{slPrice > 0 ? `$${formatPrice(slPrice)}` : '-'}</span>
+                      </span>
                       <span className="font-mono">0.00%</span>
                       <button onClick={() => cancelOrder(BigInt(o.orderId))} className="btn-close">
                         Cancel

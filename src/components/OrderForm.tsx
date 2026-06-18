@@ -482,10 +482,10 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       {/* Adjust Leverage Modal */}
       {isLeverageModalOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}>
-          <div className="animate-fade-in" style={{ background: '#121214', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '340px', border: '1px solid #2c2c2e', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+          <div className="animate-fade-in" style={{ background: 'var(--color-bg0)', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '340px', border: '1px solid var(--color-border)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Adjust Leverage</h3>
             
-            <div style={{ background: '#000', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', border: '1px solid #2c2c2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: 'var(--color-bg1)', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <input 
                 type="number"
                 min="1" max={maxLeverage}

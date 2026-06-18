@@ -131,34 +131,34 @@ export default function Vault() {
 
   return (
     <div className="vault-container">
-      {/* 1. VAULT HEADER STATS */}
-      <div className="vault-stats-grid">
-        <div className="stat-card">
-          <div className="stat-label">Vault TVL</div>
-          <div className="stat-value font-mono">US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Vault Volume</div>
-          <div className="stat-value font-mono">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-        </div>
-      </div>
-
-      {/* 2. DECIBEL-STYLE TABS */}
-      <div className="decibel-tabs">
-        <div className="tabs-row">
-          {tabs.map(tab => (
-            <button key={tab} className={`pt-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* 3. MAIN GRID */}
       <div className="vault-main-grid">
         
         {/* LEFT COLUMN */}
         <div className="vault-left">
+
+          {/* 1. VAULT HEADER STATS */}
+          <div className="vault-stats-grid">
+            <div className="stat-card">
+              <div className="stat-label">Vault TVL</div>
+              <div className="stat-value font-mono">US${tvlUsd >= 1e6 ? (tvlUsd / 1e6).toFixed(2) + 'M' : tvlUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Vault Volume</div>
+              <div className="stat-value font-mono">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+            </div>
+          </div>
+
+          {/* 2. DECIBEL-STYLE TABS */}
+          <div className="decibel-tabs">
+            <div className="tabs-row">
+              {tabs.map(tab => (
+                <button key={tab} className={`pt-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
           
           {activeTab === 'Vault Performance' ? (
             <div className="decibel-performance-layout">
