@@ -121,14 +121,15 @@ export default function Positions() {
               <div className="pos-empty">Please connect wallet to view positions</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: "120px 100px 100px 120px 120px 120px 80px 220px", minWidth: "980px" }}>
+                <div className="pos-header" style={{ gridTemplateColumns: "100px 70px 80px 100px 100px 100px 80px 100px 280px", minWidth: "1010px" }}>
                   <span style={{ textAlign: 'left' }}>Market</span>
                   <span style={{ textAlign: 'left' }}>Side</span>
-                  <span style={{ textAlign: 'left' }}>Size</span>
-                  <span style={{ textAlign: 'left' }}>Entry Price</span>
-                  <span style={{ textAlign: 'left' }}>Mark Price</span>
-                  <span style={{ textAlign: 'left' }}>Liq. Price</span>
-                  <span style={{ textAlign: 'left' }}>Margin</span>
+                  <span style={{ textAlign: 'center' }}>Size</span>
+                  <span style={{ textAlign: 'center' }}>Entry Price</span>
+                  <span style={{ textAlign: 'center' }}>Mark Price</span>
+                  <span style={{ textAlign: 'center' }}>Liq. Price</span>
+                  <span style={{ textAlign: 'center' }}>Margin</span>
+                  <span style={{ textAlign: 'center' }}>TP / SL</span>
                   <span style={{ textAlign: 'center' }}>PnL</span>
                 </div>
                 {openPositions.length === 0 ? (
@@ -154,16 +155,20 @@ export default function Positions() {
                     const liveSl = cp && cp[11] ? Number(formatUnits(cp[11], 18)) : (p.slPrice || 0)
                     
                     return (
-                      <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "120px 100px 100px 120px 120px 120px 100px 200px", minWidth: "980px" }}>
+                      <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "100px 70px 80px 100px 100px 100px 80px 100px 280px", minWidth: "1010px" }}>
                         <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
                         <span className={p.isLong ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'left' }}>
                           {p.isLong ? 'long' : 'short'} {p.leverage}x
                         </span>
-                        <span className="font-mono" style={{ textAlign: 'left' }}>{p.sizeUsd.toFixed(2)}</span>
-                        <span className="font-mono" style={{ textAlign: 'left' }}>${formatPrice(p.entryPrice)}</span>
-                        <span className="font-mono" style={{ textAlign: 'left' }}>${formatPrice(markPrice)}</span>
-                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'left' }}>${formatPrice(p.liquidationPrice)}</span>
-                        <span className="font-mono" style={{ textAlign: 'left' }}>${p.collateral.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>{p.sizeUsd.toFixed(2)}</span>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(p.entryPrice)}</span>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(markPrice)}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-text2)', textAlign: 'center' }}>${formatPrice(p.liquidationPrice)}</span>
+                        <span className="font-mono" style={{ textAlign: 'center' }}>${p.collateral.toFixed(2)}</span>
+                        <span className="font-mono" style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px', textAlign: 'center' }}>
+                          <span style={{ color: liveTp > 0 ? 'var(--color-green)' : 'var(--color-text3)' }}>{liveTp > 0 ? `$${formatPrice(liveTp)}` : '-'}</span>
+                          <span style={{ color: liveSl > 0 ? 'var(--color-red)' : 'var(--color-text3)' }}>{liveSl > 0 ? `$${formatPrice(liveSl)}` : '-'}</span>
+                        </span>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
                           <span className={`font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`} style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
                             {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
