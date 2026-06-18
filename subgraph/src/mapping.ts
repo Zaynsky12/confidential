@@ -8,7 +8,11 @@ import {
   OrderCancelled,
   OrderExecuted,
   TWAPSliceExecuted,
-  TPSLTriggered
+  TPSLTriggered,
+  CollateralAdded,
+  CollateralRemoved,
+  PositionIncreased,
+  PositionPartialClose
 } from "../generated/ConfidentialTrading/ConfidentialTrading"
 import {
   Deposit,
@@ -129,6 +133,122 @@ export function handlePositionLiquidated(event: PositionLiquidated): void {
 
     // Update Daily Volume
     updatePairDayData(position.pairId, event.block.timestamp, position.sizeUsd)
+  }
+}
+
+export function handleCollateralAdded(event: CollateralAdded): void {
+  let positionId = event.params.positionId.toString()
+  let position = Position.load(positionId)
+  
+  if (position != null) {
+    // Re-read position from contract for updated values
+    let contract = ConfidentialTrading.bind(event.address)
+    let posCall = contract.try_positions(event.params.positionId)
+    if (!posCall.reverted) {
+      position.collateral = posCall.value.getCollateral()
+      position.leverage = posCall.value.getLeverage()
+      position.liquidationPrice = posCall.value.getLiquidationPrice()
+    }
+    position.save()
+
+    let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+    trade.trader = event.params.trader
+    trade.pairId = position.pairId
+    trade.action = "AddCollateral"
+    trade.sizeUsd = event.params.amount
+    trade.price = BigInt.fromI32(0)
+    trade.timestamp = event.block.timestamp
+    trade.txHash = event.transaction.hash
+    trade.save()
+  }
+}
+
+export function handleCollateralRemoved(event: CollateralRemoved): void {
+  let positionId = event.params.positionId.toString()
+  let position = Position.load(positionId)
+  
+  if (position != null) {
+    let contract = ConfidentialTrading.bind(event.address)
+    let posCall = contract.try_positions(event.params.positionId)
+    if (!posCall.reverted) {
+      position.collateral = posCall.value.getCollateral()
+      position.leverage = posCall.value.getLeverage()
+      position.liquidationPrice = posCall.value.getLiquidationPrice()
+    }
+    position.save()
+
+    let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+    trade.trader = event.params.trader
+    trade.pairId = position.pairId
+    trade.action = "RemoveCollateral"
+    trade.sizeUsd = event.params.amount
+    trade.price = BigInt.fromI32(0)
+    trade.timestamp = event.block.timestamp
+    trade.txHash = event.transaction.hash
+    trade.save()
+  }
+}
+
+export function handlePositionIncreased(event: PositionIncreased): void {
+  let positionId = event.params.positionId.toString()
+  let position = Position.load(positionId)
+  
+  if (position != null) {
+    // Re-read full position from contract
+    let contract = ConfidentialTrading.bind(event.address)
+    let posCall = contract.try_positions(event.params.positionId)
+    if (!posCall.reverted) {
+      position.sizeUsd = posCall.value.getSizeUsd()
+      position.collateral = posCall.value.getCollateral()
+      position.leverage = posCall.value.getLeverage()
+      position.liquidationPrice = posCall.value.getLiquidationPrice()
+    }
+    position.entryPrice = event.params.newEntryPrice
+    position.save()
+
+    let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+    trade.trader = event.params.trader
+    trade.pairId = position.pairId
+    trade.action = "Increase"
+    trade.sizeUsd = event.params.additionalSizeUsd
+    trade.price = event.params.newEntryPrice
+    trade.timestamp = event.block.timestamp
+    trade.txHash = event.transaction.hash
+    trade.save()
+
+    // Update Daily Volume
+    updatePairDayData(position.pairId, event.block.timestamp, event.params.additionalSizeUsd)
+  }
+}
+
+export function handlePositionPartialClose(event: PositionPartialClose): void {
+  let positionId = event.params.positionId.toString()
+  let position = Position.load(positionId)
+  
+  if (position != null) {
+    // Re-read remaining position from contract
+    let contract = ConfidentialTrading.bind(event.address)
+    let posCall = contract.try_positions(event.params.positionId)
+    if (!posCall.reverted) {
+      position.sizeUsd = posCall.value.getSizeUsd()
+      position.collateral = posCall.value.getCollateral()
+      position.leverage = posCall.value.getLeverage()
+      position.liquidationPrice = posCall.value.getLiquidationPrice()
+    }
+    position.save()
+
+    let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+    trade.trader = event.params.trader
+    trade.pairId = position.pairId
+    trade.action = "PartialClose"
+    trade.sizeUsd = event.params.closeSizeUsd
+    trade.price = event.params.exitPrice
+    trade.timestamp = event.block.timestamp
+    trade.txHash = event.transaction.hash
+    trade.save()
+
+    // Update Daily Volume
+    updatePairDayData(position.pairId, event.block.timestamp, event.params.closeSizeUsd)
   }
 }
 

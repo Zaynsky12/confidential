@@ -15,9 +15,10 @@ interface IERC20 {
     function decimals() external view returns (uint8);
 }
 
-/// @title ConfidentialVault V2 — USDC Liquidity Vault for the Confidential Perpetual DEX
+/// @title ConfidentialVault V3 — USDC Liquidity Vault for the Confidential Perpetual DEX
 /// @notice LPs deposit USDC and receive cVAULT shares. Trading profits/losses flow through this vault.
-/// @dev Security: Access control on all state-changing functions, deposit caps, share manipulation protection
+/// @dev Security: Access control on all state-changing functions, deposit caps, share manipulation protection,
+///      profit capping to prevent stuck positions, mid-position fee settlement support.
 contract ConfidentialVault is ReentrancyGuard {
     // ──────────── State ────────────
     string public constant name = "Confidential Vault Share";
@@ -35,7 +36,7 @@ contract ConfidentialVault is ReentrancyGuard {
 
     // Lockup tracking
     mapping(address => uint256) public depositTimestamp;
-    uint256 public lockupPeriod = 7 days;
+    uint256 public lockupPeriod = 5 days;
 
     // Vault accounting
     uint256 public totalAssets;       // Total USDC managed by vault
@@ -47,7 +48,6 @@ contract ConfidentialVault is ReentrancyGuard {
     uint256 public maxTotalDeposits = 50_000_000 * 1e6;  // 50M USDC max TVL
 
     // ── Emergency Controls ──
-    bool public emergencyMode;    // Allows instant withdrawal without lockup
     bool public depositsEnabled = true;
 
     // ──────────── Events ────────────
@@ -56,8 +56,9 @@ contract ConfidentialVault is ReentrancyGuard {
     event FeeReceived(uint256 amount);
     event PositionSettled(address indexed trader, int256 netPnl, uint256 collateral);
     event LiquidationSettled(address indexed trader, address indexed liquidator, uint256 collateral, uint256 reward);
-    event EmergencyModeActivated();
-    event EmergencyModeDeactivated();
+    event ProfitCapped(address indexed trader, uint256 requestedProfit, uint256 cappedProfit);
+    event AccruedFeesSettled(uint256 amount);
+    event CollateralReturned(address indexed trader, uint256 amount);
 
     // ──────────── Errors ────────────
     error ZeroAmount();
@@ -133,16 +134,14 @@ contract ConfidentialVault is ReentrancyGuard {
         if (shareAmount == 0) revert ZeroAmount();
         if (shares[msg.sender] < shareAmount) revert InsufficientShares();
 
-        // Allow instant withdrawal in emergency mode
-        if (!emergencyMode) {
-            if (block.timestamp < depositTimestamp[msg.sender] + lockupPeriod) revert LockupNotExpired();
-        }
+        // Check lockup period
+        if (block.timestamp < depositTimestamp[msg.sender] + lockupPeriod) revert LockupNotExpired();
 
         // Calculate USDC amount based on current share price
         uint256 usdcAmount = (shareAmount * totalAssets) / totalShares;
 
-        // Check available liquidity (total - backing)
-        uint256 available = totalAssets > totalBacking ? totalAssets - totalBacking : 0;
+        // Check available liquidity (total LP pool)
+        uint256 available = totalAssets;
         if (usdcAmount > available) revert InsufficientLiquidity();
 
         // Burn shares (Effects before Interactions — CEI pattern)
@@ -165,10 +164,32 @@ contract ConfidentialVault is ReentrancyGuard {
         totalBacking += amount;
     }
 
+    /// @notice Release backing without transferring USDC (used by removeCollateral, fee settlement)
+    /// @dev Only reduces the totalBacking counter. Actual USDC stays in vault.
+    function releaseBacking(uint256 amount) external onlyTrading {
+        totalBacking = totalBacking > amount ? totalBacking - amount : 0;
+    }
+
+    /// @notice Return collateral USDC to a trader (used by removeCollateral)
+    /// @dev Transfers USDC from vault to trader. Does NOT affect totalAssets (collateral is not LP money).
+    function returnCollateral(address trader, uint256 amount) external onlyTrading {
+        require(usdc.transfer(trader, amount), "Transfer failed");
+        emit CollateralReturned(trader, amount);
+    }
+
+    /// @notice Settle accrued fees mid-position (converts backing to LP profit)
+    /// @dev Called during increasePosition to realize rollover+funding fees before merging.
+    ///      The fee USDC physically stays in vault — it moves from "backing" to "LP pool".
+    function settleAccruedFees(uint256 amount) external onlyTrading {
+        if (amount == 0) return;
+        totalBacking = totalBacking > amount ? totalBacking - amount : 0;
+        totalAssets += amount;
+        emit AccruedFeesSettled(amount);
+    }
+
     /// @notice Settle a closed position — handles profit, loss, and collateral return
-    /// @dev Replaces the old payProfit + captureLoss + releaseBacking pattern.
-    ///      Collateral is held in escrow (totalBacking) and is NOT part of totalAssets.
-    ///      Only actual profit/loss affects totalAssets (LP pool).
+    /// @dev FIX: CRITICAL-2 — Caps profit to available liquidity instead of reverting.
+    ///      This ensures positions can always be closed even when vault is low on liquidity.
     /// @param trader Address of the trader
     /// @param collateral Original collateral amount (held in escrow)
     /// @param netPnl Net PnL after all fees (positive = trader profit, negative = trader loss)
@@ -179,8 +200,13 @@ contract ConfidentialVault is ReentrancyGuard {
         if (netPnl >= 0) {
             // Trader profits — LP pool pays the profit
             uint256 profit = uint256(netPnl);
-            uint256 available = totalAssets > totalBacking ? totalAssets - totalBacking : 0;
-            if (profit > available) revert InsufficientLiquidity();
+            uint256 available = totalAssets;
+
+            // FIX CRITICAL-2: Cap profit to available liquidity instead of reverting
+            if (profit > available) {
+                emit ProfitCapped(trader, profit, available);
+                profit = available;
+            }
 
             // Effects (CEI): only subtract profit from LP pool
             totalAssets -= profit;
@@ -256,25 +282,11 @@ contract ConfidentialVault is ReentrancyGuard {
     }
 
     // ══════════════════════════════════════════════════════════
-    //                  EMERGENCY CONTROLS
+    //                  ADMIN CONTROLS
     // ══════════════════════════════════════════════════════════
 
-    /// @notice Enable emergency mode — allows instant withdrawals without lockup
-    function enableEmergencyMode() external onlyOwner {
-        emergencyMode = true;
-        depositsEnabled = false; // Prevent new deposits during emergency
-        emit EmergencyModeActivated();
-    }
-
-    /// @notice Disable emergency mode — returns to normal operation
-    function disableEmergencyMode() external onlyOwner {
-        emergencyMode = false;
-        depositsEnabled = true;
-        emit EmergencyModeDeactivated();
-    }
-
-    /// @notice Toggle deposits on/off
-    function setDepositsEnabled(bool _enabled) external onlyOwner {
+    /// @notice Disable new deposits
+    function toggleDeposits(bool _enabled) external onlyOwner {
         depositsEnabled = _enabled;
     }
 
@@ -300,9 +312,9 @@ contract ConfidentialVault is ReentrancyGuard {
         return (totalAssets * 1e6) / totalShares;
     }
 
-    /// @notice Get available liquidity (not backing positions)
-    function availableLiquidity() external view returns (uint256) {
-        return totalAssets > totalBacking ? totalAssets - totalBacking : 0;
+    /// @notice Get the total available liquidity for new positions or withdrawals
+    function availableLiquidity() public view returns (uint256) {
+        return totalAssets;
     }
 
     /// @notice Get vault utilization (basis points)
@@ -319,7 +331,6 @@ contract ConfidentialVault is ReentrancyGuard {
 
     /// @notice Check if user can withdraw (lockup expired)
     function canWithdraw(address user) external view returns (bool) {
-        if (emergencyMode) return true;
         return block.timestamp >= depositTimestamp[user] + lockupPeriod;
     }
 }

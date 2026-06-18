@@ -175,7 +175,7 @@ export default function Vault() {
                   <div className="dp-item"><span className="dp-label">All Time Return</span><span className={`dp-value ${sharePrice >= 1 ? 'text-green' : 'text-red'}`}>{(sharePrice >= 1 ? '+' : '')}{((sharePrice - 1) * 100).toFixed(2)}%</span></div>
                   <div className="dp-item"><span className="dp-label">Vault Volume</span><span className="dp-value">US${vaultVolume >= 1e6 ? (vaultVolume / 1e6).toFixed(2) + 'M' : vaultVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
 
-                  <div className="dp-item"><span className="dp-label">Lockup Period</span><span className="dp-value">7 Days</span></div>
+                  <div className="dp-item"><span className="dp-label">Lockup Period</span><span className="dp-value">5 Days</span></div>
                   <div className="dp-item">
                     <span className="dp-label">Vault Manager</span>
                     <span className="dp-value font-mono text-accent" style={{ fontSize: 13 }}>
@@ -299,9 +299,9 @@ export default function Vault() {
                 ) : (
                   <>
                     <strong style={{ color: 'var(--color-text1)', marginBottom: '8px', display: 'block' }}>Withdrawals</strong>
-                    To ensure the stability of the vault and protect against front-running attacks, all deposits are subject to a 7-day lockup period.<br/><br/>
-                    Once your 7-day lockup period has expired, your cUSDC becomes "Available" and you can withdraw it for USDC at any time based on the current exchange rate.<br/><br/>
-                    <span style={{ color: 'var(--color-text1)' }}>Note: Making a new deposit will reset the 7-day lockup timer for your entire balance.</span>
+                    To ensure the stability of the vault and protect against front-running attacks, all deposits are subject to a 5-day lockup period.<br/><br/>
+                    Once your 5-day lockup period has expired, your cUSDC becomes "Available" and you can withdraw it for USDC at any time based on the current exchange rate.<br/><br/>
+                    <span style={{ color: 'var(--color-text1)' }}>Note: Making a new deposit will reset the 5-day lockup timer for your entire balance.</span>
                   </>
                 )}
               </div>

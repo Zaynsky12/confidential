@@ -9,6 +9,8 @@ import { usePositions, useOrders, useTradeRecords } from '../hooks/useGoldsky'
 
 import SharePnLModal, { type SharePositionData } from './SharePnLModal'
 import EditTpSlModal, { type EditTpSlData } from './EditTpSlModal'
+import EditMarginModal, { type EditMarginData } from './EditMarginModal'
+import PartialCloseModal, { type PartialCloseData } from './PartialCloseModal'
 
 type Tab = 'balances' | 'positions' | 'orders' | 'trades'
 
@@ -18,6 +20,8 @@ export default function Positions() {
   const [tab, setTab] = useState<Tab>('positions')
   const [selectedShare, setSelectedShare] = useState<SharePositionData | null>(null)
   const [selectedEditTpSl, setSelectedEditTpSl] = useState<EditTpSlData | null>(null)
+  const [selectedEditMargin, setSelectedEditMargin] = useState<EditMarginData | null>(null)
+  const [selectedPartialClose, setSelectedPartialClose] = useState<PartialCloseData | null>(null)
 
   const formatPrice = (p: number) => {
     if (!p) return '0.00'
@@ -28,7 +32,7 @@ export default function Positions() {
 
   // Read from smart contract & Goldsky
   const { positions: activePositions } = usePositions(address || undefined)
-  const { closePosition, cancelOrder } = useConfidentialTrading()
+  const { cancelOrder } = useConfidentialTrading()
   const { orders: openOrders, isLoading: isOrdersLoading } = useOrders(address || undefined)
   const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
 
@@ -176,19 +180,17 @@ export default function Positions() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <button 
                               className="btn-share"
-                              onClick={() => setSelectedShare({
+                              onClick={() => setSelectedEditMargin({
+                                positionId: p.positionId,
                                 pair: pairName,
-                                side: p.isLong ? 'long' : 'short',
-                                leverage: Number(p.leverage),
-                                entryPrice: p.entryPrice,
-                                markPrice: markPrice,
-                                pnlPercent: pnlPercent,
-                                pnlUsd: pnl
+                                pythPriceId: matchedMarket?.pythPriceId || '',
+                                isLong: p.isLong,
+                                currentMargin: p.collateral
                               })}
-                              title="Share PnL"
+                              title="Edit Margin"
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             </button>
                             <button 
@@ -207,7 +209,34 @@ export default function Positions() {
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             </button>
-                            <button onClick={() => closePosition(BigInt(p.positionId), matchedMarket?.pythPriceId || '')} className="btn-close">
+                            <button 
+                              className="btn-share"
+                              onClick={() => setSelectedShare({
+                                pair: pairName,
+                                side: p.isLong ? 'long' : 'short',
+                                leverage: Number(p.leverage),
+                                entryPrice: p.entryPrice,
+                                markPrice: markPrice,
+                                pnlPercent: pnlPercent,
+                                pnlUsd: pnl
+                              })}
+                              title="Share PnL"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
+                            <button 
+                              onClick={() => setSelectedPartialClose({
+                                positionId: p.positionId,
+                                pair: pairName,
+                                pythPriceId: matchedMarket?.pythPriceId || '',
+                                isLong: p.isLong,
+                                maxSize: p.sizeUsd
+                              })} 
+                              className="btn-close"
+                              style={{ padding: '4px 8px', marginLeft: '4px' }}
+                            >
                               Close
                             </button>
                           </div>
@@ -499,6 +528,20 @@ export default function Positions() {
         isOpen={!!selectedEditTpSl}
         onClose={() => setSelectedEditTpSl(null)}
         data={selectedEditTpSl}
+      />
+
+      {/* Edit Margin Modal */}
+      <EditMarginModal
+        isOpen={!!selectedEditMargin}
+        onClose={() => setSelectedEditMargin(null)}
+        data={selectedEditMargin}
+      />
+
+      {/* Partial Close Modal */}
+      <PartialCloseModal
+        isOpen={!!selectedPartialClose}
+        onClose={() => setSelectedPartialClose(null)}
+        data={selectedPartialClose}
       />
     </div>
   )

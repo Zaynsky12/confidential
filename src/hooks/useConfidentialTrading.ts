@@ -283,6 +283,135 @@ export function useConfidentialTrading() {
     }
   }
 
+  // Add Collateral
+  const addCollateral = async (positionId: bigint, amountUsd: number) => {
+    try {
+      if (!isApproved(amountUsd)) {
+        await approveInfinite()
+        await new Promise(res => setTimeout(res, 5000))
+      }
+
+      toast.loading('Adding Collateral...', { id: 'addCol' })
+      const { parseUnits } = await import('viem')
+      const amountUnits = parseUnits(amountUsd.toFixed(6), 6)
+
+      const tx = await writeContractAsync({
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
+        functionName: 'addCollateral',
+        args: [positionId, amountUnits],
+      } as any)
+      
+      toast.dismiss('addCol')
+      toast.success('Collateral added successfully!')
+      return tx
+    } catch (error: any) {
+      toast.dismiss('addCol')
+      toast.error(error.shortMessage || 'Failed to add collateral')
+      throw error
+    }
+  }
+
+  // Remove Collateral
+  const removeCollateral = async (positionId: bigint, amountUsd: number, pythPriceId: string) => {
+    try {
+      if (!pythPriceId) throw new Error("Pyth Price ID is required for removing collateral")
+      toast.loading('Removing Collateral...', { id: 'rmCol' })
+      const { parseUnits } = await import('viem')
+      const amountUnits = parseUnits(amountUsd.toFixed(6), 6)
+      const updateData = await fetchPythVaa(pythPriceId)
+      const pythFee = parseUnits('0.001', 18)
+
+      const tx = await writeContractAsync({
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
+        functionName: 'removeCollateral',
+        args: [positionId, amountUnits, updateData],
+        value: pythFee,
+      } as any)
+      
+      toast.dismiss('rmCol')
+      toast.success('Collateral removed successfully!')
+      return tx
+    } catch (error: any) {
+      toast.dismiss('rmCol')
+      toast.error(error.shortMessage || 'Failed to remove collateral')
+      throw error
+    }
+  }
+
+  // Close Position Partial
+  const closePositionPartial = async (positionId: bigint, closePercentBps: number, pythPriceId: string) => {
+    try {
+      if (!pythPriceId) throw new Error("Pyth Price ID is required for partial close")
+      toast.loading('Closing Partial Position...', { id: 'closePartial' })
+      
+      const { parseUnits } = await import('viem')
+      const updateData = await fetchPythVaa(pythPriceId)
+      const pythFee = parseUnits('0.001', 18)
+
+      const tx = await writeContractAsync({
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
+        functionName: 'closePositionPartial',
+        args: [positionId, BigInt(closePercentBps), updateData],
+        value: pythFee,
+      } as any)
+      
+      toast.dismiss('closePartial')
+      toast.success('Partial position closed successfully!')
+      return tx
+    } catch (error: any) {
+      toast.dismiss('closePartial')
+      toast.error(error.shortMessage || 'Failed to request partial close')
+      throw error
+    }
+  }
+
+  // Increase Position
+  const increasePosition = async (
+    positionId: bigint, 
+    additionalSizeUsd: number, 
+    additionalCollateralUsd: number, 
+    pythPriceId: string
+  ) => {
+    try {
+      if (!pythPriceId) throw new Error("Pyth Price ID is required for increasing position")
+      
+      const fee = additionalSizeUsd * 0.0004
+      const totalRequired = additionalCollateralUsd + fee
+      
+      if (!isApproved(totalRequired)) {
+        await approveInfinite()
+        await new Promise(res => setTimeout(res, 5000))
+      }
+
+      toast.loading('Increasing Position...', { id: 'increase' })
+      
+      const { parseUnits } = await import('viem')
+      const sizeUnits = parseUnits(additionalSizeUsd.toFixed(6), 6)
+      const colUnits = parseUnits(additionalCollateralUsd.toFixed(6), 6)
+      const updateData = await fetchPythVaa(pythPriceId)
+      const pythFee = parseUnits('0.001', 18)
+
+      const tx = await writeContractAsync({
+        address: CONTRACTS.TRADING as any,
+        abi: ABIS.TRADING as any,
+        functionName: 'increasePosition',
+        args: [positionId, sizeUnits, colUnits, updateData],
+        value: pythFee,
+      } as any)
+      
+      toast.dismiss('increase')
+      toast.success('Position increased successfully!')
+      return tx
+    } catch (error: any) {
+      toast.dismiss('increase')
+      toast.error(error.shortMessage || 'Failed to request increase position')
+      throw error
+    }
+  }
+
   return {
     openPosition,
     closePosition,
@@ -290,6 +419,10 @@ export function useConfidentialTrading() {
     createTwapOrder,
     cancelOrder,
     updateTpSl,
+    addCollateral,
+    removeCollateral,
+    closePositionPartial,
+    increasePosition,
     isTxPending: isPending || isConfirming || isApproving,
   }
 }

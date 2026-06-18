@@ -6,9 +6,9 @@ dataSources:
     name: ConfidentialTrading
     network: arc-testnet
     source:
-      address: "0xaCd56FFdC8F9A816E7aB411a6A9F8D05D696E53C"
+      address: "0xa88D80a6a748E5e4185157C16d250e72A181DF5A"
       abi: ConfidentialTrading
-      startBlock: 47160000
+      startBlock: 47616000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -38,15 +38,23 @@ dataSources:
           handler: handleTWAPSliceExecuted
         - event: TPSLTriggered(indexed uint256,bool,uint256)
           handler: handleTPSLTriggered
+        - event: CollateralAdded(indexed uint256,indexed address,uint256,uint256)
+          handler: handleCollateralAdded
+        - event: CollateralRemoved(indexed uint256,indexed address,uint256,uint256)
+          handler: handleCollateralRemoved
+        - event: PositionIncreased(indexed uint256,indexed address,uint256,uint256,uint256)
+          handler: handlePositionIncreased
+        - event: PositionPartialClose(indexed uint256,indexed address,uint256,uint256,int256)
+          handler: handlePositionPartialClose
       file: ./src/mapping.ts
 
   - kind: ethereum
     name: ConfidentialVault
     network: arc-testnet
     source:
-      address: "0x6e70367215F067632d3a94EB9a7A3f63C21A680C"
+      address: "0x346f3C584cc1b7ae7B7dE817ec38AbF542Af3AdE"
       abi: ConfidentialVault
-      startBlock: 47160000
+      startBlock: 47613800
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -62,4 +70,3 @@ dataSources:
         - event: Withdraw(indexed address,uint256,uint256)
           handler: handleWithdraw
       file: ./src/mapping.ts
-# Clean file without null bytes

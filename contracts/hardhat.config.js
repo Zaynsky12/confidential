@@ -19,7 +19,7 @@ export default {
     arc: {
       type: "http",
       url: process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+      accounts: (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY.length >= 64) ? [process.env.PRIVATE_KEY] : []
     }
   },
   paths: {
