@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTradeStore } from '../store/useTradeStore'
 import { useTradeRecords } from '../hooks/useGoldsky'
-import { keccak256, toHex } from 'viem'
+
 
 export type OrderBookTab = 'orderbook' | 'trades'
 
@@ -172,6 +172,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
               {realRecentTrades.length === 0 ? (
                 <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 12 }}>No recent trades</div>
               ) : realRecentTrades.map((t) => {
+                const color = t.action === 'Open' ? '#3FB06A' : t.action === 'Liquidate' ? '#F7931A' : '#E05252';
                 const actionLabel = t.action === 'Open' ? 'Open' : t.action === 'Liquidate' ? 'Liq.' : 'Close';
                 return (
                   <div key={t.id} className="ob-row trade-row">
