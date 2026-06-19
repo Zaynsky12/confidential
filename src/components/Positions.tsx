@@ -5,7 +5,7 @@ import { CONTRACTS, ABIS } from '../config/contracts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
-import { usePositions, useOrders, useTradeRecords } from '../hooks/useGoldsky'
+import { usePositions, useOrders, useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
 
 import SharePnLModal, { type SharePositionData } from './SharePnLModal'
 import EditTpSlModal, { type EditTpSlData } from './EditTpSlModal'
@@ -34,7 +34,8 @@ export default function Positions() {
   const { positions: activePositions } = usePositions(address || undefined)
   const { cancelOrder } = useConfidentialTrading()
   const { orders: openOrders, isLoading: isOrdersLoading } = useOrders(address || undefined)
-  const { trades: closedPositions, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
+  const { trades, isLoading: isTradesLoading } = useTradeRecords(address || undefined)
+  const { closedPositions: historyPositions } = useClosedPositions(address || undefined)
 
   // Use on-chain positions for open positions tab
   const openPositions = activePositions
@@ -309,36 +310,56 @@ export default function Positions() {
         ) : tab === 'trades' ? (
           <div className="pos-table-wrapper">
             {!isConnected ? (
-              <div className="pos-empty">Please connect wallet to view history</div>
+              <div className="pos-empty">Please connect wallet to view activity</div>
             ) : (
               <>
-                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
+                <div className="pos-header" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', minWidth: '800px' }}>
                   <span>Time</span>
-                  <span>Market</span>
-                  <span>Action</span>
-                  <span>Size</span>
-                  <span>Price</span>
-                  <span>Tx Hash</span>
+                  <span style={{ textAlign: 'left' }}>Market</span>
+                  <span style={{ textAlign: 'center' }}>Action</span>
+                  <span style={{ textAlign: 'center' }}>Size</span>
+                  <span style={{ textAlign: 'center' }}>Price</span>
+                  <span style={{ textAlign: 'center' }}>PnL</span>
+                  <span style={{ textAlign: 'center' }}>Tx Hash</span>
                 </div>
                 {isTradesLoading ? (
-                  <div className="pos-empty">Loading history from Goldsky...</div>
-                ) : closedPositions.length === 0 ? (
-                  <div className="pos-empty">No trade history</div>
+                  <div className="pos-empty">Loading activity from Goldsky...</div>
+                ) : trades.length === 0 ? (
+                  <div className="pos-empty">No trade activity</div>
                 ) : (
-                  closedPositions.map((p) => {
-                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
-                    const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
+                  trades.map((t) => {
+                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === t.pairId)
+                    const pairName = matchedMarket ? matchedMarket.pair : t.pairId.slice(0, 10) + '...'
+                    
+                    // Match with history to get PnL if it's a close action
+                    let pnlDisplay = '-'
+                    let pnlColor = 'var(--color-text3)'
+                    if (t.action === 'Close' || t.action === 'Liquidate') {
+                      const matchedPos = historyPositions.find(p => p.pairId === t.pairId && Math.abs((p.closedAt || 0) - t.timestamp) < 5000)
+                      if (matchedPos && matchedPos.pnl !== undefined) {
+                        const isProfit = matchedPos.pnl >= 0
+                        pnlDisplay = `${isProfit ? '+' : ''}$${matchedPos.pnl.toFixed(2)}`
+                        pnlColor = isProfit ? 'var(--color-green)' : 'var(--color-red)'
+                      }
+                    }
+
+                    let displayAction = t.action;
+                    if (t.action === 'AddCollateral') displayAction = 'Add Margin';
+                    if (t.action === 'RemoveCollateral') displayAction = 'Remove Margin';
+                    if (t.action === 'PartialClose') displayAction = 'Partial Close';
+
                     return (
-                    <div key={p.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)' }}>
-                      <span style={{ color: 'var(--color-text3)' }}>{formatTime(p.timestamp)}</span>
-                      <span style={{ fontWeight: 600 }}>{pairName}</span>
-                      <span className={p.action === 'Open' ? 'text-green' : 'text-red'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
-                        {p.action}
+                    <div key={t.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', minWidth: '800px' }}>
+                      <span style={{ color: 'var(--color-text3)' }}>{formatTime(t.timestamp)}</span>
+                      <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
+                      <span className={t.action === 'Open' ? 'text-green' : (t.action.includes('Close') || t.action === 'Liquidate') ? 'text-red' : 'text-accent'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'center' }}>
+                        {displayAction}
                       </span>
-                      <span className="font-mono">{p.sizeUsd.toFixed(2)}</span>
-                      <span className="font-mono">${formatPrice(p.price)}</span>
-                      <span className="font-mono text-accent">
-                        <a href={`https://explorer.arc.network/tx/${p.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
+                      <span className="font-mono" style={{ textAlign: 'center' }}>{t.sizeUsd.toFixed(2)}</span>
+                      <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(t.price)}</span>
+                      <span className="font-mono" style={{ textAlign: 'center', color: pnlColor, fontWeight: 600 }}>{pnlDisplay}</span>
+                      <span className="font-mono text-accent" style={{ textAlign: 'center' }}>
+                        <a href={`https://explorer.arc.network/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
                       </span>
                     </div>
                   )})

@@ -196,6 +196,7 @@ export function useClosedPositions(userAddress?: string) {
               isOpen
               openedAt
               closedAt
+              exitPrice
               pnl
             }
           }
@@ -213,6 +214,7 @@ export function useClosedPositions(userAddress?: string) {
           liquidationPrice: Number(formatUnits(BigInt(p.liquidationPrice), 18)),
           openedAt: Number(p.openedAt) * 1000,
           closedAt: Number(p.closedAt) * 1000,
+          exitPrice: p.exitPrice ? Number(formatUnits(BigInt(p.exitPrice), 18)) : 0,
           pnl: p.pnl ? Number(formatUnits(BigInt(p.pnl), 6)) : 0
         }))
 

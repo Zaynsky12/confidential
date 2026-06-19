@@ -162,6 +162,23 @@ export default function Trade() {
 
               <div className="chart-stat-item">
                 <span className="chart-stat-label">
+                  Liquidity <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text2)' }}>(L/S)</span>
+                </span>
+                <span className="font-mono chart-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <span style={{ color: 'var(--color-green)', fontSize: '12px', lineHeight: 1 }}>↗</span>
+                    <span style={{ color: 'var(--color-text1)' }}>{fvCompact(Math.max(0, maxOI - longOIVal))}</span>
+                  </span>
+                  <span style={{ color: 'var(--color-text3)' }}>/</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <span style={{ color: 'var(--color-red)', fontSize: '12px', lineHeight: 1 }}>↘</span>
+                    <span style={{ color: 'var(--color-text1)' }}>{fvCompact(Math.max(0, maxOI - shortOIVal))}</span>
+                  </span>
+                </span>
+              </div>
+
+              <div className="chart-stat-item">
+                <span className="chart-stat-label">
                   Open Interest{' '}
                   <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text2)' }}>
                     (<span style={{ color: 'var(--color-green)' }}>{longPct}%</span>/<span style={{ color: 'var(--color-red)' }}>{shortPct}%</span>)

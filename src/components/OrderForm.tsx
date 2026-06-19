@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
+import { keccak256, toHex, formatUnits } from 'viem'
+import { useReadContract } from 'wagmi'
+import { CONTRACTS, ABIS } from '../config/contracts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
@@ -41,6 +44,27 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
 
   const equity = balance + activePositions.reduce((sum, p) => sum + p.collateral, 0) + unrealizedPnl
 
+  // --- Real-Time OI & Liquidity Fetching ---
+  const pairIdStr = activeMarket?.pair || 'BTC/USDC'
+  const pairId = keccak256(toHex(pairIdStr))
+
+  const { data: oiInfo } = useReadContract({
+    address: CONTRACTS.CORE as `0x${string}`,
+    abi: ABIS.CORE,
+    functionName: 'getOIInfo',
+    args: [pairId],
+    query: { refetchInterval: 10000 }
+  })
+
+  let longOIVal = 0
+  let shortOIVal = 0
+  if (oiInfo) {
+    longOIVal = Number(formatUnits((oiInfo as any)[0], 6))
+    shortOIVal = Number(formatUnits((oiInfo as any)[1], 6))
+  }
+  const maxOI = 10000000 // $10M capacity
+  const availableLiquidity = side === 'long' ? Math.max(0, maxOI - longOIVal) : Math.max(0, maxOI - shortOIVal)
+  // ----------------------------------------
 
   useEffect(() => {
     setSide(initialSide)
@@ -144,10 +168,11 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   }
 
   const isInsufficientBalance = orderSummary ? orderSummary.totalRequired > balance : false
+  const exceedsLiquidity = (Number(orderSummary?.notional) || 0) > availableLiquidity
 
   const handleSubmit = async () => {
     if (!isConnected || isWrongNetwork) { connect(); return }
-    if (!activeMarket || !sizeNum || !orderSummary || isInsufficientBalance) return
+    if (!activeMarket || !sizeNum || !orderSummary || isInsufficientBalance || exceedsLiquidity) return
     
     try {
       const tpNum = showTpSl ? Number(takeProfit) : 0;
@@ -437,7 +462,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       {/* Submit Button */}
       <button 
         onClick={handleSubmit} 
-        disabled={isTxPending || (isConnected && (!sizeNum || isInsufficientBalance))} 
+        disabled={isTxPending || (isConnected && (!sizeNum || isInsufficientBalance || exceedsLiquidity))} 
         style={{ 
           width: '100%', 
           padding: '10px', 
@@ -446,21 +471,32 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           boxShadow: 'none',
           background: !isConnected 
             ? 'var(--color-green, #26c68b)' 
-            : (isTxPending || !sizeNum || isInsufficientBalance) 
+            : (isTxPending || !sizeNum || isInsufficientBalance || exceedsLiquidity) 
               ? 'var(--color-bg3)' 
               : (side === 'long' ? 'var(--color-green, #26c68b)' : 'var(--color-red)'), 
           color: !isConnected 
             ? '#0b0e11' 
-            : (isTxPending || !sizeNum || isInsufficientBalance) 
+            : (isTxPending || !sizeNum || isInsufficientBalance || exceedsLiquidity) 
               ? '#8e8e93' 
               : (side === 'long' ? '#0b0e11' : '#fff'), 
           fontSize: '15px', 
           fontWeight: 600, 
-          cursor: (isTxPending || (isConnected && (!sizeNum || isInsufficientBalance))) ? 'not-allowed' : 'pointer',
+          cursor: (isTxPending || (isConnected && (!sizeNum || isInsufficientBalance || exceedsLiquidity))) ? 'not-allowed' : 'pointer',
           marginTop: 4
         }}
       >
-        {isTxPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isInsufficientBalance ? 'Insufficient Balance' : (currentPosition && orderType === 'market') ? `Average / Increase ${activeMarket.baseAsset}` : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
+        {isTxPending 
+          ? 'Processing...' 
+          : !isConnected 
+            ? 'Connect Wallet' 
+            : exceedsLiquidity
+              ? `❌ Max Capacity: $${availableLiquidity >= 1e6 ? (availableLiquidity / 1e6).toFixed(2) + 'M' : availableLiquidity >= 1e3 ? (availableLiquidity / 1e3).toFixed(2) + 'K' : availableLiquidity.toFixed(2)}`
+              : isInsufficientBalance 
+                ? 'Insufficient Balance' 
+                : (currentPosition && orderType === 'market') 
+                  ? `Average / Increase ${activeMarket.baseAsset}` 
+                  : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`
+        }
       </button>
       {/* Summary Stats */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>
