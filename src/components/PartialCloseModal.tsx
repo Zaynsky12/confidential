@@ -31,7 +31,11 @@ export default function PartialCloseModal({ isOpen, onClose, data }: PartialClos
 
   const handlePercentageClick = (pct: number) => {
     setPercentage(pct)
-    setAmount(((data.maxSize * pct) / 100).toFixed(2))
+    if (pct === 100) {
+      setAmount(data.maxSize.toString()) // Use exact max size for 100%
+    } else {
+      setAmount(((data.maxSize * pct) / 100).toFixed(2))
+    }
   }
 
   const handleAmountChange = (val: string) => {

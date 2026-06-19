@@ -78,10 +78,10 @@ export default function Trade() {
   const hourlyFundingRate = totalOI > 0
     ? (netOI / maxOI) * (coefficient / 10000) * (3600 / 86400) * 100
     : 0
-  // For Long: positive netOI means longs pay (negative rate for longs)
-  // For Short: positive netOI means shorts receive (positive rate for shorts)
-  const longFundingRate = -hourlyFundingRate // Longs pay when netOI > 0
-  const shortFundingRate = hourlyFundingRate  // Shorts receive when netOI > 0
+  // Rollover Fee (Borrow Fee) is fixed at 0.002% per hour
+  const rolloverFeePerHour = 0.002
+  const longFundingRate = -hourlyFundingRate - rolloverFeePerHour // Net rate for longs
+  const shortFundingRate = hourlyFundingRate - rolloverFeePerHour  // Net rate for shorts
   const formatFR = (rate: number) => Math.abs(rate) < 0.00005 ? '0.0000%' : `${rate >= 0 ? '+' : ''}${rate.toFixed(4)}%`
   const frColor = (rate: number) => rate === 0 ? 'var(--color-text2)' : rate > 0 ? 'var(--color-green)' : 'var(--color-red)'
 

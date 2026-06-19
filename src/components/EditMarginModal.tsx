@@ -92,6 +92,16 @@ export default function EditMarginModal({ isOpen, onClose, data }: EditMarginMod
           </div>
         </div>
 
+        {mode === 'add' ? (
+          <div style={{ fontSize: 12, color: '#8e8e93', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', lineHeight: '1.5' }}>
+            <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>Tip:</span> Adding margin lowers your leverage and moves your liquidation price further away, making your position safer.
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: '#8e8e93', background: 'rgba(255,77,79,0.05)', border: '1px solid rgba(255,77,79,0.1)', padding: '12px', borderRadius: '8px', lineHeight: '1.5' }}>
+            <span style={{ color: '#ff4d4f', fontWeight: 600 }}>Important:</span> Removing margin increases your leverage. The system will reject this if your new leverage exceeds the max limit (e.g., 100x) or if your remaining margin falls below $5. Accrued fees will be deducted first.
+          </div>
+        )}
+
         <button 
           onClick={handleSubmit} 
           disabled={isTxPending || !amount || Number(amount) <= 0}
