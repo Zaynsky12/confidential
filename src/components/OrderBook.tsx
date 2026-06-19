@@ -33,8 +33,10 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
     return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   }
 
-  const activeMarketPairId = activeMarket ? keccak256(toHex(activeMarket.pair)) : ''
-  const realRecentTrades = trades.filter(t => t.pairId === activeMarketPairId).slice(0, 50)
+  const activeMarketPairId = activeMarket ? activeMarket.pairHash : ''
+  const realRecentTrades = trades
+    .filter(t => t.pairId === activeMarketPairId && t.price > 0 && t.sizeUsd > 0)
+    .slice(0, 50)
   
   // Virtual Order Book (VOB) Generation
   // Ini menyimulasikan kedalaman pasar (depth) berdasarkan harga Oracle saat ini
@@ -164,26 +166,29 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
             <div className="ob-header trades-header">
               <span>Price</span>
               <span>Size</span>
-              <span>Time</span>
+              <span>Action / Time</span>
             </div>
             <div className="trades-list">
               {realRecentTrades.length === 0 ? (
                 <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 12 }}>No recent trades</div>
               ) : realRecentTrades.map((t) => {
-                const color = t.action === 'Open' ? '#3FB06A' : t.action === 'Liquidate' ? '#F7931A' : '#E05252';
+                const actionLabel = t.action === 'Open' ? 'Open' : t.action === 'Liquidate' ? 'Liq.' : 'Close';
                 return (
                   <div key={t.id} className="ob-row trade-row">
                     <span className="font-mono" style={{ color }}>{formatPrice(t.price)}</span>
                     <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{(t.sizeUsd / t.price).toFixed(4)}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', zIndex: 1 }}>
-                      <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{formatTime(t.timestamp)}</span>
-                      <a href={`https://explorer.arc.network/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                          <polyline points="15 3 21 3 21 9"></polyline>
-                          <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                      </a>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1, gap: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color, textTransform: 'uppercase' }}>{actionLabel}</span>
+                        <a href={`https://explorer.arc.network/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                          </svg>
+                        </a>
+                      </div>
+                      <span className="font-mono" style={{ color: 'var(--color-text3)', fontSize: 9 }}>{formatTime(t.timestamp)}</span>
                     </div>
                   </div>
                 )
