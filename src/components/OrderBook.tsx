@@ -46,11 +46,9 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
     
     const currentPrice = activeMarket.price
     
-    // Spread disinkronkan dengan estetika gTrade (GNS) di kisaran 0.0101%
-    // Karena bid dan ask ditarik setengah jarak dari harga tengah,
-    // maka step per level adalah 0.00505% (0.0000505) agar total spread menjadi ~0.0101%
-    const priceStepPct = 0.0000505
-    
+    // Gunakan Pyth Confidence (conf) sebagai basis spread yang 100% akurat dari pasar sungguhan.
+    // Jika data conf belum masuk, gunakan fallback 0.01% (0.00005)
+    const confValue = activeMarket.conf || (currentPrice * 0.00005);
     const baseLiquidityUsd = 100000 // Base liquidity scaling factor
     
     const genAsks = []
@@ -62,7 +60,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
     // Generate 8 levels of depth to fit nicely in the UI without overflowing
     for (let i = 1; i <= 8; i++) {
       // Asks (Sellers above current price)
-      const askPrice = currentPrice * (1 + (priceStepPct * i))
+      const askPrice = currentPrice + (confValue * i)
       // Size increases exponentially as we get further from price to simulate bonding curve
       const askSizeUsd = baseLiquidityUsd * Math.pow(1.2, i) * (Math.random() * 0.4 + 0.8)
       const askSizeBase = askSizeUsd / askPrice
@@ -75,7 +73,7 @@ export default function OrderBook({ forcedTab, hideTabs }: OrderBookProps = {}) 
       })
 
       // Bids (Buyers below current price)
-      const bidPrice = currentPrice * (1 - (priceStepPct * i))
+      const bidPrice = currentPrice - (confValue * i)
       const bidSizeUsd = baseLiquidityUsd * Math.pow(1.2, i) * (Math.random() * 0.4 + 0.8)
       const bidSizeBase = bidSizeUsd / bidPrice
       cumulativeBidSize += bidSizeBase
