@@ -5,7 +5,7 @@ import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
 import { useTranslation } from 'react-i18next'
 import { useReadContracts } from 'wagmi'
-import { keccak256, toHex, formatUnits } from 'viem'
+import { formatUnits } from 'viem'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import { useAll24hVolumes } from '../hooks/useGoldsky'
 
@@ -62,7 +62,7 @@ export default function Topbar() {
     address: CONTRACTS.CORE as `0x${string}`,
     abi: ABIS.CORE,
     functionName: 'getOIInfo',
-    args: [keccak256(toHex(m.pair))]
+    args: [m.pairHash]
   }))
 
   const { data: oiData } = useReadContracts({
@@ -497,7 +497,7 @@ export default function Topbar() {
                   {filteredMarkets.map((m) => {
                     const isActive = m.id === activeMarketId
                     const leverage = `${m.maxLeverage}x`
-                    const pairIdHash = keccak256(toHex(m.pair)).toLowerCase()
+                    const pairIdHash = m.pairHash.toLowerCase()
                     const realVolume = volumes[pairIdHash] || 0
                     
                     // Extract real OI from multicall

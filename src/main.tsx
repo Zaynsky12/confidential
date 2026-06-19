@@ -7,6 +7,7 @@ import { WagmiProvider } from '@privy-io/wagmi'
 import { http, createConfig } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
 import { arcTestnet } from './config/chain'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
 import './i18n'
@@ -28,31 +29,33 @@ const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || 'insert-your-privy-app
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <PrivyProvider
-      appId={PRIVY_APP_ID}
-      config={{
-        loginMethods: ['email', 'wallet'],
-        defaultChain: arcTestnet,
-        supportedChains: [arcTestnet],
-        appearance: {
-          theme: 'dark',
-          accentColor: '#0052FF',
-          logo: '/logo.png', // Updated logo
-        },
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: 'users-without-wallets',
-          }
-        },
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </WagmiProvider>
-      </QueryClientProvider>
-    </PrivyProvider>
+    <ErrorBoundary>
+      <PrivyProvider
+        appId={PRIVY_APP_ID}
+        config={{
+          loginMethods: ['email', 'wallet'],
+          defaultChain: arcTestnet,
+          supportedChains: [arcTestnet],
+          appearance: {
+            theme: 'dark',
+            accentColor: '#0052FF',
+            logo: '/logo.png', // Updated logo
+          },
+          embeddedWallets: {
+            ethereum: {
+              createOnLogin: 'users-without-wallets',
+            }
+          },
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <WagmiProvider config={wagmiConfig}>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </WagmiProvider>
+        </QueryClientProvider>
+      </PrivyProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 )

@@ -4,7 +4,7 @@ import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
 import { usePositions } from '../hooks/useGoldsky'
 import type { OrderSide, OrderType } from '../types'
-import { keccak256, toHex } from 'viem'
+
 
 interface OrderFormProps {
   initialSide?: OrderSide
@@ -17,15 +17,22 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const { openPosition, placeOrder, createTwapOrder, isTxPending, increasePosition } = useConfidentialTrading()
   const { positions: activePositions } = usePositions(address || undefined)
   
+  const [orderType, setOrderType] = useState<OrderType>('market')
+  const [isProDropdownOpen, setIsProDropdownOpen] = useState(false)
+  const [durationHours, setDurationHours] = useState('1')
+  const [durationMins, setDurationMins] = useState('0')
+  const [slippage, setSlippage] = useState('1.00')
+  const [side, setSide] = useState<OrderSide>(initialSide)
+
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   
-  const currentMarketPairId = activeMarket ? keccak256(toHex(activeMarket.pair)) : ''
+  const currentMarketPairId = activeMarket ? activeMarket.pairHash : ''
   const currentPosition = activePositions.find(p => p.pairId === currentMarketPairId && p.isLong === (side === 'long'))
   const currentPositionSizeUsd = currentPosition ? currentPosition.sizeUsd : 0
   const currentPositionSizeBase = activeMarket && currentPosition ? currentPositionSizeUsd / currentPosition.entryPrice : 0
 
   const unrealizedPnl = activePositions.reduce((sum, p) => {
-    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
+    const matchedMarket = markets.find(m => m.pairHash === p.pairId)
     const markPrice = matchedMarket ? matchedMarket.price : p.entryPrice
     const sizeBaseAsset = p.sizeUsd / p.entryPrice
     const pnl = matchedMarket ? (p.isLong ? (markPrice - p.entryPrice) * sizeBaseAsset : (p.entryPrice - markPrice) * sizeBaseAsset) : 0
@@ -34,12 +41,6 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
 
   const equity = balance + activePositions.reduce((sum, p) => sum + p.collateral, 0) + unrealizedPnl
 
-  const [orderType, setOrderType] = useState<OrderType>('market')
-  const [isProDropdownOpen, setIsProDropdownOpen] = useState(false)
-  const [durationHours, setDurationHours] = useState('1')
-  const [durationMins, setDurationMins] = useState('0')
-  const [slippage, setSlippage] = useState('1.00')
-  const [side, setSide] = useState<OrderSide>(initialSide)
 
   useEffect(() => {
     setSide(initialSide)

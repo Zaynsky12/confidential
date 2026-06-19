@@ -12,6 +12,7 @@ export interface Market {
   category: MarketCategory;
   pythPriceId: string;
   pythSymbol: string;
+  pairHash: string;
   price: number;
   prevPrice: number;
   conf?: number;
