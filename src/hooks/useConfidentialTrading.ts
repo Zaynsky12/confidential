@@ -372,14 +372,15 @@ export function useConfidentialTrading() {
   const increasePosition = async (
     positionId: bigint, 
     additionalSizeUsd: number, 
-    additionalCollateralUsd: number, 
+    additionalLeverage: number, 
     pythPriceId: string
   ) => {
     try {
       if (!pythPriceId) throw new Error("Pyth Price ID is required for increasing position")
       
       const fee = additionalSizeUsd * 0.0004
-      const totalRequired = additionalCollateralUsd + fee
+      const collateral = additionalSizeUsd / additionalLeverage
+      const totalRequired = collateral + fee
       
       if (!isApproved(totalRequired)) {
         await approveInfinite()
@@ -390,7 +391,6 @@ export function useConfidentialTrading() {
       
       const { parseUnits } = await import('viem')
       const sizeUnits = parseUnits(additionalSizeUsd.toFixed(6), 6)
-      const colUnits = parseUnits(additionalCollateralUsd.toFixed(6), 6)
       const updateData = await fetchPythVaa(pythPriceId)
       const pythFee = parseUnits('0.001', 18)
 
@@ -398,7 +398,7 @@ export function useConfidentialTrading() {
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
         functionName: 'increasePosition',
-        args: [positionId, sizeUnits, colUnits, updateData],
+        args: [positionId, sizeUnits, BigInt(additionalLeverage), updateData],
         value: pythFee,
       } as any)
       

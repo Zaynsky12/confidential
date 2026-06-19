@@ -14,13 +14,13 @@ interface OrderFormProps {
 export default function OrderForm({ initialSide = 'long', onClose }: OrderFormProps) {
   const { markets, activeMarketId, placeOrder: placeMockOrder } = useTradeStore()
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
-  const { openPosition, placeOrder, createTwapOrder, isTxPending } = useConfidentialTrading()
+  const { openPosition, placeOrder, createTwapOrder, isTxPending, increasePosition } = useConfidentialTrading()
   const { positions: activePositions } = usePositions(address || undefined)
   
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   
   const currentMarketPairId = activeMarket ? keccak256(toHex(activeMarket.pair)) : ''
-  const currentPosition = activePositions.find(p => p.pairId === currentMarketPairId)
+  const currentPosition = activePositions.find(p => p.pairId === currentMarketPairId && p.isLong === (side === 'long'))
   const currentPositionSizeUsd = currentPosition ? currentPosition.sizeUsd : 0
   const currentPositionSizeBase = activeMarket && currentPosition ? currentPositionSizeUsd / currentPosition.entryPrice : 0
 
@@ -171,15 +171,24 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           slNum
         )
       } else if (orderType === 'market') {
-        await openPosition(
-          activeMarket.pair, // e.g. "BTC/USDC"
-          side === 'long',
-          usdSize,
-          leverage,
-          Number(orderSummary.collateral),
-          tpNum,
-          slNum
-        )
+        if (currentPosition) {
+          await increasePosition(
+            BigInt(currentPosition.id),
+            usdSize,
+            leverage,
+            activeMarket.pythPriceId
+          )
+        } else {
+          await openPosition(
+            activeMarket.pair, // e.g. "BTC/USDC"
+            side === 'long',
+            usdSize,
+            leverage,
+            Number(orderSummary.collateral),
+            tpNum,
+            slNum
+          )
+        }
       } else {
         await placeOrder(
           activeMarket.pair,
@@ -450,7 +459,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           marginTop: 4
         }}
       >
-        {isTxPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isInsufficientBalance ? 'Insufficient Balance' : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
+        {isTxPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isInsufficientBalance ? 'Insufficient Balance' : (currentPosition && orderType === 'market') ? `Average / Increase ${activeMarket.baseAsset}` : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`}
       </button>
       {/* Summary Stats */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>
