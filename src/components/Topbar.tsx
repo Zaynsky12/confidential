@@ -50,8 +50,8 @@ export default function Topbar() {
     { to: '/leaderboard', label: t('nav.leaderboard') },
   ]
 
-  const { ready, login, logout } = usePrivy()
-  const { isConnected, address, balance } = useArcWallet()
+  const { ready, login } = usePrivy()
+  const { isConnected, address, balance, disconnect } = useArcWallet()
   const location = useLocation()
   const truncatedAddress = address ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}` : ''
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
@@ -277,7 +277,7 @@ export default function Topbar() {
                         className="btn btn-ghost"
                         style={{ width: '100%', fontSize: '13px', color: 'var(--color-red)' }}
                         onClick={() => {
-                          logout()
+                          disconnect()
                           setDropdownOpen(false)
                         }}
                       >
@@ -383,7 +383,7 @@ export default function Topbar() {
                     <button
                       className="btn btn-ghost"
                       style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--color-red)' }}
-                      onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                      onClick={() => { disconnect(); setIsMobileMenuOpen(false); }}
                     >
                       Disconnect
                     </button>
