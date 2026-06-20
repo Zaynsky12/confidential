@@ -3,12 +3,15 @@ import fs from "fs";
 import dotenv from "dotenv";
 
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
 async function main() {
   const provider = new ethers.JsonRpcProvider("https://rpc.testnet.arc.network");
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  // Use BOT_KEEPER_PRIVATE_KEY from root .env or fallback to local
+  const pk = process.env.BOT_KEEPER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+  const wallet = new ethers.Wallet(pk, provider);
   
-  const CORE_ADDRESS = "0x87000e8eA781B9fdBEaF0A479386efD5b38C2da9";
+  const CORE_ADDRESS = "0x87F27e1D09aFe69E7B29acc44c18a81FF5113906";
 
   const coreArtifact = JSON.parse(fs.readFileSync("./artifacts/src/ConfidentialCore.sol/ConfidentialCore.json"));
   const coreContract = new ethers.Contract(CORE_ADDRESS, coreArtifact.abi, wallet);
