@@ -24,7 +24,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const [isProDropdownOpen, setIsProDropdownOpen] = useState(false)
   const [durationHours, setDurationHours] = useState('1')
   const [durationMins, setDurationMins] = useState('0')
-  const [slippage, setSlippage] = useState('1.00')
+  const [slippage, setSlippage] = useState('0.30')
   const [side, setSide] = useState<OrderSide>(initialSide)
 
   const activeMarket = markets.find((m) => m.id === activeMarketId)
@@ -112,6 +112,29 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const baseSize = inputCurrency === 'BASE' ? sizeNum : (effectivePrice ? sizeNum / effectivePrice : 0)
   const usdSize = inputCurrency === 'USD' ? sizeNum : (sizeNum * effectivePrice)
 
+  // --- Price Impact Calculation ---
+  const sizeUsdValue = Number(usdSize) || 0;
+  let priceImpactPct = 0;
+  let priceImpactVal = 0;
+
+  if (oiInfo && sizeUsdValue > 0) {
+    const maxLongOI = Number(formatUnits((oiInfo as any)[2], 6));
+    const maxShortOI = Number(formatUnits((oiInfo as any)[3], 6));
+    const maxOISide = side === 'long' ? maxLongOI : maxShortOI;
+    
+    if (maxOISide > 0) {
+      const isIncreasingSkew = side === 'long' ? longOIVal >= shortOIVal : shortOIVal >= longOIVal;
+      const ratio = sizeUsdValue / maxOISide;
+      let rawImpactBps = (ratio * ratio) * 100; // maxPriceImpactBps = 100
+      if (rawImpactBps > 100) rawImpactBps = 100; // Cap at max
+
+      const impactBps = isIncreasingSkew ? rawImpactBps : -(rawImpactBps / 2);
+      
+      priceImpactPct = impactBps / 100; // Convert bps to percent
+      priceImpactVal = (sizeUsdValue * priceImpactPct) / 100;
+    }
+  }
+
   const orderSummary = useMemo(() => {
     if (!effectivePrice || !sizeNum) return null
     const notional = usdSize
@@ -177,6 +200,17 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     try {
       const tpNum = showTpSl ? Number(takeProfit) : 0;
       const slNum = showTpSl ? Number(stopLoss) : 0;
+      const slippageNum = Math.min(5, Math.max(0.1, Number(slippage) || 0.3));
+
+      let acceptablePriceUsd = 0;
+      if (activeMarket.price > 0 && orderType === 'market') {
+        const slippageMultiplier = slippageNum / 100;
+        if (side === 'long') {
+           acceptablePriceUsd = activeMarket.price * (1 + slippageMultiplier);
+        } else {
+           acceptablePriceUsd = activeMarket.price * (1 - slippageMultiplier);
+        }
+      }
 
       if (orderType === 'twap') {
         const totalHours = Number(durationHours) || 0;
@@ -202,6 +236,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             BigInt(currentPosition.id),
             usdSize,
             leverage,
+            acceptablePriceUsd,
             activeMarket.pythPriceId
           )
         } else {
@@ -212,7 +247,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             leverage,
             Number(orderSummary.collateral),
             tpNum,
-            slNum
+            slNum,
+            acceptablePriceUsd
           )
         }
       } else {
@@ -505,11 +541,16 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Liq. Price</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>{orderSummary?.liqPrice ? `$${orderSummary.liqPrice}` : 'N/A'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Margin Required</span><span>${orderSummary?.collateral || '0.00'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Fee ({orderType === 'limit' ? '0.02%' : '0.04%'})</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>${orderSummary?.fees || '0.00'}</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Price Impact</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>N/A</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <span style={{ color:'#8e8e93' }}>Price Impact</span>
+          <span style={{ borderBottom:'1px dashed var(--color-border)', color: priceImpactPct > 0 ? '#e55f48' : priceImpactPct < 0 ? '#26c68b' : '#fff' }}>
+            {priceImpactPct > 0 ? '-' : priceImpactPct < 0 ? '+' : ''}${Math.abs(priceImpactVal).toFixed(2)} ({priceImpactPct > 0 ? '-' : priceImpactPct < 0 ? '+' : ''}{Math.abs(priceImpactPct).toFixed(4)}%)
+          </span>
+        </div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <span style={{ color:'#8e8e93' }}>Allowed Slippage</span>
           <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg2)', padding:'2px 6px', borderRadius:'4px', border:'1px solid var(--color-border)' }}>
-            <input type="number" value={slippage} onChange={e=>setSlippage(e.target.value)} style={{ background:'transparent', border:'none', color:'#fff', width:'40px', textAlign:'right', fontSize:'11px', outline:'none', fontFamily:'var(--font-mono)' }} />
+            <input type="number" step="0.1" min="0.1" max="5.0" value={slippage} onChange={e=>setSlippage(e.target.value)} onBlur={()=>setSlippage(Math.min(5, Math.max(0.1, Number(slippage) || 0.3)).toFixed(2))} style={{ background:'transparent', border:'none', color:'#fff', width:'40px', textAlign:'right', fontSize:'11px', outline:'none', fontFamily:'var(--font-mono)' }} />
             <span style={{ color:'#8e8e93', marginLeft:'2px' }}>%</span>
           </div>
         </div>

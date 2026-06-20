@@ -319,7 +319,7 @@ export default function Positions() {
                   <span style={{ textAlign: 'center' }}>Action</span>
                   <span style={{ textAlign: 'center' }}>Size</span>
                   <span style={{ textAlign: 'center' }}>Price</span>
-                  <span style={{ textAlign: 'center' }}>PnL</span>
+                  <span style={{ textAlign: 'center' }}>Net PnL</span>
                   <span style={{ textAlign: 'center' }}>Tx Hash</span>
                 </div>
                 {isTradesLoading ? (

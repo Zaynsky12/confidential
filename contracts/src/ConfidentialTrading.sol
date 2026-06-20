@@ -177,6 +177,7 @@ contract ConfidentialTrading is ReentrancyGuard {
         uint256 leverage,
         uint256 tpPrice,
         uint256 slPrice,
+        uint256 acceptablePrice,
         bytes[] calldata updateData
     ) external payable nonReentrant returns (uint256 posId) {
         require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
@@ -187,6 +188,16 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         // Validate TP/SL prices if set (using current Pyth price instead of trigger)
         (uint256 currentPrice, ) = oracle.getPrice(pairId);
+        
+        // Slippage Check
+        if (acceptablePrice > 0) {
+            if (isLong) {
+                require(currentPrice <= acceptablePrice, "Slippage exceeded");
+            } else {
+                require(currentPrice >= acceptablePrice, "Slippage exceeded");
+            }
+        }
+
         if (tpPrice > 0) {
             require(isLong ? tpPrice > currentPrice : tpPrice < currentPrice, "Invalid TP price");
         }
@@ -514,7 +525,7 @@ contract ConfidentialTrading is ReentrancyGuard {
             vault.distributeClosingFee(closingFee);
         }
 
-        emit PositionClosed(positionId, pos.trader, currentPrice, pnl);
+        emit PositionClosed(positionId, pos.trader, currentPrice, netPnl);
     }
 
     // ══════════════════════════════════════════════════════════
@@ -763,6 +774,7 @@ contract ConfidentialTrading is ReentrancyGuard {
         uint256 positionId,
         uint256 additionalSizeUsd,
         uint256 additionalLeverage,
+        uint256 acceptablePrice,
         bytes[] calldata updateData
     ) external payable nonReentrant {
         require(additionalSizeUsd >= MIN_POSITION_SIZE, "Size too small");
@@ -776,6 +788,15 @@ contract ConfidentialTrading is ReentrancyGuard {
         }
 
         (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
+
+        // Slippage Check
+        if (acceptablePrice > 0) {
+            if (pos.isLong) {
+                require(currentPrice <= acceptablePrice, "Slippage exceeded");
+            } else {
+                require(currentPrice >= acceptablePrice, "Slippage exceeded");
+            }
+        }
 
         // Validate additional size against OI limits
         core.validateOpenPosition(pos.pairId, msg.sender, pos.isLong, additionalSizeUsd, additionalLeverage);
@@ -908,7 +929,7 @@ contract ConfidentialTrading is ReentrancyGuard {
             vault.distributeClosingFee(closingFee);
         }
 
-        emit PositionPartialClose(positionId, msg.sender, closeSizeUsd, currentPrice, pnl);
+        emit PositionPartialClose(positionId, msg.sender, closeSizeUsd, currentPrice, netPnl);
     }
 
     // ══════════════════════════════════════════════════════════

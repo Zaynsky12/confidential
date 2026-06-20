@@ -31,13 +31,17 @@ The V2 Architecture separates concerns into three primary contracts to maximize 
 - **Oracle Network:** Pyth Network
 - **Keeper Bot:** Custom Node.js Bot running on PM2 for background liquidations and Limit Orders.
 
-## 📜 Contract Addresses (Arc Testnet V2)
+## 📚 Documentation
 
-- **ConfidentialCore**: `0x87000e8eA781B9fdBEaF0A479386efD5b38C2da9`
-- **ConfidentialTrading**: `0x92361Ea75DdFdc7F7aa89AA0917D1B9a3A2c77C0`
-- **ConfidentialVault**: `0x6e70367215F067632d3a94EB9a7A3f63C21A680C`
+For an in-depth understanding of the platform's tier-1 circuit breakers, quadratic price impacts, and security mechanisms, please read our comprehensive **[Platform Mechanics Guide](./platform_mechanics.md)**.
+
+## 📜 Contract Addresses (Arc Testnet V3)
+
+- **ConfidentialCore**: `0x87F27e1D09aFe69E7B29acc44c18a81FF5113906`
+- **ConfidentialTrading**: `0x8f2b7B713FBd6d3feFbcAf1124969C092b867D80`
+- **ConfidentialVault**: `0xCCee0942115B632dFb0aA50BD1cd034217Bf2D10`
 - **USDC Token (Mock)**: `0xfdf510e1D7039aB26BA7898d91b402D69643d93E`
-- **Pyth Oracle**: `0x04bdb3A7Ea3bCf895c6E7e8495F8cf11602Fc3F4`
+- **Pyth Oracle**: `0x15720Eb0B565E82D0D7aaE0cA677A3A2dC389fC0`
 
 ## 💻 Quick Start Guide
 

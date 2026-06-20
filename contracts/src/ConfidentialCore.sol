@@ -363,8 +363,12 @@ contract ConfidentialCore {
             increasesSkew = shortOI[pairId] >= longOI[pairId];
         }
 
-        // Impact proportional to position size relative to max OI
-        uint256 rawImpact = (sizeUsd * maxPriceImpactBps) / maxOI;
+        // Quadratic Impact Formula: (sizeUsd / maxOI)^2 * maxPriceImpactBps
+        // We use 1e6 precision for the ratio
+        uint256 ratio = (sizeUsd * 1e6) / maxOI;
+        uint256 quadraticRatio = (ratio * ratio) / 1e6;
+        
+        uint256 rawImpact = (quadraticRatio * maxPriceImpactBps) / 1e6;
         if (rawImpact > maxPriceImpactBps) rawImpact = maxPriceImpactBps;
 
         if (increasesSkew) {

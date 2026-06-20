@@ -44,7 +44,8 @@ export function useConfidentialTrading() {
     leverage: number, 
     collateralUsd: number,
     tpPriceUsd: number = 0,
-    slPriceUsd: number = 0
+    slPriceUsd: number = 0,
+    acceptablePriceUsd: number = 0
   ) => {
     try {
       const fee = sizeUsd * 0.0004
@@ -62,6 +63,7 @@ export function useConfidentialTrading() {
       const sizeUnits = parseUnits(sizeUsd.toFixed(6), 6)
       const tpUnits = tpPriceUsd > 0 ? parseUnits(tpPriceUsd.toFixed(18), 18) : 0n
       const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
+      const acceptablePriceUnits = acceptablePriceUsd > 0 ? parseUnits(acceptablePriceUsd.toFixed(18), 18) : 0n
 
       const market = useTradeStore.getState().markets.find(m => m.pair === pairName)
       if (!market) throw new Error("Market not found")
@@ -80,6 +82,7 @@ export function useConfidentialTrading() {
           BigInt(leverage),
           tpUnits,
           slUnits,
+          acceptablePriceUnits,
           updateData
         ],
         value: pythFee,
@@ -372,7 +375,8 @@ export function useConfidentialTrading() {
   const increasePosition = async (
     positionId: bigint, 
     additionalSizeUsd: number, 
-    additionalLeverage: number, 
+    additionalLeverage: number,
+    acceptablePriceUsd: number,
     pythPriceId: string
   ) => {
     try {
@@ -391,6 +395,7 @@ export function useConfidentialTrading() {
       
       const { parseUnits } = await import('viem')
       const sizeUnits = parseUnits(additionalSizeUsd.toFixed(6), 6)
+      const acceptablePriceUnits = acceptablePriceUsd > 0 ? parseUnits(acceptablePriceUsd.toFixed(18), 18) : 0n
       const updateData = await fetchPythVaa(pythPriceId)
       const pythFee = parseUnits('0.001', 18)
 
@@ -398,7 +403,7 @@ export function useConfidentialTrading() {
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
         functionName: 'increasePosition',
-        args: [positionId, sizeUnits, BigInt(additionalLeverage), updateData],
+        args: [positionId, sizeUnits, BigInt(additionalLeverage), acceptablePriceUnits, updateData],
         value: pythFee,
       } as any)
       
