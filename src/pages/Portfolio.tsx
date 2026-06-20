@@ -42,14 +42,17 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
   const bestTrade = closedPositions.length ? Math.max(...closedPositions.map(p => p.pnl || 0)) : 0
   const equity = balance + activePositions.reduce((sum, p) => sum + p.collateral, 0) + unrealizedPnl
 
-  // Generate real cumulative PnL chart data
-  const pnlData = useMemo(()=>{
+  // Generate real cumulative PnL or Portfolio Value chart data
+  const chartData = useMemo(()=>{
+    const baseCapital = equity - totalPnl
+
     if (closedPositions.length === 0) {
       // Empty state
       const now = Math.floor(Date.now() / 1000)
+      const baseValue = chartMetric === 'Portfolio Val.' ? equity : 0
       return [
-        { time: (now - 86400) as Time, value: 0 },
-        { time: now as Time, value: 0 }
+        { time: (now - 86400) as Time, value: baseValue },
+        { time: now as Time, value: baseValue }
       ]
     }
 
@@ -60,18 +63,21 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
     
     // Add start point before first trade
     const firstTime = sorted[0].closedAt || Date.now()
-    data.push({ time: ((firstTime / 1000) - 86400) as Time, value: 0 })
+    const startValue = chartMetric === 'Portfolio Val.' ? baseCapital : 0
+    data.push({ time: ((firstTime / 1000) - 86400) as Time, value: startValue })
 
     for (const pos of sorted) {
       cumPnl += (pos.pnl || 0)
-      data.push({ time: ((pos.closedAt || Date.now()) / 1000) as Time, value: +cumPnl.toFixed(2) })
+      const pointValue = chartMetric === 'Portfolio Val.' ? baseCapital + cumPnl : cumPnl
+      data.push({ time: ((pos.closedAt || Date.now()) / 1000) as Time, value: +pointValue.toFixed(2) })
     }
 
     // Add current unrealized PnL to the last point
-    data.push({ time: Math.floor(Date.now() / 1000) as Time, value: +(cumPnl + unrealizedPnl).toFixed(2) })
+    const finalValue = chartMetric === 'Portfolio Val.' ? baseCapital + cumPnl + unrealizedPnl : cumPnl + unrealizedPnl
+    data.push({ time: Math.floor(Date.now() / 1000) as Time, value: +finalValue.toFixed(2) })
 
     return data
-  }, [closedPositions, unrealizedPnl])
+  }, [closedPositions, unrealizedPnl, chartMetric, equity, totalPnl])
 
   useEffect(()=>{
     if(!chartRef.current) return
@@ -85,7 +91,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
     const series = chart.addSeries(AreaSeries, {
       topColor:'rgba(255,255,255,0.15)', bottomColor:'rgba(255,255,255,0.0)', lineColor:'#ffffff', lineWidth:2,
     })
-    series.setData(pnlData)
+    series.setData(chartData)
     chart.timeScale().fitContent()
     chartApiRef.current = chart
     const ro = new ResizeObserver(entries=>{
@@ -93,10 +99,10 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
     })
     ro.observe(chartRef.current)
     return ()=>{ ro.disconnect(); chart.remove() }
-  },[pnlData])
+  },[chartData])
 
   useEffect(() => {
-    if (!chartApiRef.current || !pnlData.length) return
+    if (!chartApiRef.current || !chartData.length) return
     const chart = chartApiRef.current
     const now = Math.floor(Date.now() / 1000)
     let fromTime = 0
@@ -110,7 +116,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
     } else {
       chart.timeScale().setVisibleRange({ from: fromTime as Time, to: now as Time })
     }
-  }, [chartTimeframe, pnlData])
+  }, [chartTimeframe, chartData])
 
   return (
     <div className="portfolio-container" style={isCompact ? { padding: '16px 0 0 0' } : {}}>
@@ -157,7 +163,7 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
                 ['Total Equity', `${equity.toFixed(2)} USDC`, 'var(--color-text1)'],
                 ['Available Balance', `${balance.toFixed(2)} USDC`, 'var(--color-text1)'],
                 ['Used Margin', `${activePositions.reduce((sum, p) => sum + p.collateral, 0).toFixed(2)} USDC`, 'var(--color-text1)'],
-                ['Unrealized PnL', `${unrealizedPnl>=0?'+':''}${unrealizedPnl.toFixed(2)} USDC`, unrealizedPnl>=0?'var(--color-green)':'var(--color-red)'],
+                ...(activePositions.length > 0 ? [['Unrealized PnL', `${unrealizedPnl>=0?'+':''}${unrealizedPnl.toFixed(2)} USDC`, unrealizedPnl>=0?'var(--color-green)':'var(--color-red)']] : []),
                 ['Realized PnL', `${realizedPnl>=0?'+':''}${realizedPnl.toFixed(2)} USDC`, realizedPnl>=0?'var(--color-green)':'var(--color-red)'],
                 ['Total Volume', `${totalVol.toFixed(2)} USDC`, 'var(--color-text1)'],
                 ['Best Trade', `${bestTrade>0?'+':''}${bestTrade.toFixed(2)} USDC`, bestTrade>0?'var(--color-green)':'var(--color-text1)'],
@@ -176,8 +182,12 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
           <div className="chart-panel">
             <div className="chart-header">
               <div>
-                <div style={{ color:'var(--color-text2)', fontSize:13, marginBottom:4 }}>Profit/Loss</div>
-                <div className="font-mono" style={{ fontSize:20, fontWeight:600 }}>US${totalPnl.toFixed(2)}</div>
+                <div style={{ color:'var(--color-text2)', fontSize:13, marginBottom:4 }}>
+                  {chartMetric === 'Portfolio Val.' ? 'Portfolio Value' : 'Profit/Loss'}
+                </div>
+                <div className="font-mono" style={{ fontSize:20, fontWeight:600 }}>
+                  US${(chartMetric === 'Portfolio Val.' ? equity : totalPnl).toFixed(2)}
+                </div>
               </div>
               <div className="chart-controls">
                 <div className="control-group">

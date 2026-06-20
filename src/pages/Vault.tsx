@@ -14,13 +14,13 @@ export default function Vault() {
 
   const [activeAction, setActiveAction] = useState<'Deposit' | 'Withdraw'>('Deposit')
   const [amt, setAmt] = useState('')
-  const [activeTab, setActiveTab] = useState('Vault Performance')
+  const [activeTab, setActiveTab] = useState('Performance')
   
   const chartRef = useRef<HTMLDivElement>(null)
   const chartApiRef = useRef<IChartApi | null>(null)
   const [chartTimeframe, setChartTimeframe] = useState('30d')
 
-  const tabs = ['Vault Performance', 'Your Activity']
+  const tabs = ['Performance', 'Your Activity']
 
   const handleAction = async () => {
     if (!isConnected || isWrongNetwork) { connect(); return }
@@ -160,7 +160,7 @@ export default function Vault() {
             </div>
           </div>
           
-          {activeTab === 'Vault Performance' ? (
+          {activeTab === 'Performance' ? (
             <div className="decibel-performance-layout">
               {/* Left: Metrics List */}
               <div className="dp-metrics">
