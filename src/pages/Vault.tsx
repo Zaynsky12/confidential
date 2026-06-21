@@ -11,8 +11,7 @@ export default function Vault() {
     deposit, withdraw, canWithdrawDegen, canWithdrawPrime, isPending, availableLiquidity,
     degenTvlUsd, primeTvlUsd,
     degenSharePrice, primeSharePrice,
-    userDegenShares, userPrimeShares,
-    userDegenUsd, userPrimeUsd
+    userDegenShares, userPrimeShares
   } = useConfidentialVault()
   const { deposits: globalDeposits } = useVaultHistory()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
@@ -207,7 +206,7 @@ export default function Vault() {
               </div>
               <div className="tc-user-balance">
                 <span>Your Balance:</span>
-                <span className="font-mono text-white">${userDegenUsd.toFixed(2)}</span>
+                <span className="font-mono text-white">{userDegenShares.toFixed(2)} cUSDC</span>
               </div>
             </div>
 
@@ -242,7 +241,7 @@ export default function Vault() {
               </div>
               <div className="tc-user-balance">
                 <span>Your Balance:</span>
-                <span className="font-mono text-white">${userPrimeUsd.toFixed(2)}</span>
+                <span className="font-mono text-white">{userPrimeShares.toFixed(2)} cUSDC</span>
               </div>
             </div>
 
@@ -279,7 +278,7 @@ export default function Vault() {
                </div>
                <div className="dh-stat">
                  <span className="label">Your Balance</span>
-                 <span className="value font-mono text-white">${(activeTab === 'Degen' ? userDegenUsd : userPrimeUsd).toFixed(2)}</span>
+                 <span className="value font-mono text-white">{(activeTab === 'Degen' ? userDegenShares : userPrimeShares).toFixed(2)} cUSDC</span>
                </div>
             </div>
           </div>
