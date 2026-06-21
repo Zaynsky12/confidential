@@ -9,6 +9,7 @@ export interface IndexerDeposit {
   action: string
   amount: number
   shares: number
+  isDegen: boolean
   timestamp: number
   txHash: string
 }
@@ -33,6 +34,7 @@ export function useVaultHistory(userAddress?: string) {
                 action
                 amount
                 shares
+                isDegen
                 timestamp
                 txHash
               }
@@ -48,6 +50,7 @@ export function useVaultHistory(userAddress?: string) {
                 action
                 amount
                 shares
+                isDegen
                 timestamp
                 txHash
               }
@@ -61,6 +64,7 @@ export function useVaultHistory(userAddress?: string) {
           ...d,
           amount: Number(formatUnits(BigInt(d.amount), 6)),
           shares: Number(formatUnits(BigInt(d.shares), 6)),
+          isDegen: d.isDegen,
           timestamp: Number(d.timestamp) * 1000 // Convert to ms
         }))
 

@@ -331,6 +331,7 @@ export function handleDeposit(event: Deposit): void {
   deposit.action = "deposit"
   deposit.amount = event.params.amount
   deposit.shares = event.params.sharesReceived
+  deposit.isDegen = event.params.isDegen
   deposit.timestamp = event.block.timestamp
   deposit.txHash = event.transaction.hash
   deposit.save()
@@ -344,6 +345,7 @@ export function handleWithdraw(event: Withdraw): void {
   withdraw.action = "withdraw"
   withdraw.amount = event.params.amount
   withdraw.shares = event.params.sharesBurned
+  withdraw.isDegen = event.params.isDegen
   withdraw.timestamp = event.block.timestamp
   withdraw.txHash = event.transaction.hash
   withdraw.save()

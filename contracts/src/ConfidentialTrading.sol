@@ -518,12 +518,6 @@ contract ConfidentialTrading is ReentrancyGuard {
         pos.isOpen = false;
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
         
-        // Track vault loss in circuit breaker (called directly from Trading, NOT Vault)
-        // Note: we only track if trader makes a net profit (vault pays out)
-        if (netPnl > 0) {
-            core.trackVaultLoss(uint256(netPnl));
-        }
-
         // 4. Settle with Vault — one clean call
         vault.settlePosition(pos.trader, pos.collateral, netPnl);
 

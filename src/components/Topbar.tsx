@@ -44,7 +44,7 @@ export default function Topbar() {
   const NAV_LINKS = [
     { to: '/trade', label: t('nav.trade') },
     { to: '/portfolio', label: t('nav.portfolio') },
-    { to: '/vault', label: t('nav.vault') },
+    { to: '/vaults', label: 'Vaults' },
     { to: '/referrals', label: t('nav.referrals') },
     { to: '/points', label: t('nav.points') },
     { to: '/leaderboard', label: t('nav.leaderboard') },
@@ -87,7 +87,7 @@ export default function Topbar() {
 
   const isMarketView = !location.pathname.startsWith('/portfolio') &&
     !(location.pathname.startsWith('/trade') && mobileNav === 'account') &&
-    !location.pathname.startsWith('/vault') &&
+    !location.pathname.startsWith('/vaults') &&
     !(location.pathname.startsWith('/trade') && mobileNav === 'vaults') &&
     !location.pathname.startsWith('/referrals') &&
     !location.pathname.startsWith('/points') &&
@@ -188,7 +188,7 @@ export default function Topbar() {
           {!isMarketView ? (
             <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>
               {location.pathname.startsWith('/portfolio') || (location.pathname.startsWith('/trade') && mobileNav === 'account') ? t('nav.portfolio') :
-                location.pathname.startsWith('/vault') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? t('nav.vault') :
+                location.pathname.startsWith('/vaults') || (location.pathname.startsWith('/trade') && mobileNav === 'vaults') ? 'Vaults' :
                   location.pathname.startsWith('/referrals') ? t('nav.referrals') :
                     location.pathname.startsWith('/points') ? t('nav.points') :
                       location.pathname.startsWith('/leaderboard') ? t('nav.leaderboard') : ''}

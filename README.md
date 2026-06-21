@@ -35,13 +35,13 @@ The V2 Architecture separates concerns into three primary contracts to maximize 
 
 For an in-depth understanding of the platform's tier-1 circuit breakers, quadratic price impacts, and security mechanisms, please read our comprehensive **[Platform Mechanics Guide](./platform_mechanics.md)**.
 
-## 📜 Contract Addresses (Arc Testnet V3)
+## 📜 Contract Addresses (Arc Testnet V4)
 
-- **ConfidentialCore**: `0x87F27e1D09aFe69E7B29acc44c18a81FF5113906`
-- **ConfidentialTrading**: `0xf3197099C3931e79ebD8db7D0eECe16838582a52`
-- **ConfidentialVault**: `0xCCee0942115B632dFb0aA50BD1cd034217Bf2D10`
-- **USDC Token (Mock)**: `0xfdf510e1D7039aB26BA7898d91b402D69643d93E`
-- **Pyth Oracle**: `0x15720Eb0B565E82D0D7aaE0cA677A3A2dC389fC0`
+- **ConfidentialCore**: `0x9375d81b97c081c83d4E8c584cfC7681BE5d8505`
+- **ConfidentialTrading**: `0x51396635708DE66E0c3ee24D119A768C275c74B0`
+- **ConfidentialVault**: `0x0f7aFac655c4908a71743d646327437f6aBD25e0`
+- **USDC Token (Mock)**: `0x3600000000000000000000000000000000000000`
+- **Pyth Oracle**: `0xa7d93D8dc83DD3c567a807FB8a3910e1056a9fa8`
 
 ## 💻 Quick Start Guide
 

@@ -23,7 +23,7 @@ export default function Home() {
           <div className="home-nav-links">
             <a href="https://docs.confidential.exchange" target="_blank" rel="noreferrer">Docs</a>
             <a href="https://blog.confidential.exchange" target="_blank" rel="noreferrer">Blog</a>
-            <Link to="/vault">Vault</Link>
+            <Link to="/vaults">Vaults</Link>
           </div>
           <div className="home-nav-right">
             <Link to="/trade" className="home-nav-cta">Launch App</Link>
@@ -46,7 +46,7 @@ export default function Home() {
             <Link to="/trade" className="btn-primary-large">
               {t('home.startTrading')}
             </Link>
-            <Link to="/vault" className="btn-secondary-large">
+            <Link to="/vaults" className="btn-secondary-large">
               {t('home.provideLiquidity')}
             </Link>
           </div>

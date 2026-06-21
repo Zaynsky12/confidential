@@ -6,7 +6,7 @@ dataSources:
     name: ConfidentialTrading
     network: arc-testnet
     source:
-      address: "0xf3197099C3931e79ebD8db7D0eECe16838582a52"
+      address: "0x658981639119D7dAFe5e144b1a75392D567773a1"
       abi: ConfidentialTrading
       startBlock: 47616001
     mapping:
@@ -52,7 +52,7 @@ dataSources:
     name: ConfidentialVault
     network: arc-testnet
     source:
-      address: "0xCCee0942115B632dFb0aA50BD1cd034217Bf2D10"
+      address: "0x718EbD82e2fB4f8D71D2C78cAF43171c1A656b08"
       abi: ConfidentialVault
       startBlock: 47613800
     mapping:
@@ -65,8 +65,8 @@ dataSources:
         - name: ConfidentialVault
           file: ../src/abis/ConfidentialVault.json
       eventHandlers:
-        - event: Deposit(indexed address,uint256,uint256)
+        - event: Deposit(indexed address,uint256,uint256,bool)
           handler: handleDeposit
-        - event: Withdraw(indexed address,uint256,uint256)
+        - event: Withdraw(indexed address,uint256,uint256,bool)
           handler: handleWithdraw
       file: ./src/mapping.ts

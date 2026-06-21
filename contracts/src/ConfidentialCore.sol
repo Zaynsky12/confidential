@@ -406,9 +406,9 @@ contract ConfidentialCore {
     //              CIRCUIT BREAKER
     // ══════════════════════════════════════════════════════════
 
-    /// @notice Track daily vault losses. Auto-pause if threshold exceeded.
-    /// @dev Called by Trading contract when paying out profits
-    function trackVaultLoss(uint256 lossAmount) external onlyTrading {
+    function trackVaultLoss(uint256 lossAmount) external {
+        require(msg.sender == vault, "Only Vault");
+        
         // Reset daily tracker every 24 hours
         if (block.timestamp >= dailyLossResetTime + 1 days) {
             dailyLossTracker = 0;
@@ -417,15 +417,15 @@ contract ConfidentialCore {
 
         dailyLossTracker += lossAmount;
 
-        // Check if daily loss exceeds threshold (relative to vault TVL)
+        // Check if daily loss exceeds threshold (relative to prime vault TVL)
         if (vault != address(0)) {
             (bool success, bytes memory data) = vault.staticcall(
-                abi.encodeWithSignature("totalAssets()")
+                abi.encodeWithSignature("totalPrimeAssets()")
             );
             if (success && data.length >= 32) {
-                uint256 totalAssets = abi.decode(data, (uint256));
-                if (totalAssets > 0) {
-                    uint256 lossBps = (dailyLossTracker * 10000) / totalAssets;
+                uint256 primeAssets = abi.decode(data, (uint256));
+                if (primeAssets > 0) {
+                    uint256 lossBps = (dailyLossTracker * 10000) / primeAssets;
                     if (lossBps > maxDailyDrawdownBps) {
                         paused = true;
                         emit CircuitBreakerTriggered(dailyLossTracker, maxDailyDrawdownBps);

@@ -33,7 +33,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/trade" replace />} />
           <Route path="/trade" element={<Trade />} />
-          <Route path="/vault" element={<Vault />} />
+          <Route path="/vaults" element={<Vault />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/referrals" element={<DummyPage title="Referrals" />} />
           <Route path="/points" element={<DummyPage title="Points" />} />
