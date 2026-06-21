@@ -30,7 +30,7 @@ async function main() {
   const provider = new ethers.JsonRpcProvider("https://rpc.testnet.arc.network");
   const wallet = new ethers.Wallet(pk, provider);
 
-  const CORE_ADDRESS = "0x87F27e1D09aFe69E7B29acc44c18a81FF5113906";
+  const CORE_ADDRESS = "0x3396f443b8D0D144C831cf7EB4b0cAE5c3BaBd27";
   const abi = ["function updatePairLeverage(bytes32 pairId, uint256 maxLeverage_) external"];
   const core = new ethers.Contract(CORE_ADDRESS, abi, wallet);
 
