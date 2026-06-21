@@ -328,11 +328,12 @@ contract ConfidentialTrading is ReentrancyGuard {
             uint256 remainingCollateral = order.collateral;
             uint256 remainingFee = order.feePaid;
             
-            // If TWAP partially executed, refund remainder
+            // If TWAP partially executed, refund exact remainder to prevent rounding loss
             if (order.orderType == 4 && order.twapExecuted > 0) {
-                uint256 slicesLeft = order.twapSlices - order.twapExecuted;
-                remainingCollateral = (order.collateral * slicesLeft) / order.twapSlices;
-                remainingFee = (order.feePaid * slicesLeft) / order.twapSlices;
+                uint256 perSliceCol = order.collateral / order.twapSlices;
+                uint256 perSliceFee = order.feePaid / order.twapSlices;
+                remainingCollateral = order.collateral - (perSliceCol * order.twapExecuted);
+                remainingFee = order.feePaid - (perSliceFee * order.twapExecuted);
             }
 
             if (remainingCollateral + remainingFee > 0) {
@@ -340,8 +341,14 @@ contract ConfidentialTrading is ReentrancyGuard {
             }
         }
 
-        if (order.executionFee > 0) {
-            (bool success, ) = msg.sender.call{value: order.executionFee}("");
+        uint256 refundExecutionFee = order.executionFee;
+        if (order.orderType == 4 && order.twapExecuted > 0) {
+            uint256 perSliceExecFee = order.executionFee / order.twapSlices;
+            refundExecutionFee = order.executionFee - (perSliceExecFee * order.twapExecuted);
+        }
+
+        if (refundExecutionFee > 0) {
+            (bool success, ) = msg.sender.call{value: refundExecutionFee}("");
             require(success, "ETH refund failed");
         }
 
@@ -594,10 +601,8 @@ contract ConfidentialTrading is ReentrancyGuard {
         uint256 totalAccruedFees = rolloverFee;
         if (fundingFee > 0) totalAccruedFees += uint256(fundingFee);
 
-        // Effective collateral after deducting accrued fees
-        uint256 effectiveCollateral = pos.collateral > totalAccruedFees 
-            ? pos.collateral - totalAccruedFees 
-            : 0;
+        uint256 settledFees = totalAccruedFees > pos.collateral ? pos.collateral : totalAccruedFees;
+        uint256 effectiveCollateral = pos.collateral - settledFees;
 
         // Calculate liquidation reward from effective collateral
         uint256 reward = (effectiveCollateral * liquidationRewardBps) / 10000;
@@ -607,8 +612,8 @@ contract ConfidentialTrading is ReentrancyGuard {
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
 
         // Settle accrued fees first (fees become LP profit)
-        if (totalAccruedFees > 0 && totalAccruedFees <= pos.collateral) {
-            vault.settleAccruedFees(totalAccruedFees);
+        if (settledFees > 0) {
+            vault.settleAccruedFees(settledFees);
         }
 
         // Settle liquidation with effective collateral
@@ -684,11 +689,10 @@ contract ConfidentialTrading is ReentrancyGuard {
         totalFees = rollover;
         if (funding > 0) totalFees += uint256(funding);
 
-        if (totalFees > 0 && totalFees < pos.collateral) {
+        if (totalFees > 0) {
+            require(totalFees < pos.collateral, "Position liquidatable from fees");
             pos.collateral -= totalFees;
             vault.settleAccruedFees(totalFees);
-        } else {
-            totalFees = 0; // Nothing to settle
         }
 
         // Reset tracking
@@ -821,9 +825,10 @@ contract ConfidentialTrading is ReentrancyGuard {
             addEntryPrice = pos.isLong ? addEntryPrice - impactVal : addEntryPrice + impactVal;
         }
 
-        // Weighted average entry price
-        uint256 newEntryPrice = (pos.sizeUsd * pos.entryPrice + additionalSizeUsd * addEntryPrice) 
-            / (pos.sizeUsd + additionalSizeUsd);
+        // Harmonic average entry price (size-weighted to prevent PnL manipulation)
+        uint256 posBase = (pos.sizeUsd * 1e18) / pos.entryPrice;
+        uint256 addBase = (additionalSizeUsd * 1e18) / addEntryPrice;
+        uint256 newEntryPrice = ((pos.sizeUsd + additionalSizeUsd) * 1e18) / (posBase + addBase);
 
         // Update position
         pos.sizeUsd += additionalSizeUsd;
@@ -913,7 +918,7 @@ contract ConfidentialTrading is ReentrancyGuard {
         pos.sizeUsd = remainSize;
         pos.collateral = remainCollateral;
         pos.leverage = remainSize / remainCollateral;
-        pos.lastRolloverSettled = block.timestamp;
+        // intentionally NOT resetting lastRolloverSettled so remainder pays for full duration
         pos.liquidationPrice = _calcLiqPrice(pos.entryPrice, remainSize, remainCollateral, pos.isLong);
 
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, closeSizeUsd);

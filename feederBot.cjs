@@ -23,7 +23,7 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0x8f2b7B713FBd6d3feFbcAf1124969C092b867D80';
+const TRADING_ADDRESS = '0xf3197099C3931e79ebD8db7D0eECe16838582a52';
 
 // Updated ABI for V2 (TWAP, TP/SL, Funding)
 const TRADING_ABI = [
@@ -938,7 +938,7 @@ async function runKeeper() {
                 args: [BigInt(i)]
             });
             
-            const isActive = orderRaw[9];
+            const isActive = orderRaw[8];
             if (!isActive) continue;
 
             const order = {
@@ -947,10 +947,10 @@ async function runKeeper() {
                 isLong: orderRaw[2],
                 triggerPrice: orderRaw[6],
                 orderType: orderRaw[7],
-                twapSlices: Number(orderRaw[16]),
-                twapInterval: Number(orderRaw[17]),
-                twapExecuted: Number(orderRaw[18]),
-                twapLastExec: Number(orderRaw[19])
+                twapSlices: Number(orderRaw[15]),
+                twapInterval: Number(orderRaw[16]),
+                twapExecuted: Number(orderRaw[17]),
+                twapLastExec: Number(orderRaw[18])
             };
 
             const currentPrice = currentPrices[order.pairId];

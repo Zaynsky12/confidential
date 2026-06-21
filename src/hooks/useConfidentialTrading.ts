@@ -34,7 +34,7 @@ export function useConfidentialTrading() {
     }
   }, [isSuccess])
 
-  const EXECUTION_FEE = parseUnits('0.013', 6) // 0.013 USDC for keeper gas
+  const EXECUTION_FEE = parseUnits('0.013', 18) // 0.013 ARC for keeper gas
 
   // Open Market Position
   const openPosition = async (
