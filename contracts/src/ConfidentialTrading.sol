@@ -55,6 +55,7 @@ contract ConfidentialTrading is ReentrancyGuard {
     ConfidentialVault public vault;
     PythPriceOracle public oracle;
     IERC20 public usdc;
+    address public p2pContract;
 
     uint256 public nextPositionId = 1;
     uint256 public nextOrderId = 1;
@@ -110,6 +111,11 @@ contract ConfidentialTrading is ReentrancyGuard {
 
     function _safeTransferFrom(address from, address to, uint256 amount) internal {
         require(usdc.transferFrom(from, to, amount), "TransferFrom failed");
+    }
+
+    function setP2PContract(address _p2pContract) external {
+        require(msg.sender == core.owner(), "Not owner");
+        p2pContract = _p2pContract;
     }
 
     // ══════════════════════════════════════════════════════════
@@ -517,11 +523,16 @@ contract ConfidentialTrading is ReentrancyGuard {
         // 3. Update State (CEI Pattern)
         pos.isOpen = false;
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
+
+        // FIX HIGH-5: Track vault loss for Circuit Breaker (consistency with closePositionPartial)
+        if (netPnl > 0) {
+            core.trackVaultLoss(uint256(netPnl));
+        }
         
         // 4. Settle with Vault — one clean call
         vault.settlePosition(pos.trader, pos.collateral, netPnl);
 
-        // 5. Distribute closing fee — FIX HIGH-3: skip if loss consumed all collateral
+        // 5. Distribute closing fee — skip if loss consumed all collateral
         if (closingFee > 0 && netPnl > -int256(pos.collateral)) {
             vault.distributeClosingFee(closingFee);
         }
@@ -614,6 +625,94 @@ contract ConfidentialTrading is ReentrancyGuard {
         vault.settleLiquidation(pos.trader, msg.sender, effectiveCollateral, reward);
 
         emit PositionLiquidated(positionId, pos.trader, currentPrice, msg.sender, reward);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //              AUTO-DELEVERAGING (ADL)
+    // ══════════════════════════════════════════════════════════
+
+    /// @notice Auto-Deleveraging (ADL) execution triggered by Sequencer
+    function executeADL(uint256[] calldata positionIds, bytes[] calldata updateData) external payable nonReentrant {
+        require(msg.sender == core.keeper(), "Only Keeper can ADL");
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
+        for (uint i = 0; i < positionIds.length; i++) {
+            Position storage pos = positions[positionIds[i]];
+            if (!pos.isOpen) continue;
+
+            (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
+
+            int256 pnl;
+            if (pos.isLong) {
+                pnl = (int256(currentPrice) - int256(pos.entryPrice)) * int256(pos.sizeUsd) / int256(pos.entryPrice);
+            } else {
+                pnl = (int256(pos.entryPrice) - int256(currentPrice)) * int256(pos.sizeUsd) / int256(pos.entryPrice);
+            }
+
+            require(pnl > 0, "Cannot ADL a losing position");
+            _executeClose(positionIds[i], currentPrice);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //              P2P MATCHING (HYBRID ENGINE)
+    // ══════════════════════════════════════════════════════════
+
+    /// @notice Open a position directly from the P2P matching engine
+    /// @param isMaker true = maker fee (0.02%), false = taker fee (0.04%)
+    function executeP2POpen(
+        address trader,
+        bytes32 pairId,
+        bool isLong,
+        uint256 sizeUsd,
+        uint256 collateral,
+        uint256 matchPrice,
+        bool isMaker
+    ) external nonReentrant {
+        require(msg.sender == p2pContract, "Only P2P Contract");
+
+        // FIX HIGH-4: Enforce minimum position size and collateral
+        require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
+        require(collateral >= MIN_COLLATERAL, "Collateral too small");
+
+        // FIX CRITICAL-2: Validate against all risk management rules
+        uint256 leverage = sizeUsd / collateral;
+        core.validateOpenPosition(pairId, trader, isLong, sizeUsd, leverage);
+
+        // FIX HIGH-3: Use correct fee type (maker vs taker)
+        uint256 fee = core.calculateFee(sizeUsd, isMaker);
+        _safeTransferFrom(trader, address(this), collateral + fee);
+
+        uint256 posId = nextPositionId++;
+        Position storage pos = positions[posId];
+        pos.pairId = pairId;
+        pos.trader = trader;
+        pos.isLong = isLong;
+        pos.sizeUsd = sizeUsd;
+        pos.collateral = collateral;
+        pos.entryPrice = matchPrice;
+        pos.leverage = leverage;
+        pos.liquidationPrice = _calcLiqPrice(matchPrice, sizeUsd, collateral, isLong);
+        pos.openedAt = block.timestamp;
+        pos.lastRolloverSettled = block.timestamp;
+        pos.isOpen = true;
+        pos.tpPrice = 0;
+        pos.slPrice = 0;
+        
+        pos.entryFundingIndex = core.updateFunding(pairId);
+
+        core.increaseOI(pairId, trader, isLong, sizeUsd);
+        
+        _safeTransfer(address(vault), collateral);
+        vault.reserveBacking(collateral);
+
+        _distributeFee(fee);
+
+        userPositions[trader].push(posId);
+
+        emit PositionOpened(posId, trader, pairId, isLong, sizeUsd, matchPrice, pos.leverage);
     }
 
     // ══════════════════════════════════════════════════════════

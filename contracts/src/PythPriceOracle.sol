@@ -64,13 +64,21 @@ contract PythPriceOracle {
     }
 
     function setMaxStaleness(uint256 _seconds) external onlyOwner {
+        require(_seconds >= 5 && _seconds <= 300, "Staleness 5-300s");
         maxStaleness = _seconds;
         emit MaxStalenessUpdated(_seconds);
     }
 
+    // FIX MEDIUM-1: 2-step ownership transfer (consistent with ConfidentialCore)
+    address public pendingOwner;
     function transferOwnership(address newOwner) external onlyOwner {
-        emit OwnershipTransferred(owner, newOwner);
-        owner = newOwner;
+        pendingOwner = newOwner;
+    }
+    function acceptOwnership() external {
+        require(msg.sender == pendingOwner, "Not pending owner");
+        emit OwnershipTransferred(owner, pendingOwner);
+        owner = pendingOwner;
+        pendingOwner = address(0);
     }
 
     // ──────────── Public reads ────────────

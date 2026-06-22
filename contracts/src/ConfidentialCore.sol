@@ -27,6 +27,7 @@ contract ConfidentialCore {
     address public vault;
     address public trading;
     address public treasury;
+    address public keeper;
 
     // ── Fee Configuration (Maker/Taker Split) ──
     uint256 public takerFeeBps = 4;   // 0.04% — Market, Stop Market, TWAP
@@ -133,6 +134,11 @@ contract ConfidentialCore {
     function setTreasury(address _treasury) external onlyOwner {
         if (_treasury == address(0)) revert ZeroAddress();
         treasury = _treasury;
+    }
+
+    function setKeeper(address _keeper) external onlyOwner {
+        if (_keeper == address(0)) revert ZeroAddress();
+        keeper = _keeper;
     }
 
     function pause() external onlyOwner {

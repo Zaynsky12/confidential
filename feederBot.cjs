@@ -23,8 +23,48 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0x658981639119D7dAFe5e144b1a75392D567773a1';
+const TRADING_ADDRESS = '0xf37fe2E9A552a0b2003324B293B2e6E4AD9C5645';
+const P2P_ADDRESS = '0x9D557c5Acc5a6B015C079273CE35D7FE44F74828';
 
+// Express Server Setup
+const express = require('express');
+const cors = require('cors');
+const app = express();
+
+// FIX MEDIUM-4: Restrict CORS to known frontend origins
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://confidential.finance'],
+  methods: ['GET', 'POST'],
+}));
+app.use(express.json());
+
+// FIX MEDIUM-3: Rate limiting to prevent DoS/spam
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 30; // 30 requests per minute per IP
+
+function rateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  const record = rateLimitMap.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW };
+  
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + RATE_LIMIT_WINDOW;
+  }
+  
+  record.count++;
+  rateLimitMap.set(ip, record);
+  
+  if (record.count > RATE_LIMIT_MAX) {
+    return res.status(429).json({ error: 'Rate limit exceeded. Max 30 requests per minute.' });
+  }
+  next();
+}
+
+// In-Memory Orderbook
+// Structure: { pairId: { longs: [order1, order2], shorts: [order1, order2] } }
+const orderbook = {};
 // Updated ABI for V2 (TWAP, TP/SL, Funding)
 const TRADING_ABI = [
   {
@@ -877,7 +917,7 @@ const PAIRS = [
   { name: 'TSLA/USDC', pythId: '0x16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1' },
   { name: 'GOLD/USDC', pythId: '0x765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2' },
   { name: 'SILVER/USDC', pythId: '0xf2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e' },
-  { name: 'SPY/USDC', pythId: '19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5' },
+  { name: 'SPY/USDC', pythId: '0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5' },
   { name: 'NVDA/USDC', pythId: '0xb1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593' },
   { name: 'EUR/USDC', pythId: '0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b' },
   { name: 'GBP/USDC', pythId: '0x84c2dde9633d93d1bcad84e7dc41c9d56578b7ec52fabedc1f335d673df0a7c1' },
@@ -1084,11 +1124,253 @@ async function runKeeper() {
   }
 }
 
-console.log('🚀 Starting Keeper Bot V2 for Arc Testnet...');
-console.log(`📡 Connected to Trading Contract: ${TRADING_ADDRESS}`);
-console.log('Bot will monitor Liquidations, Pending Orders, TWAP slices, and TP/SL every 5 seconds.');
+const P2P_ABI = [
+  {
+    "inputs": [
+      { "internalType": "bytes", "name": "makerPayload", "type": "bytes" },
+      { "internalType": "bytes", "name": "takerPayload", "type": "bytes" },
+      { "internalType": "bytes", "name": "makerSig", "type": "bytes" },
+      { "internalType": "bytes", "name": "takerSig", "type": "bytes" },
+      { "internalType": "uint256", "name": "matchPrice", "type": "uint256" }
+    ],
+    "name": "settleP2PTrade",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
 
-// Run immediately
+// ══════════════════════════════════════════════════════════
+//                      P2P MATCHMAKING
+// ══════════════════════════════════════════════════════════
+
+// FIX MEDIUM-2: Validate EIP-712 signature before queuing order
+const { verifyTypedData } = require('viem');
+
+const P2P_DOMAIN = {
+  name: 'Confidential DEX',
+  version: '1',
+  chainId: 5042002,
+  verifyingContract: P2P_ADDRESS
+};
+
+const ORDER_TYPES = {
+  Order: [
+    { name: 'trader', type: 'address' },
+    { name: 'pairId', type: 'bytes32' },
+    { name: 'isLong', type: 'bool' },
+    { name: 'sizeUsd', type: 'uint256' },
+    { name: 'collateral', type: 'uint256' },
+    { name: 'price', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'expiry', type: 'uint256' }
+  ]
+};
+
+app.post('/api/p2p/order', rateLimit, async (req, res) => {
+    const { order, signature } = req.body;
+    
+    // Validate payload
+    if (!order || !signature || !order.pairId || typeof order.isLong === 'undefined') {
+        return res.status(400).json({ error: 'Invalid order payload' });
+    }
+
+    // Validate expiry is not in the past
+    const now = Math.floor(Date.now() / 1000);
+    if (Number(order.expiry) <= now) {
+        return res.status(400).json({ error: 'Order already expired' });
+    }
+
+    // FIX MEDIUM-2: Verify the EIP-712 signature off-chain before queuing
+    try {
+        const message = {
+            trader: order.trader,
+            pairId: order.pairId,
+            isLong: order.isLong,
+            sizeUsd: BigInt(order.sizeUsd),
+            collateral: BigInt(order.collateral),
+            price: BigInt(order.price),
+            nonce: BigInt(order.nonce),
+            expiry: BigInt(order.expiry)
+        };
+
+        const isValid = await verifyTypedData({
+            address: order.trader,
+            domain: P2P_DOMAIN,
+            types: ORDER_TYPES,
+            primaryType: 'Order',
+            message,
+            signature
+        });
+
+        if (!isValid) {
+            return res.status(401).json({ error: 'Invalid signature — verification failed' });
+        }
+    } catch (err) {
+        console.error('Signature verification error:', err.message);
+        return res.status(401).json({ error: 'Signature verification failed' });
+    }
+
+    const pairId = order.pairId;
+    if (!orderbook[pairId]) {
+        orderbook[pairId] = { longs: [], shorts: [] };
+    }
+
+    // Add to orderbook
+    if (order.isLong) {
+        orderbook[pairId].longs.push({ order, signature, receivedAt: Date.now(), retryCount: 0 });
+    } else {
+        orderbook[pairId].shorts.push({ order, signature, receivedAt: Date.now(), retryCount: 0 });
+    }
+
+    console.log(`📩 [P2P] Received new ${order.isLong ? 'LONG' : 'SHORT'} order for ${pairId}. Size: $${order.sizeUsd / 1e6}`);
+    res.json({ success: true, message: 'Order queued in Sequencer' });
+});
+
+let isMatching = false;
+const MAX_RETRIES = 3;
+
+async function matchOrders() {
+    if (isMatching) return;
+    isMatching = true;
+
+    try {
+        for (const pairId in orderbook) {
+            const longs = orderbook[pairId].longs;
+            const shorts = orderbook[pairId].shorts;
+
+            // Clean expired orders
+            const now = Math.floor(Date.now() / 1000);
+            orderbook[pairId].longs = longs.filter(o => Number(o.order.expiry) > now);
+            orderbook[pairId].shorts = shorts.filter(o => Number(o.order.expiry) > now);
+
+            if (orderbook[pairId].longs.length > 0 && orderbook[pairId].shorts.length > 0) {
+                // Find matching orders (same sizeUsd)
+                for (let i = 0; i < orderbook[pairId].longs.length; i++) {
+                    const longOrder = orderbook[pairId].longs[i];
+                    
+                    const matchIndex = orderbook[pairId].shorts.findIndex(shortOrder => shortOrder.order.sizeUsd === longOrder.order.sizeUsd);
+                    
+                    if (matchIndex !== -1) {
+                        const shortOrder = orderbook[pairId].shorts[matchIndex];
+                        console.log(`🔥 [P2P] MATCH FOUND for ${pairId}! Settling on-chain...`);
+
+                        // Encode payloads for the contract
+                        const encodeOrder = (o) => {
+                            const abiCoder = require('viem').encodeAbiParameters;
+                            return abiCoder(
+                                [
+                                    {
+                                        "components": [
+                                            { "name": "trader", "type": "address" },
+                                            { "name": "pairId", "type": "bytes32" },
+                                            { "name": "isLong", "type": "bool" },
+                                            { "name": "sizeUsd", "type": "uint256" },
+                                            { "name": "collateral", "type": "uint256" },
+                                            { "name": "price", "type": "uint256" },
+                                            { "name": "nonce", "type": "uint256" },
+                                            { "name": "expiry", "type": "uint256" }
+                                        ],
+                                        "name": "OrderInfo",
+                                        "type": "tuple"
+                                    }
+                                ],
+                                [
+                                    [
+                                        o.trader,
+                                        o.pairId,
+                                        o.isLong,
+                                        BigInt(o.sizeUsd),
+                                        BigInt(o.collateral),
+                                        BigInt(o.price),
+                                        BigInt(o.nonce),
+                                        BigInt(o.expiry)
+                                    ]
+                                ]
+                            );
+                        };
+
+                        const makerPayload = encodeOrder(longOrder.order);
+                        const takerPayload = encodeOrder(shortOrder.order);
+                        
+                        const matchPrice = BigInt(longOrder.order.price) > 0n ? BigInt(longOrder.order.price) : 0n;
+
+                        try {
+                            const hash = await wallet.writeContract({
+                                address: P2P_ADDRESS,
+                                abi: P2P_ABI,
+                                functionName: 'settleP2PTrade',
+                                args: [
+                                    makerPayload,
+                                    takerPayload,
+                                    longOrder.signature,
+                                    shortOrder.signature,
+                                    matchPrice
+                                ]
+                            });
+                            console.log(`   ✅ P2P SETTLEMENT SUCCESS! Tx: ${hash}`);
+                            
+                            // Remove from queue
+                            orderbook[pairId].longs.splice(i, 1);
+                            orderbook[pairId].shorts.splice(matchIndex, 1);
+                            i--;
+                            
+                        } catch (e) {
+                            const errMsg = e.shortMessage || e.message;
+                            console.error(`   ❌ P2P Settlement failed:`, errMsg);
+
+                            // FIX MEDIUM-5: Smart retry logic — only drop on permanent errors
+                            const permanentErrors = ['Invalid signature', 'Invalid nonce', 'Order expired', 'Pair mismatch', 'Direction mismatch', 'Size mismatch'];
+                            const isPermanent = permanentErrors.some(pe => errMsg.includes(pe));
+
+                            if (isPermanent) {
+                                console.log(`   🗑️ Permanent error — dropping both orders`);
+                                orderbook[pairId].longs.splice(i, 1);
+                                orderbook[pairId].shorts.splice(matchIndex, 1);
+                                i--;
+                            } else {
+                                // Transient error (gas, network, utilization) — retry later
+                                longOrder.retryCount = (longOrder.retryCount || 0) + 1;
+                                shortOrder.retryCount = (shortOrder.retryCount || 0) + 1;
+                                
+                                if (longOrder.retryCount >= MAX_RETRIES) {
+                                    console.log(`   🗑️ Long order exceeded ${MAX_RETRIES} retries — dropping`);
+                                    orderbook[pairId].longs.splice(i, 1);
+                                    i--;
+                                }
+                                if (shortOrder.retryCount >= MAX_RETRIES) {
+                                    console.log(`   🗑️ Short order exceeded ${MAX_RETRIES} retries — dropping`);
+                                    orderbook[pairId].shorts.splice(matchIndex, 1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error in Matchmaking Loop:', err.message);
+    } finally {
+        isMatching = false;
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+//                      START SERVICES
+// ══════════════════════════════════════════════════════════
+
+console.log('🚀 Starting Keeper Bot V2 & Hybrid P2P Sequencer...');
+console.log(`📡 Connected to Trading: ${TRADING_ADDRESS}`);
+console.log(`📡 Connected to P2P: ${P2P_ADDRESS}`);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🌐 P2P Sequencer API listening on port ${PORT}`);
+});
+
+// Run AMM Keeper Loop
 runKeeper();
-// Run every 5 seconds (faster for order execution)
 setInterval(runKeeper, 5000);
+
+// Run Matchmaking Loop
+setInterval(matchOrders, 1000);
