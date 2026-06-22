@@ -67,3 +67,16 @@ type PairDayData @entity {
   date: Int! # dayId * 86400
   volumeUsd: BigInt!
 }
+
+
+type PairStat @entity {
+  id: ID!
+  longOI: BigInt!
+  shortOI: BigInt!
+}
+
+type VaultStat @entity {
+  id: ID!
+  tvlUsdc: BigInt!
+  totalShares: BigInt!
+}

@@ -18,8 +18,31 @@ import {
   Deposit,
   Withdraw
 } from "../generated/ConfidentialVault/ConfidentialVault"
-import { Position, Order, TradeRecord, VaultDeposit, PairDayData } from "../generated/schema"
+import { Position, Order, TradeRecord, VaultDeposit, PairDayData, PairStat, VaultStat } from "../generated/schema"
 
+function getOrCreatePairStat(pairId: Bytes): PairStat {
+  let id = pairId.toHexString()
+  let stat = PairStat.load(id)
+  if (stat == null) {
+    stat = new PairStat(id)
+    stat.longOI = BigInt.fromI32(0)
+    stat.shortOI = BigInt.fromI32(0)
+    stat.save()
+  }
+  return stat
+}
+
+function getOrCreateVaultStat(): VaultStat {
+  let id = "1"
+  let stat = VaultStat.load(id)
+  if (stat == null) {
+    stat = new VaultStat(id)
+    stat.tvlUsdc = BigInt.fromI32(0)
+    stat.totalShares = BigInt.fromI32(0)
+    stat.save()
+  }
+  return stat
+}
 function updatePairDayData(pairId: Bytes, timestamp: BigInt, volumeUsd: BigInt): void {
   let dayId = timestamp.toI32() / 86400
   let id = pairId.toHexString() + "-" + dayId.toString()
@@ -84,6 +107,15 @@ export function handlePositionOpened(event: PositionOpened): void {
 
   // Update Daily Volume
   updatePairDayData(event.params.pairId, event.block.timestamp, event.params.sizeUsd)
+
+  // Update Pair OI
+  let stat = getOrCreatePairStat(event.params.pairId)
+  if (event.params.isLong) {
+    stat.longOI = stat.longOI.plus(event.params.sizeUsd)
+  } else {
+    stat.shortOI = stat.shortOI.plus(event.params.sizeUsd)
+  }
+  stat.save()
 }
 
 export function handlePositionClosed(event: PositionClosed): void {
@@ -109,6 +141,15 @@ export function handlePositionClosed(event: PositionClosed): void {
 
     // Update Daily Volume
     updatePairDayData(position.pairId, event.block.timestamp, position.sizeUsd)
+
+    // Update Pair OI
+    let stat = getOrCreatePairStat(position.pairId)
+    if (position.isLong) {
+      stat.longOI = stat.longOI.minus(position.sizeUsd)
+    } else {
+      stat.shortOI = stat.shortOI.minus(position.sizeUsd)
+    }
+    stat.save()
   }
 }
 
@@ -133,6 +174,15 @@ export function handlePositionLiquidated(event: PositionLiquidated): void {
 
     // Update Daily Volume
     updatePairDayData(position.pairId, event.block.timestamp, position.sizeUsd)
+
+    // Update Pair OI
+    let stat = getOrCreatePairStat(position.pairId)
+    if (position.isLong) {
+      stat.longOI = stat.longOI.minus(position.sizeUsd)
+    } else {
+      stat.shortOI = stat.shortOI.minus(position.sizeUsd)
+    }
+    stat.save()
   }
 }
 
@@ -218,6 +268,15 @@ export function handlePositionIncreased(event: PositionIncreased): void {
 
     // Update Daily Volume
     updatePairDayData(position.pairId, event.block.timestamp, event.params.additionalSizeUsd)
+
+    // Update Pair OI
+    let stat = getOrCreatePairStat(position.pairId)
+    if (position.isLong) {
+      stat.longOI = stat.longOI.plus(event.params.additionalSizeUsd)
+    } else {
+      stat.shortOI = stat.shortOI.plus(event.params.additionalSizeUsd)
+    }
+    stat.save()
   }
 }
 
@@ -249,6 +308,15 @@ export function handlePositionPartialClose(event: PositionPartialClose): void {
 
     // Update Daily Volume
     updatePairDayData(position.pairId, event.block.timestamp, event.params.closeSizeUsd)
+
+    // Update Pair OI
+    let stat = getOrCreatePairStat(position.pairId)
+    if (position.isLong) {
+      stat.longOI = stat.longOI.minus(event.params.closeSizeUsd)
+    } else {
+      stat.shortOI = stat.shortOI.minus(event.params.closeSizeUsd)
+    }
+    stat.save()
   }
 }
 
@@ -335,6 +403,12 @@ export function handleDeposit(event: Deposit): void {
   deposit.timestamp = event.block.timestamp
   deposit.txHash = event.transaction.hash
   deposit.save()
+
+  // Update Vault TVL
+  let stat = getOrCreateVaultStat()
+  stat.tvlUsdc = stat.tvlUsdc.plus(event.params.amount)
+  stat.totalShares = stat.totalShares.plus(event.params.sharesReceived)
+  stat.save()
 }
 
 export function handleWithdraw(event: Withdraw): void {
@@ -349,4 +423,10 @@ export function handleWithdraw(event: Withdraw): void {
   withdraw.timestamp = event.block.timestamp
   withdraw.txHash = event.transaction.hash
   withdraw.save()
+
+  // Update Vault TVL
+  let stat = getOrCreateVaultStat()
+  stat.tvlUsdc = stat.tvlUsdc.minus(event.params.amount)
+  stat.totalShares = stat.totalShares.minus(event.params.sharesBurned)
+  stat.save()
 }

@@ -437,3 +437,71 @@ export function useAll24hVolumes() {
 
   return volumes
 }
+
+
+export interface IndexerPairStat {
+  id: string
+  longOI: number
+  shortOI: number
+}
+
+export function usePairStats() {
+  const [stats, setStats] = useState<Record<string, IndexerPairStat>>({})
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const query = gql`query GetPairStats { pairStats { id longOI shortOI } }`
+        const data: any = await gqlClient.request(query)
+        const statMap: Record<string, IndexerPairStat> = {}
+        data.pairStats.forEach((d: any) => {
+          statMap[d.id] = {
+            id: d.id,
+            longOI: Number(formatUnits(BigInt(d.longOI), 6)),
+            shortOI: Number(formatUnits(BigInt(d.shortOI), 6))
+          }
+        })
+        setStats(statMap)
+      } catch (e) {
+        console.error('Goldsky Fetch PairStats Error:', e)
+      }
+    }
+    fetchStats()
+    const interval = setInterval(fetchStats, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return stats
+}
+
+export interface IndexerVaultStat {
+  tvlUsdc: number
+  totalShares: number
+}
+
+export function useVaultStats() {
+  const [stat, setStat] = useState<IndexerVaultStat>({ tvlUsdc: 0, totalShares: 0 })
+
+  useEffect(() => {
+    async function fetchVault() {
+      try {
+        const query = gql`query GetVaultStats { vaultStats(first: 1) { id tvlUsdc totalShares } }`
+        const data: any = await gqlClient.request(query)
+        if (data.vaultStats && data.vaultStats.length > 0) {
+          const vs = data.vaultStats[0]
+          setStat({
+            tvlUsdc: Number(formatUnits(BigInt(vs.tvlUsdc), 6)),
+            totalShares: Number(formatUnits(BigInt(vs.totalShares), 6))
+          })
+        }
+      } catch (e) {
+        console.error('Goldsky Fetch VaultStats Error:', e)
+      }
+    }
+    fetchVault()
+    const interval = setInterval(fetchVault, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return stat
+}

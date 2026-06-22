@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { keccak256, toHex, formatUnits } from 'viem'
-import { useReadContract } from 'wagmi'
-import { CONTRACTS, ABIS } from '../config/contracts'
+import { keccak256, toHex } from 'viem'
 import PriceChart from '../components/PriceChart'
 import OrderBook from '../components/OrderBook'
 import OrderForm from '../components/OrderForm'
@@ -9,7 +7,7 @@ import Positions from '../components/Positions'
 import Portfolio from './Portfolio'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
-import { useAll24hVolumes } from '../hooks/useGoldsky'
+import { useAll24hVolumes, usePairStats } from '../hooks/useGoldsky'
 
 const getAssetLogo = (pair: string) => {
   const base = pair.split('/')[0].toLowerCase()
@@ -53,20 +51,16 @@ export default function Trade() {
   const pairId = keccak256(toHex(pairIdStr))
   const realVolume = volumes[pairId.toLowerCase()] || 0
 
-  const { data: oiInfo } = useReadContract({
-    address: CONTRACTS.CORE as `0x${string}`,
-    abi: ABIS.CORE,
-    functionName: 'getOIInfo',
-    args: [pairId],
-    query: { refetchInterval: 10000 }
-  })
+  const pairStats = usePairStats()
+  const currentStat = pairStats[pairId.toLowerCase()]
 
-  let totalOI = activeMarket?.openInterest || 0
+  let totalOI = 0
   let longOIVal = 0
   let shortOIVal = 0
-  if (oiInfo) {
-    longOIVal = Number(formatUnits((oiInfo as any)[0], 6))
-    shortOIVal = Number(formatUnits((oiInfo as any)[1], 6))
+
+  if (currentStat) {
+    longOIVal = currentStat.longOI
+    shortOIVal = currentStat.shortOI
     totalOI = longOIVal + shortOIVal
   }
 
@@ -78,10 +72,6 @@ export default function Trade() {
   const hourlyFundingRate = totalOI > 0
     ? (netOI / maxOI) * (coefficient / 10000) * (3600 / 86400) * 100
     : 0
-  // Rollover Fee (Borrow Fee) is fixed at 0.002% per hour
-  const rolloverFeePerHour = 0.002
-  const longFundingRate = -hourlyFundingRate - rolloverFeePerHour // Net rate for longs
-  const shortFundingRate = hourlyFundingRate - rolloverFeePerHour  // Net rate for shorts
   const formatFR = (rate: number) => Math.abs(rate) < 0.00005 ? '0.0000%' : `${rate >= 0 ? '+' : ''}${rate.toFixed(4)}%`
   const frColor = (rate: number) => rate === 0 ? 'var(--color-text2)' : rate > 0 ? 'var(--color-green)' : 'var(--color-red)'
 
@@ -160,22 +150,7 @@ export default function Trade() {
                 <span className="font-mono chart-stat-value">${fvCompact(realVolume)}</span>
               </div>
 
-              <div className="chart-stat-item">
-                <span className="chart-stat-label">
-                  Liquidity <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text2)' }}>(L/S)</span>
-                </span>
-                <span className="font-mono chart-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <span style={{ color: 'var(--color-green)', fontSize: '12px', lineHeight: 1 }}>↗</span>
-                    <span style={{ color: 'var(--color-text1)' }}>{fvCompact(Math.max(0, maxOI - longOIVal))}</span>
-                  </span>
-                  <span style={{ color: 'var(--color-text3)' }}>/</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <span style={{ color: 'var(--color-red)', fontSize: '12px', lineHeight: 1 }}>↘</span>
-                    <span style={{ color: 'var(--color-text1)' }}>{fvCompact(Math.max(0, maxOI - shortOIVal))}</span>
-                  </span>
-                </span>
-              </div>
+
 
               <div className="chart-stat-item">
                 <span className="chart-stat-label">
@@ -198,16 +173,9 @@ export default function Trade() {
               </div>
 
               <div className="chart-stat-item chart-stat-mobile-col">
-                <span className="chart-stat-label">Net Rate / 1h</span>
-                <span className="font-mono chart-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <span style={{ color: 'var(--color-green)', fontSize: '12px', lineHeight: 1 }}>↗</span>
-                    <span style={{ color: frColor(longFundingRate) }}>{formatFR(longFundingRate)}</span>
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <span style={{ color: 'var(--color-red)', fontSize: '12px', lineHeight: 1 }}>↘</span>
-                    <span style={{ color: frColor(shortFundingRate) }}>{formatFR(shortFundingRate)}</span>
-                  </span>
+                <span className="chart-stat-label">1hr Funding</span>
+                <span className="font-mono chart-stat-value" style={{ color: frColor(hourlyFundingRate) }}>
+                  {formatFR(hourlyFundingRate)}
                 </span>
               </div>
             </div>
@@ -219,9 +187,7 @@ export default function Trade() {
           <button className={`tm-tab ${mobileView === 'chart' ? 'active' : ''}`} onClick={() => setMobileView('chart')}>
             Chart
           </button>
-          <button className={`tm-tab ${mobileView === 'orderbook' ? 'active' : ''}`} onClick={() => setMobileView('orderbook')}>
-            VOB
-          </button>
+
           <button className={`tm-tab ${mobileView === 'trades' ? 'active' : ''}`} onClick={() => setMobileView('trades')}>
             Trades
           </button>
@@ -232,17 +198,10 @@ export default function Trade() {
           <PriceChart />
         </div>
 
-        {/* Mobile VOB */}
-        {mobileView === 'orderbook' && (
-          <div className="trade-chart mobile-only" style={{ flexDirection: 'column' }}>
-            <OrderBook forcedTab="orderbook" hideTabs />
-          </div>
-        )}
-
         {/* Mobile Trades */}
         {mobileView === 'trades' && (
           <div className="trade-chart mobile-only" style={{ flexDirection: 'column' }}>
-            <OrderBook forcedTab="trades" hideTabs />
+            <OrderBook hideTabs />
           </div>
         )}
 
