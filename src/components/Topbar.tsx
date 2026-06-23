@@ -4,10 +4,8 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
 import { useTranslation } from 'react-i18next'
-import { useReadContracts } from 'wagmi'
-import { formatUnits } from 'viem'
-import { CONTRACTS, ABIS } from '../config/contracts'
-import { useAll24hVolumes } from '../hooks/useGoldsky'
+
+import { useAll24hVolumes, usePairStats } from '../hooks/useGoldsky'
 
 const getAssetLogo = (pair: string) => {
   const base = pair.split('/')[0].toLowerCase()
@@ -57,16 +55,7 @@ export default function Topbar() {
   const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
   const volumes = useAll24hVolumes()
 
-  // Fetch real Open Interest for all markets
-  const oiContracts = markets.flatMap(m => [
-    { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'longOI', args: [m.pairHash] },
-    { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'shortOI', args: [m.pairHash] }
-  ])
-
-  const { data: oiData } = useReadContracts({
-    contracts: oiContracts,
-    query: { refetchInterval: 10000 }
-  })
+  const pairStats = usePairStats()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -498,15 +487,13 @@ export default function Topbar() {
                     const pairIdHash = m.pairHash.toLowerCase()
                     const realVolume = volumes[pairIdHash] || 0
                     
-                    // Extract real OI from multicall and combine with simulated base OI
-                    const marketIndex = markets.findIndex(orig => orig.id === m.id)
+                    // Extract real OI from Goldsky
                     let realOI = 0
-                    if (oiData && oiData[marketIndex * 2] && oiData[marketIndex * 2 + 1]) {
-                      const longOI = oiData[marketIndex * 2].status === 'success' ? oiData[marketIndex * 2].result as bigint : 0n
-                      const shortOI = oiData[marketIndex * 2 + 1].status === 'success' ? oiData[marketIndex * 2 + 1].result as bigint : 0n
-                      realOI = Number(formatUnits(longOI, 6)) + Number(formatUnits(shortOI, 6))
+                    const stat = pairStats[pairIdHash]
+                    if (stat) {
+                      realOI = stat.longOI + stat.shortOI
                     }
-                    const displayOI = m.openInterest + realOI
+                    const displayOI = realOI
 
                     return (
                       <tr

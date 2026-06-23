@@ -51,21 +51,30 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const { data: oiInfo } = useReadContracts({
     contracts: [
       { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'longOI', args: [pairId] },
-      { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'shortOI', args: [pairId] }
+      { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'shortOI', args: [pairId] },
+      { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'getOIInfo', args: [pairId] }
     ],
     query: { refetchInterval: 10000 }
   })
 
   let longOIVal = 0
   let shortOIVal = 0
+  let maxLongOIVal = 10000000
+  let maxShortOIVal = 10000000
   if (oiInfo && oiInfo[0] && oiInfo[1]) {
     const longOI = oiInfo[0].status === 'success' ? oiInfo[0].result as bigint : 0n
     const shortOI = oiInfo[1].status === 'success' ? oiInfo[1].result as bigint : 0n
     longOIVal = Number(formatUnits(longOI, 6))
     shortOIVal = Number(formatUnits(shortOI, 6))
   }
-  const maxOI = 10000000 // $10M capacity
-  const availableLiquidity = side === 'long' ? Math.max(0, maxOI - longOIVal) : Math.max(0, maxOI - shortOIVal)
+  // Read real maxOI from getOIInfo (returns [longOI, shortOI, maxLongOI, maxShortOI])
+  if (oiInfo && oiInfo[2] && oiInfo[2].status === 'success') {
+    const oiResult = oiInfo[2].result as [bigint, bigint, bigint, bigint]
+    maxLongOIVal = Number(formatUnits(oiResult[2], 6))
+    maxShortOIVal = Number(formatUnits(oiResult[3], 6))
+  }
+  const maxOISide = side === 'long' ? maxLongOIVal : maxShortOIVal
+  const availableLiquidity = side === 'long' ? Math.max(0, maxLongOIVal - longOIVal) : Math.max(0, maxShortOIVal - shortOIVal)
 
   // ----------------------------------------
 
@@ -120,22 +129,16 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   let priceImpactPct = 0;
   let priceImpactVal = 0;
 
-  if (oiInfo && sizeUsdValue > 0) {
-    const maxLongOI = Number(formatUnits((oiInfo as any)[2], 6));
-    const maxShortOI = Number(formatUnits((oiInfo as any)[3], 6));
-    const maxOISide = side === 'long' ? maxLongOI : maxShortOI;
-    
-    if (maxOISide > 0) {
-      const isIncreasingSkew = side === 'long' ? longOIVal >= shortOIVal : shortOIVal >= longOIVal;
-      const ratio = sizeUsdValue / maxOISide;
-      let rawImpactBps = (ratio * ratio) * 100; // maxPriceImpactBps = 100
-      if (rawImpactBps > 100) rawImpactBps = 100; // Cap at max
+  if (sizeUsdValue > 0 && maxOISide > 0) {
+    const isIncreasingSkew = side === 'long' ? longOIVal >= shortOIVal : shortOIVal >= longOIVal;
+    const ratio = sizeUsdValue / maxOISide;
+    let rawImpactBps = (ratio * ratio) * 100; // maxPriceImpactBps = 100
+    if (rawImpactBps > 100) rawImpactBps = 100; // Cap at max
 
-      const impactBps = isIncreasingSkew ? rawImpactBps : -(rawImpactBps / 2);
-      
-      priceImpactPct = impactBps / 100; // Convert bps to percent
-      priceImpactVal = (sizeUsdValue * priceImpactPct) / 100;
-    }
+    const impactBps = isIncreasingSkew ? rawImpactBps : -(rawImpactBps / 2);
+    
+    priceImpactPct = impactBps / 100; // Convert bps to percent
+    priceImpactVal = (sizeUsdValue * priceImpactPct) / 100;
   }
 
   const orderSummary = useMemo(() => {
@@ -236,7 +239,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       } else if (orderType === 'market') {
         if (currentPosition) {
           await increasePosition(
-            BigInt(currentPosition.id),
+            BigInt(currentPosition.positionId),
             usdSize,
             leverage,
             acceptablePriceUsd,

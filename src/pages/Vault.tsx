@@ -198,7 +198,7 @@ export default function Vault() {
                 </div>
                 <div className="tc-stat">
                   <span className="label">Lockup</span>
-                  <span className="value font-mono">5 Days</span>
+                  <span className="value font-mono">2 Days</span>
                 </div>
               </div>
               <div className="tc-desc">
@@ -233,7 +233,7 @@ export default function Vault() {
                 </div>
                 <div className="tc-stat">
                   <span className="label">Lockup</span>
-                  <span className="value font-mono">2 Days</span>
+                  <span className="value font-mono">5 Days</span>
                 </div>
               </div>
               <div className="tc-desc">
@@ -274,7 +274,7 @@ export default function Vault() {
                </div>
                <div className="dh-stat">
                  <span className="label">Lockup</span>
-                 <span className="value font-mono">{activeTab === 'Degen' ? '5 Days' : '2 Days'}</span>
+                 <span className="value font-mono">{activeTab === 'Degen' ? '2 Days' : '5 Days'}</span>
                </div>
                <div className="dh-stat">
                  <span className="label">Your Balance</span>
@@ -319,7 +319,7 @@ export default function Vault() {
                   disabled={isPending || (!amt && !isWrongNetwork && isConnected) || (Number(amt) <= 0 && !isWrongNetwork && isConnected) || (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw')} 
                   onClick={handleAction}
                 >
-                  {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isWrongNetwork ? 'Switch to Arc Testnet' : (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw') ? `${activeTab === 'Degen' ? '5' : '2'}-Day Lockup Active` : activeAction}
+                  {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isWrongNetwork ? 'Switch to Arc Testnet' : (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw') ? `${activeTab === 'Degen' ? '2' : '5'}-Day Lockup Active` : activeAction}
                 </button>
               </div>
             </div>

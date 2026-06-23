@@ -63,7 +63,7 @@ contract ConfidentialTrading is ReentrancyGuard {
     mapping(address => uint256[]) public userPositions;
     mapping(address => uint256[]) public userOrders;
 
-    uint256 public rolloverFeePerHour = 20; // 0.002% per hour
+    uint256 public rolloverFeePerHour = 0; // 0% per hour (Zero Borrow Fee like Reya)
     
     // Limits
     uint256 public constant MIN_POSITION_SIZE = 1 * 1e6; // $1 min size
@@ -1004,7 +1004,7 @@ contract ConfidentialTrading is ReentrancyGuard {
     }
 
     function setRolloverFeePerHour(uint256 _fee) external onlyOwner {
-        require(_fee <= 200, "Max 0.02% per hour");
+        require(_fee == 0, "Zero borrow fee enforced");
         rolloverFeePerHour = _fee;
     }
 

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { keccak256, toHex } from 'viem'
+import { useReadContract } from 'wagmi'
+import { CONTRACTS, ABIS } from '../config/contracts'
 import PriceChart from '../components/PriceChart'
 import OrderBook from '../components/OrderBook'
 import OrderForm from '../components/OrderForm'
@@ -59,22 +61,23 @@ export default function Trade() {
   let shortOIVal = 0
 
   if (currentStat) {
-    longOIVal = currentStat.longOI + (activeMarket?.openInterest || 0) / 2
-    shortOIVal = currentStat.shortOI + (activeMarket?.openInterest || 0) / 2
-    totalOI = longOIVal + shortOIVal
-  } else {
-    longOIVal = (activeMarket?.openInterest || 0) / 2
-    shortOIVal = (activeMarket?.openInterest || 0) / 2
+    longOIVal = currentStat.longOI
+    shortOIVal = currentStat.shortOI
     totalOI = longOIVal + shortOIVal
   }
 
-  // Dynamic Funding Rate — mirrors ConfidentialCore.updateFunding()
-  // Formula: (netOI / maxOI) * (coefficient / 10000) * (3600 / 86400) * 100% 
-  const maxOI = 10000000 // $10M default maxLongOI per pair on V2 Contract
-  const coefficient = 100 // 1% max daily rate
-  const netOI = longOIVal - shortOIVal
-  const hourlyFundingRate = totalOI > 0
-    ? (netOI / maxOI) * (coefficient / 10000) * (3600 / 86400) * 100
+  // Read projected funding rate directly from Core contract (8hr rate in 1e18 scale)
+  const { data: projectedFundingRaw } = useReadContract({
+    address: CONTRACTS.CORE as `0x${string}`,
+    abi: ABIS.CORE,
+    functionName: 'getProjectedFundingRate',
+    args: [pairId],
+    query: { refetchInterval: 10000 }
+  })
+
+  // Convert 8hr projected rate (int256, 1e18 scale) to 1hr rate percentage
+  const hourlyFundingRate = projectedFundingRaw
+    ? (Number(projectedFundingRaw) / 1e18) * (1 / 8) * 100
     : 0
   const formatFR = (rate: number) => Math.abs(rate) < 0.00005 ? '0.0000%' : `${rate >= 0 ? '+' : ''}${rate.toFixed(4)}%`
   const frColor = (rate: number) => rate === 0 ? 'var(--color-text2)' : rate > 0 ? 'var(--color-green)' : 'var(--color-red)'
