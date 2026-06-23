@@ -55,8 +55,6 @@ contract ConfidentialTrading is ReentrancyGuard {
     ConfidentialVault public vault;
     PythPriceOracle public oracle;
     IERC20 public usdc;
-    address public p2pContract;
-
     uint256 public nextPositionId = 1;
     uint256 public nextOrderId = 1;
 
@@ -111,11 +109,6 @@ contract ConfidentialTrading is ReentrancyGuard {
 
     function _safeTransferFrom(address from, address to, uint256 amount) internal {
         require(usdc.transferFrom(from, to, amount), "TransferFrom failed");
-    }
-
-    function setP2PContract(address _p2pContract) external {
-        require(msg.sender == core.owner(), "Not owner");
-        p2pContract = _p2pContract;
     }
 
     // ══════════════════════════════════════════════════════════
@@ -329,6 +322,11 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         order.isActive = false;
 
+        // FIX LOW-1: Reset close request flag so trader can create a new one
+        if (order.orderType == 3) {
+            hasActiveCloseRequest[order.positionId] = false;
+        }
+
         // Refund collateral + fee + execution fee
         if (order.orderType != 3) {
             uint256 remainingCollateral = order.collateral;
@@ -372,7 +370,25 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         PendingOrder storage order = pendingOrders[orderId];
         require(order.isActive, "Not active");
-        require(block.timestamp <= order.createdAt + maxOrderAge, "Order expired");
+
+        // FIX LOW-2: Handle expired orders gracefully — refund and reset flags
+        if (block.timestamp > order.createdAt + maxOrderAge) {
+            order.isActive = false;
+            if (order.orderType == 3) {
+                hasActiveCloseRequest[order.positionId] = false;
+            }
+            // Refund collateral + fee for non-close orders
+            if (order.orderType != 3 && order.collateral + order.feePaid > 0) {
+                _safeTransfer(order.trader, order.collateral + order.feePaid);
+            }
+            // Refund execution fee
+            if (order.executionFee > 0) {
+                (bool success, ) = order.trader.call{value: order.executionFee}("");
+                require(success, "ETH refund failed");
+            }
+            emit OrderCancelled(orderId);
+            return;
+        }
 
         (uint256 currentPrice, ) = oracle.getPrice(order.pairId);
 
@@ -420,6 +436,9 @@ contract ConfidentialTrading is ReentrancyGuard {
                 slice.feePaid = order.feePaid / order.twapSlices;
             }
             
+            // FIX EXPLOIT-3: Re-validate OI limits for each TWAP slice
+            core.validateOpenPosition(order.pairId, order.trader, order.isLong, slice.sizeUsd, order.leverage);
+
             _executeOpen(slice, currentPrice, orderId, true);
             
             order.twapExecuted += 1;
@@ -524,10 +543,8 @@ contract ConfidentialTrading is ReentrancyGuard {
         pos.isOpen = false;
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
 
-        // FIX HIGH-5: Track vault loss for Circuit Breaker (consistency with closePositionPartial)
-        if (netPnl > 0) {
-            core.trackVaultLoss(uint256(netPnl));
-        }
+        // NOTE: trackVaultLoss is handled internally by vault.settlePosition()
+        // when loss spills over from Degen into Prime Vault
         
         // 4. Settle with Vault — one clean call
         vault.settlePosition(pos.trader, pos.collateral, netPnl);
@@ -562,6 +579,9 @@ contract ConfidentialTrading is ReentrancyGuard {
         
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Not open");
+
+        // FIX EXPLOIT-4: Enforce cooldown to prevent flash loan TP/SL bypass
+        require(block.timestamp >= pos.openedAt + core.minPositionDuration(), "Cooldown active");
         
         (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
         
@@ -631,9 +651,12 @@ contract ConfidentialTrading is ReentrancyGuard {
     //              AUTO-DELEVERAGING (ADL)
     // ══════════════════════════════════════════════════════════
 
-    /// @notice Auto-Deleveraging (ADL) execution triggered by Sequencer
+    /// @notice Auto-Deleveraging (ADL) execution triggered by Keeper in emergency
     function executeADL(uint256[] calldata positionIds, bytes[] calldata updateData) external payable nonReentrant {
         require(msg.sender == core.keeper(), "Only Keeper can ADL");
+
+        // FIX EXPLOIT-5: ADL only allowed when Vault is in crisis (utilization > 95%)
+        require(vault.utilization() > 9500, "ADL only in emergency (util > 95%)");
         if (updateData.length > 0) {
             oracle.updatePriceFeeds{value: msg.value}(updateData);
         }
@@ -654,65 +677,6 @@ contract ConfidentialTrading is ReentrancyGuard {
             require(pnl > 0, "Cannot ADL a losing position");
             _executeClose(positionIds[i], currentPrice);
         }
-    }
-
-    // ══════════════════════════════════════════════════════════
-    //              P2P MATCHING (HYBRID ENGINE)
-    // ══════════════════════════════════════════════════════════
-
-    /// @notice Open a position directly from the P2P matching engine
-    /// @param isMaker true = maker fee (0.02%), false = taker fee (0.04%)
-    function executeP2POpen(
-        address trader,
-        bytes32 pairId,
-        bool isLong,
-        uint256 sizeUsd,
-        uint256 collateral,
-        uint256 matchPrice,
-        bool isMaker
-    ) external nonReentrant {
-        require(msg.sender == p2pContract, "Only P2P Contract");
-
-        // FIX HIGH-4: Enforce minimum position size and collateral
-        require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
-        require(collateral >= MIN_COLLATERAL, "Collateral too small");
-
-        // FIX CRITICAL-2: Validate against all risk management rules
-        uint256 leverage = sizeUsd / collateral;
-        core.validateOpenPosition(pairId, trader, isLong, sizeUsd, leverage);
-
-        // FIX HIGH-3: Use correct fee type (maker vs taker)
-        uint256 fee = core.calculateFee(sizeUsd, isMaker);
-        _safeTransferFrom(trader, address(this), collateral + fee);
-
-        uint256 posId = nextPositionId++;
-        Position storage pos = positions[posId];
-        pos.pairId = pairId;
-        pos.trader = trader;
-        pos.isLong = isLong;
-        pos.sizeUsd = sizeUsd;
-        pos.collateral = collateral;
-        pos.entryPrice = matchPrice;
-        pos.leverage = leverage;
-        pos.liquidationPrice = _calcLiqPrice(matchPrice, sizeUsd, collateral, isLong);
-        pos.openedAt = block.timestamp;
-        pos.lastRolloverSettled = block.timestamp;
-        pos.isOpen = true;
-        pos.tpPrice = 0;
-        pos.slPrice = 0;
-        
-        pos.entryFundingIndex = core.updateFunding(pairId);
-
-        core.increaseOI(pairId, trader, isLong, sizeUsd);
-        
-        _safeTransfer(address(vault), collateral);
-        vault.reserveBacking(collateral);
-
-        _distributeFee(fee);
-
-        userPositions[trader].push(posId);
-
-        emit PositionOpened(posId, trader, pairId, isLong, sizeUsd, matchPrice, pos.leverage);
     }
 
     // ══════════════════════════════════════════════════════════
@@ -1011,14 +975,14 @@ contract ConfidentialTrading is ReentrancyGuard {
         pos.sizeUsd = remainSize;
         pos.collateral = remainCollateral;
         pos.leverage = remainSize / remainCollateral;
-        // intentionally NOT resetting lastRolloverSettled so remainder pays for full duration
+        // FIX MEDIUM-3: Reset rollover timestamp to prevent double-charging on remainder
+        pos.lastRolloverSettled = block.timestamp;
         pos.liquidationPrice = _calcLiqPrice(pos.entryPrice, remainSize, remainCollateral, pos.isLong);
 
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, closeSizeUsd);
 
-        if (netPnl > 0) {
-            core.trackVaultLoss(uint256(netPnl));
-        }
+        // NOTE: trackVaultLoss is handled internally by vault.settlePosition()
+        // when loss spills over from Degen into Prime Vault
 
         // Settle closed portion with Vault
         vault.settlePosition(pos.trader, closeCollateral, netPnl);

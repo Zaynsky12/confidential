@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { keccak256, toHex, formatUnits } from 'viem'
-import { useReadContract, useSignTypedData } from 'wagmi'
-import { parseUnits } from 'viem'
-import toast from 'react-hot-toast'
+import { useReadContracts } from 'wagmi'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
@@ -50,33 +48,25 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const pairIdStr = activeMarket?.pair || 'BTC/USDC'
   const pairId = keccak256(toHex(pairIdStr))
 
-  const { data: oiInfo } = useReadContract({
-    address: CONTRACTS.CORE as `0x${string}`,
-    abi: ABIS.CORE,
-    functionName: 'getOIInfo',
-    args: [pairId],
+  const { data: oiInfo } = useReadContracts({
+    contracts: [
+      { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'longOI', args: [pairId] },
+      { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'shortOI', args: [pairId] }
+    ],
     query: { refetchInterval: 10000 }
   })
 
   let longOIVal = 0
   let shortOIVal = 0
-  if (oiInfo) {
-    longOIVal = Number(formatUnits((oiInfo as any)[0], 6))
-    shortOIVal = Number(formatUnits((oiInfo as any)[1], 6))
+  if (oiInfo && oiInfo[0] && oiInfo[1]) {
+    const longOI = oiInfo[0].status === 'success' ? oiInfo[0].result as bigint : 0n
+    const shortOI = oiInfo[1].status === 'success' ? oiInfo[1].result as bigint : 0n
+    longOIVal = Number(formatUnits(longOI, 6))
+    shortOIVal = Number(formatUnits(shortOI, 6))
   }
   const maxOI = 10000000 // $10M capacity
   const availableLiquidity = side === 'long' ? Math.max(0, maxOI - longOIVal) : Math.max(0, maxOI - shortOIVal)
 
-  // --- EIP-712 Setup ---
-  const { signTypedDataAsync } = useSignTypedData()
-  
-  const { data: currentNonce } = useReadContract({
-    address: CONTRACTS.P2P as `0x${string}`,
-    abi: ABIS.P2P,
-    functionName: 'nonces',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address }
-  })
   // ----------------------------------------
 
   useEffect(() => {
@@ -264,104 +254,15 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             acceptablePriceUsd
           )
         }
-      } else if (orderType === 'limit') {
-        if (!address || currentNonce === undefined) {
-          toast.error("Connecting wallet to fetch nonce...");
-          return;
-        }
-
-        toast.loading('Requesting Signature...', { id: 'p2p' })
-
-        const domain = {
-          name: 'Confidential DEX',
-          version: '1',
-          chainId: 5042002,
-          verifyingContract: CONTRACTS.P2P as `0x${string}`
-        };
-
-        const types = {
-          Order: [
-            { name: 'trader', type: 'address' },
-            { name: 'pairId', type: 'bytes32' },
-            { name: 'isLong', type: 'bool' },
-            { name: 'sizeUsd', type: 'uint256' },
-            { name: 'collateral', type: 'uint256' },
-            { name: 'price', type: 'uint256' },
-            { name: 'nonce', type: 'uint256' },
-            { name: 'expiry', type: 'uint256' }
-          ]
-        };
-
-        const message = {
-          trader: address as `0x${string}`,
-          pairId: pairId as `0x${string}`,
-          isLong: side === 'long',
-          sizeUsd: parseUnits(usdSize.toFixed(6), 6),
-          collateral: parseUnits((usdSize / leverage).toFixed(6), 6),
-          price: parseUnits(Number(price).toFixed(18), 18),
-          nonce: currentNonce as bigint,
-          expiry: BigInt(Math.floor(Date.now() / 1000) + 86400 * 7) // 7 days expiry
-        };
-
-        try {
-          const signature = await signTypedDataAsync({
-            account: address as `0x${string}`,
-            domain,
-            types,
-            primaryType: 'Order',
-            message,
-          });
-
-          // Serialize BigInts before sending to Express API
-          const serializedOrder = {
-             ...message,
-             sizeUsd: message.sizeUsd.toString(),
-             collateral: message.collateral.toString(),
-             price: message.price.toString(),
-             nonce: message.nonce.toString(),
-             expiry: message.expiry.toString()
-          };
-
-          const res = await fetch('http://localhost:3000/api/p2p/order', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ order: serializedOrder, signature })
-          });
-
-          if (!res.ok) throw new Error("Failed to queue order in P2P Sequencer");
-          
-          toast.dismiss('p2p')
-          toast.success('Gasless Limit Order queued in P2P Sequencer!')
-
-          // Sync to local store so it appears in the UI tab
-          placeMockOrder({
-            marketId: activeMarket.id,
-            pair: activeMarket.pair,
-            type: orderType,
-            side: side,
-            price: Number(price),
-            size: baseSize,
-            leverage: leverage,
-          })
-
-        } catch (err: any) {
-           toast.dismiss('p2p')
-           if (err.message?.includes('User rejected')) {
-             toast.error('Signature rejected by user');
-           } else {
-             toast.error(err.message || 'Failed to sign order');
-           }
-           return;
-        }
-
-      } else {
+      } else if (orderType === 'limit' || orderType === 'stop market') {
+        const orderTypeValue = orderType === 'limit' ? 0 : 1;
         await placeOrder(
           activeMarket.pair,
           side === 'long',
           usdSize,
           leverage,
           Number(triggerPrice || price),
-          1, // Stop order is 1
+          orderTypeValue,
           tpNum,
           slNum
         )
@@ -632,8 +533,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
               ? `❌ Max Capacity: $${availableLiquidity >= 1e6 ? (availableLiquidity / 1e6).toFixed(2) + 'M' : availableLiquidity >= 1e3 ? (availableLiquidity / 1e3).toFixed(2) + 'K' : availableLiquidity.toFixed(2)}`
               : isInsufficientBalance 
                 ? 'Insufficient Balance' 
-                : orderType === 'limit'
-                  ? `Sign Limit Order (Gasless) ⚡`
+                : orderType === 'limit' || orderType === 'stop market'
+                  ? `Place ${orderType === 'limit' ? 'Limit' : 'Stop'} Order ⚡`
                   : (currentPosition && orderType === 'market') 
                     ? `Average / Increase ${activeMarket.baseAsset}` 
                     : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`

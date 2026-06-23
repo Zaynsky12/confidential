@@ -58,12 +58,10 @@ export default function Topbar() {
   const volumes = useAll24hVolumes()
 
   // Fetch real Open Interest for all markets
-  const oiContracts = markets.map(m => ({
-    address: CONTRACTS.CORE as `0x${string}`,
-    abi: ABIS.CORE,
-    functionName: 'getOIInfo',
-    args: [m.pairHash]
-  }))
+  const oiContracts = markets.flatMap(m => [
+    { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'longOI', args: [m.pairHash] },
+    { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'shortOI', args: [m.pairHash] }
+  ])
 
   const { data: oiData } = useReadContracts({
     contracts: oiContracts,
@@ -500,13 +498,15 @@ export default function Topbar() {
                     const pairIdHash = m.pairHash.toLowerCase()
                     const realVolume = volumes[pairIdHash] || 0
                     
-                    // Extract real OI from multicall
+                    // Extract real OI from multicall and combine with simulated base OI
                     const marketIndex = markets.findIndex(orig => orig.id === m.id)
                     let realOI = 0
-                    if (oiData && oiData[marketIndex] && oiData[marketIndex].status === 'success') {
-                      const [longOI, shortOI] = oiData[marketIndex].result as any
+                    if (oiData && oiData[marketIndex * 2] && oiData[marketIndex * 2 + 1]) {
+                      const longOI = oiData[marketIndex * 2].status === 'success' ? oiData[marketIndex * 2].result as bigint : 0n
+                      const shortOI = oiData[marketIndex * 2 + 1].status === 'success' ? oiData[marketIndex * 2 + 1].result as bigint : 0n
                       realOI = Number(formatUnits(longOI, 6)) + Number(formatUnits(shortOI, 6))
                     }
+                    const displayOI = m.openInterest + realOI
 
                     return (
                       <tr
@@ -564,7 +564,7 @@ export default function Topbar() {
                           {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
                         </td>
                         <td className="msp-td msp-td-vol font-mono desktop-col">{formatVol(realVolume)}</td>
-                        <td className="msp-td msp-td-oi font-mono">{formatOI(realOI)}</td>
+                        <td className="msp-td msp-td-oi font-mono">{formatOI(displayOI)}</td>
                       </tr>
                     )
                   })}

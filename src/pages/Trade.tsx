@@ -59,8 +59,12 @@ export default function Trade() {
   let shortOIVal = 0
 
   if (currentStat) {
-    longOIVal = currentStat.longOI
-    shortOIVal = currentStat.shortOI
+    longOIVal = currentStat.longOI + (activeMarket?.openInterest || 0) / 2
+    shortOIVal = currentStat.shortOI + (activeMarket?.openInterest || 0) / 2
+    totalOI = longOIVal + shortOIVal
+  } else {
+    longOIVal = (activeMarket?.openInterest || 0) / 2
+    shortOIVal = (activeMarket?.openInterest || 0) / 2
     totalOI = longOIVal + shortOIVal
   }
 

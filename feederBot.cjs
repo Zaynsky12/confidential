@@ -23,8 +23,8 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0xf37fe2E9A552a0b2003324B293B2e6E4AD9C5645';
-const P2P_ADDRESS = '0x9D557c5Acc5a6B015C079273CE35D7FE44F74828';
+const TRADING_ADDRESS = '0x788E7b0be4BaAA89143F3C14CE34A606659A306c';
+const P2P_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Express Server Setup
 const express = require('express');
@@ -97,6 +97,68 @@ const TRADING_ABI = [
     "inputs": [],
     "name": "ReentrancyGuardReentrantCall",
     "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "trader",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newLiquidationPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "CollateralAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "trader",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newLiquidationPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "CollateralRemoved",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -216,6 +278,43 @@ const TRADING_ABI = [
       {
         "indexed": false,
         "internalType": "uint256",
+        "name": "additionalSizeUsd",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newEntryPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newLiquidationPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "PositionIncreased",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "trader",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
         "name": "executionPrice",
         "type": "uint256"
       },
@@ -294,6 +393,43 @@ const TRADING_ABI = [
         "type": "uint256"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "trader",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "closeSizeUsd",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "exitPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "pnl",
+        "type": "int256"
+      }
+    ],
+    "name": "PositionPartialClose",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
         "indexed": false,
         "internalType": "bool",
         "name": "isTakeProfit",
@@ -336,6 +472,19 @@ const TRADING_ABI = [
   },
   {
     "inputs": [],
+    "name": "MIN_COLLATERAL",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "MIN_POSITION_SIZE",
     "outputs": [
       {
@@ -351,6 +500,24 @@ const TRADING_ABI = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "addCollateral",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "orderId",
         "type": "uint256"
       }
@@ -358,6 +525,47 @@ const TRADING_ABI = [
     "name": "cancelOrder",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "updateData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "closePositionInstantly",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "closePercent",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "updateData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "closePositionPartial",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -449,6 +657,24 @@ const TRADING_ABI = [
   {
     "inputs": [
       {
+        "internalType": "uint256[]",
+        "name": "positionIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "updateData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "executeADL",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "orderId",
         "type": "uint256"
@@ -486,6 +712,58 @@ const TRADING_ABI = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "hasActiveCloseRequest",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "additionalSizeUsd",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "additionalLeverage",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "acceptablePrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "updateData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "increasePosition",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "positionId",
         "type": "uint256"
       },
@@ -503,6 +781,19 @@ const TRADING_ABI = [
   {
     "inputs": [],
     "name": "liquidationRewardBps",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxOrderAge",
     "outputs": [
       {
         "internalType": "uint256",
@@ -604,11 +895,6 @@ const TRADING_ABI = [
       },
       {
         "internalType": "bool",
-        "name": "reduceOnly",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
         "name": "isActive",
         "type": "bool"
       },
@@ -690,6 +976,60 @@ const TRADING_ABI = [
       },
       {
         "internalType": "uint256",
+        "name": "tpPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "acceptablePrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "updateData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "placeMarketOrder",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "posId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "pairId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isLong",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "sizeUsd",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "leverage",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
         "name": "triggerPrice",
         "type": "uint256"
       },
@@ -697,11 +1037,6 @@ const TRADING_ABI = [
         "internalType": "uint8",
         "name": "orderType",
         "type": "uint8"
-      },
-      {
-        "internalType": "bool",
-        "name": "reduceOnly",
-        "type": "bool"
       },
       {
         "internalType": "uint256",
@@ -799,9 +1134,37 @@ const TRADING_ABI = [
         "internalType": "int256",
         "name": "entryFundingIndex",
         "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastRolloverSettled",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "updateData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "removeCollateral",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -815,6 +1178,68 @@ const TRADING_ABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_bps",
+        "type": "uint256"
+      }
+    ],
+    "name": "setLiquidationRewardBps",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_seconds",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMaxOrderAge",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "setRolloverFeePerHour",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newTpPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newSlPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateTpSl",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -890,6 +1315,10 @@ const TRADING_ABI = [
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ];
 
@@ -1124,248 +1553,17 @@ async function runKeeper() {
   }
 }
 
-const P2P_ABI = [
-  {
-    "inputs": [
-      { "internalType": "bytes", "name": "makerPayload", "type": "bytes" },
-      { "internalType": "bytes", "name": "takerPayload", "type": "bytes" },
-      { "internalType": "bytes", "name": "makerSig", "type": "bytes" },
-      { "internalType": "bytes", "name": "takerSig", "type": "bytes" },
-      { "internalType": "uint256", "name": "matchPrice", "type": "uint256" }
-    ],
-    "name": "settleP2PTrade",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-];
-
-// ══════════════════════════════════════════════════════════
-//                      P2P MATCHMAKING
-// ══════════════════════════════════════════════════════════
-
-// FIX MEDIUM-2: Validate EIP-712 signature before queuing order
-const { verifyTypedData } = require('viem');
-
-const P2P_DOMAIN = {
-  name: 'Confidential DEX',
-  version: '1',
-  chainId: 5042002,
-  verifyingContract: P2P_ADDRESS
-};
-
-const ORDER_TYPES = {
-  Order: [
-    { name: 'trader', type: 'address' },
-    { name: 'pairId', type: 'bytes32' },
-    { name: 'isLong', type: 'bool' },
-    { name: 'sizeUsd', type: 'uint256' },
-    { name: 'collateral', type: 'uint256' },
-    { name: 'price', type: 'uint256' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'expiry', type: 'uint256' }
-  ]
-};
-
-app.post('/api/p2p/order', rateLimit, async (req, res) => {
-    const { order, signature } = req.body;
-    
-    // Validate payload
-    if (!order || !signature || !order.pairId || typeof order.isLong === 'undefined') {
-        return res.status(400).json({ error: 'Invalid order payload' });
-    }
-
-    // Validate expiry is not in the past
-    const now = Math.floor(Date.now() / 1000);
-    if (Number(order.expiry) <= now) {
-        return res.status(400).json({ error: 'Order already expired' });
-    }
-
-    // FIX MEDIUM-2: Verify the EIP-712 signature off-chain before queuing
-    try {
-        const message = {
-            trader: order.trader,
-            pairId: order.pairId,
-            isLong: order.isLong,
-            sizeUsd: BigInt(order.sizeUsd),
-            collateral: BigInt(order.collateral),
-            price: BigInt(order.price),
-            nonce: BigInt(order.nonce),
-            expiry: BigInt(order.expiry)
-        };
-
-        const isValid = await verifyTypedData({
-            address: order.trader,
-            domain: P2P_DOMAIN,
-            types: ORDER_TYPES,
-            primaryType: 'Order',
-            message,
-            signature
-        });
-
-        if (!isValid) {
-            return res.status(401).json({ error: 'Invalid signature — verification failed' });
-        }
-    } catch (err) {
-        console.error('Signature verification error:', err.message);
-        return res.status(401).json({ error: 'Signature verification failed' });
-    }
-
-    const pairId = order.pairId;
-    if (!orderbook[pairId]) {
-        orderbook[pairId] = { longs: [], shorts: [] };
-    }
-
-    // Add to orderbook
-    if (order.isLong) {
-        orderbook[pairId].longs.push({ order, signature, receivedAt: Date.now(), retryCount: 0 });
-    } else {
-        orderbook[pairId].shorts.push({ order, signature, receivedAt: Date.now(), retryCount: 0 });
-    }
-
-    console.log(`📩 [P2P] Received new ${order.isLong ? 'LONG' : 'SHORT'} order for ${pairId}. Size: $${order.sizeUsd / 1e6}`);
-    res.json({ success: true, message: 'Order queued in Sequencer' });
-});
-
-let isMatching = false;
-const MAX_RETRIES = 3;
-
-async function matchOrders() {
-    if (isMatching) return;
-    isMatching = true;
-
-    try {
-        for (const pairId in orderbook) {
-            const longs = orderbook[pairId].longs;
-            const shorts = orderbook[pairId].shorts;
-
-            // Clean expired orders
-            const now = Math.floor(Date.now() / 1000);
-            orderbook[pairId].longs = longs.filter(o => Number(o.order.expiry) > now);
-            orderbook[pairId].shorts = shorts.filter(o => Number(o.order.expiry) > now);
-
-            if (orderbook[pairId].longs.length > 0 && orderbook[pairId].shorts.length > 0) {
-                // Find matching orders (same sizeUsd)
-                for (let i = 0; i < orderbook[pairId].longs.length; i++) {
-                    const longOrder = orderbook[pairId].longs[i];
-                    
-                    const matchIndex = orderbook[pairId].shorts.findIndex(shortOrder => shortOrder.order.sizeUsd === longOrder.order.sizeUsd);
-                    
-                    if (matchIndex !== -1) {
-                        const shortOrder = orderbook[pairId].shorts[matchIndex];
-                        console.log(`🔥 [P2P] MATCH FOUND for ${pairId}! Settling on-chain...`);
-
-                        // Encode payloads for the contract
-                        const encodeOrder = (o) => {
-                            const abiCoder = require('viem').encodeAbiParameters;
-                            return abiCoder(
-                                [
-                                    {
-                                        "components": [
-                                            { "name": "trader", "type": "address" },
-                                            { "name": "pairId", "type": "bytes32" },
-                                            { "name": "isLong", "type": "bool" },
-                                            { "name": "sizeUsd", "type": "uint256" },
-                                            { "name": "collateral", "type": "uint256" },
-                                            { "name": "price", "type": "uint256" },
-                                            { "name": "nonce", "type": "uint256" },
-                                            { "name": "expiry", "type": "uint256" }
-                                        ],
-                                        "name": "OrderInfo",
-                                        "type": "tuple"
-                                    }
-                                ],
-                                [
-                                    [
-                                        o.trader,
-                                        o.pairId,
-                                        o.isLong,
-                                        BigInt(o.sizeUsd),
-                                        BigInt(o.collateral),
-                                        BigInt(o.price),
-                                        BigInt(o.nonce),
-                                        BigInt(o.expiry)
-                                    ]
-                                ]
-                            );
-                        };
-
-                        const makerPayload = encodeOrder(longOrder.order);
-                        const takerPayload = encodeOrder(shortOrder.order);
-                        
-                        const matchPrice = BigInt(longOrder.order.price) > 0n ? BigInt(longOrder.order.price) : 0n;
-
-                        try {
-                            const hash = await wallet.writeContract({
-                                address: P2P_ADDRESS,
-                                abi: P2P_ABI,
-                                functionName: 'settleP2PTrade',
-                                args: [
-                                    makerPayload,
-                                    takerPayload,
-                                    longOrder.signature,
-                                    shortOrder.signature,
-                                    matchPrice
-                                ]
-                            });
-                            console.log(`   ✅ P2P SETTLEMENT SUCCESS! Tx: ${hash}`);
-                            
-                            // Remove from queue
-                            orderbook[pairId].longs.splice(i, 1);
-                            orderbook[pairId].shorts.splice(matchIndex, 1);
-                            i--;
-                            
-                        } catch (e) {
-                            const errMsg = e.shortMessage || e.message;
-                            console.error(`   ❌ P2P Settlement failed:`, errMsg);
-
-                            // FIX MEDIUM-5: Smart retry logic — only drop on permanent errors
-                            const permanentErrors = ['Invalid signature', 'Invalid nonce', 'Order expired', 'Pair mismatch', 'Direction mismatch', 'Size mismatch'];
-                            const isPermanent = permanentErrors.some(pe => errMsg.includes(pe));
-
-                            if (isPermanent) {
-                                console.log(`   🗑️ Permanent error — dropping both orders`);
-                                orderbook[pairId].longs.splice(i, 1);
-                                orderbook[pairId].shorts.splice(matchIndex, 1);
-                                i--;
-                            } else {
-                                // Transient error (gas, network, utilization) — retry later
-                                longOrder.retryCount = (longOrder.retryCount || 0) + 1;
-                                shortOrder.retryCount = (shortOrder.retryCount || 0) + 1;
-                                
-                                if (longOrder.retryCount >= MAX_RETRIES) {
-                                    console.log(`   🗑️ Long order exceeded ${MAX_RETRIES} retries — dropping`);
-                                    orderbook[pairId].longs.splice(i, 1);
-                                    i--;
-                                }
-                                if (shortOrder.retryCount >= MAX_RETRIES) {
-                                    console.log(`   🗑️ Short order exceeded ${MAX_RETRIES} retries — dropping`);
-                                    orderbook[pairId].shorts.splice(matchIndex, 1);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } catch (err) {
-        console.error('Error in Matchmaking Loop:', err.message);
-    } finally {
-        isMatching = false;
-    }
-}
-
 // ══════════════════════════════════════════════════════════
 //                      START SERVICES
 // ══════════════════════════════════════════════════════════
 
-console.log('🚀 Starting Keeper Bot V2 & Hybrid P2P Sequencer...');
+console.log('🚀 Starting Keeper Bot V5 (Hybrid PLP)...');
 console.log(`📡 Connected to Trading: ${TRADING_ADDRESS}`);
-console.log(`📡 Connected to P2P: ${P2P_ADDRESS}`);
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🌐 P2P Sequencer API listening on port ${PORT}`);
+    console.log(`🌐 API listening on port ${PORT}`);
 });
 
 // Run AMM Keeper Loop
@@ -1373,4 +1571,4 @@ runKeeper();
 setInterval(runKeeper, 5000);
 
 // Run Matchmaking Loop
-setInterval(matchOrders, 1000);
+

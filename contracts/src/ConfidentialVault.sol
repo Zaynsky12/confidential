@@ -42,8 +42,8 @@ contract ConfidentialVault is ReentrancyGuard {
     // ── Shared Accounting ──
     mapping(address => uint256) public degenDepositTimestamp;
     mapping(address => uint256) public primeDepositTimestamp;
-    uint256 public degenLockupPeriod = 5 days;
-    uint256 public primeLockupPeriod = 2 days;
+    uint256 public degenLockupPeriod = 2 days;
+    uint256 public primeLockupPeriod = 5 days;
     uint256 public totalBacking; 
 
     // ── Security Caps ──
@@ -262,7 +262,13 @@ contract ConfidentialVault is ReentrancyGuard {
                 core.trackVaultLoss(remainingLoss);
             }
 
-            require(usdc.transfer(trader, collateral + profit), "Transfer failed");
+            // FIX EXPLOIT-2: Solvency safety — ensure Vault has enough USDC
+            uint256 payout = collateral + profit;
+            uint256 vaultBalance = usdc.balanceOf(address(this));
+            if (payout > vaultBalance) {
+                payout = vaultBalance; // Emergency cap to prevent revert
+            }
+            require(usdc.transfer(trader, payout), "Transfer failed");
         } else {
             uint256 loss = uint256(-netPnl);
             uint256 vaultReceives = 0;
