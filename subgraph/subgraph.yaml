@@ -8,7 +8,7 @@ dataSources:
     source:
       address: "0x35eCC51F4172c6ab2c5F0e51e75761D1473F5277"
       abi: ConfidentialTrading
-      startBlock: 5042000
+      startBlock: 48320000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
