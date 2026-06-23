@@ -537,7 +537,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
               : isInsufficientBalance 
                 ? 'Insufficient Balance' 
                 : orderType === 'limit' || orderType === 'stop market'
-                  ? `Place ${orderType === 'limit' ? 'Limit' : 'Stop'} Order ⚡`
+                  ? `Place ${orderType === 'limit' ? 'Limit' : 'Stop'} Order`
                   : (currentPosition && orderType === 'market') 
                     ? `Average / Increase ${activeMarket.baseAsset}` 
                     : `${side === 'long' ? 'Buy / Long' : 'Sell / Short'} ${activeMarket.baseAsset}`
