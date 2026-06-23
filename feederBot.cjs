@@ -889,6 +889,11 @@ const TRADING_ABI = [
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "acceptablePrice",
+        "type": "uint256"
+      },
+      {
         "internalType": "uint8",
         "name": "orderType",
         "type": "uint8"
@@ -1635,4 +1640,4 @@ app.listen(PORT, () => {
 
 // Run AMM Keeper Loop
 runKeeper();
-setInterval(runKeeper, 5000);
+setInterval(runKeeper, 2000);
