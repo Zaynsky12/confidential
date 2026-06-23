@@ -225,7 +225,7 @@ contract ConfidentialTrading is ReentrancyGuard {
         o.tpPrice = tpPrice;
         o.slPrice = slPrice;
 
-        _executeOpen(o, currentPrice, 0, false);
+        _executeOpen(o, currentPrice, 0);
         return nextPositionId - 1;
     }
 
@@ -363,6 +363,76 @@ contract ConfidentialTrading is ReentrancyGuard {
     //                      KEEPER EXECUTION
     // ══════════════════════════════════════════════════════════
 
+    /// @notice Execute a batch of opposing orders at the same price with 0% price impact (P2P Matching)
+    function executeHybridBatch(
+        uint256[] calldata longOrderIds,
+        uint256[] calldata shortOrderIds,
+        bytes[] calldata updateData
+    ) external payable nonReentrant {
+        require(msg.sender == core.keeper(), "Only Keeper");
+        
+        if (updateData.length > 0) {
+            oracle.updatePriceFeeds{value: msg.value}(updateData);
+        }
+
+        uint256 totalLongSize = 0;
+        uint256 totalShortSize = 0;
+        bytes32 batchPairId;
+
+        for (uint i = 0; i < longOrderIds.length; i++) {
+            PendingOrder storage o = pendingOrders[longOrderIds[i]];
+            require(o.isActive && o.isLong, "Invalid long");
+            if (i == 0) batchPairId = o.pairId;
+            else require(o.pairId == batchPairId, "Pair mismatch");
+            totalLongSize += o.sizeUsd;
+        }
+
+        for (uint i = 0; i < shortOrderIds.length; i++) {
+            PendingOrder storage o = pendingOrders[shortOrderIds[i]];
+            require(o.isActive && !o.isLong, "Invalid short");
+            if (longOrderIds.length == 0 && i == 0) batchPairId = o.pairId;
+            else require(o.pairId == batchPairId, "Pair mismatch");
+            totalShortSize += o.sizeUsd;
+        }
+
+        (uint256 currentPrice, ) = oracle.getPrice(batchPairId);
+        uint256 matchedVolume = totalLongSize < totalShortSize ? totalLongSize : totalShortSize;
+
+        _processBatchSide(longOrderIds, currentPrice, matchedVolume, true);
+        _processBatchSide(shortOrderIds, currentPrice, matchedVolume, false);
+    }
+
+    function _processBatchSide(
+        uint256[] calldata orderIds,
+        uint256 currentPrice,
+        uint256 matchedVolume,
+        bool isLong
+    ) internal {
+        uint256 processed = 0;
+        for (uint i = 0; i < orderIds.length; i++) {
+            PendingOrder storage o = pendingOrders[orderIds[i]];
+            
+            uint256 orderMatched = 0;
+            if (processed < matchedVolume) {
+                uint256 remainingMatch = matchedVolume - processed;
+                orderMatched = o.sizeUsd <= remainingMatch ? o.sizeUsd : remainingMatch;
+            }
+            
+            if (o.orderType == 0) require(isLong ? currentPrice <= o.triggerPrice : currentPrice >= o.triggerPrice, "Limit not reached");
+            if (o.orderType == 1) require(isLong ? currentPrice >= o.triggerPrice : currentPrice <= o.triggerPrice, "Stop not reached");
+
+            _executeOpen(o, currentPrice, orderMatched);
+            o.isActive = false;
+            processed += o.sizeUsd;
+            
+            if (o.executionFee > 0) {
+                (bool success, ) = msg.sender.call{value: o.executionFee}("");
+                require(success, "Keeper fee failed");
+            }
+            emit OrderExecuted(orderIds[i], nextPositionId - 1);
+        }
+    }
+
     function executeOrder(uint256 orderId, bytes[] calldata updateData) external payable nonReentrant {
         if (updateData.length > 0) {
             oracle.updatePriceFeeds{value: msg.value}(updateData);
@@ -394,16 +464,16 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         if (order.orderType == 0) { // Limit
             require(order.isLong ? currentPrice <= order.triggerPrice : currentPrice >= order.triggerPrice, "Limit not reached");
-            _executeOpen(order, currentPrice, orderId, false);
+            _executeOpen(order, currentPrice, 0);
             order.isActive = false;
         } else if (order.orderType == 1) { // Stop
             require(order.isLong ? currentPrice >= order.triggerPrice : currentPrice <= order.triggerPrice, "Stop not reached");
-            _executeOpen(order, currentPrice, orderId, false);
+            _executeOpen(order, currentPrice, 0);
             order.isActive = false;
         } else if (order.orderType == 2) { // Market Open
             bool slippageOk = order.isLong ? currentPrice <= order.triggerPrice : currentPrice >= order.triggerPrice;
             if (slippageOk || order.triggerPrice == 0) {
-                _executeOpen(order, currentPrice, orderId, false);
+                _executeOpen(order, currentPrice, 0);
             } else {
                 // Slippage failed, cancel order and refund
                 _safeTransfer(order.trader, order.collateral + order.feePaid);
@@ -439,7 +509,7 @@ contract ConfidentialTrading is ReentrancyGuard {
             // FIX EXPLOIT-3: Re-validate OI limits for each TWAP slice
             core.validateOpenPosition(order.pairId, order.trader, order.isLong, slice.sizeUsd, order.leverage);
 
-            _executeOpen(slice, currentPrice, orderId, true);
+            _executeOpen(slice, currentPrice, 0);
             
             order.twapExecuted += 1;
             order.twapLastExec = block.timestamp;
@@ -472,9 +542,16 @@ contract ConfidentialTrading is ReentrancyGuard {
         }
     }
 
-    function _executeOpen(PendingOrder memory order, uint256 currentPrice, uint256 orderId, bool isTwapSlice) internal {
-        // Calculate dynamic price impact
-        int256 impactBps = core.calcPriceImpact(order.pairId, order.isLong, order.sizeUsd);
+    function _executeOpen(PendingOrder memory order, uint256 currentPrice, uint256 matchedPortion) internal {
+        // Calculate dynamic blended price impact for partial fills
+        uint256 unmatchedVolume = order.sizeUsd > matchedPortion ? order.sizeUsd - matchedPortion : 0;
+        int256 impactBps = 0;
+        
+        if (unmatchedVolume > 0) {
+            impactBps = core.calcPriceImpact(order.pairId, order.isLong, unmatchedVolume);
+            // Average out the impact over the whole position size
+            impactBps = (impactBps * int256(unmatchedVolume)) / int256(order.sizeUsd);
+        }
         uint256 entryPrice = currentPrice;
         if (impactBps > 0) {
             uint256 impactVal = (entryPrice * uint256(impactBps)) / 10000;

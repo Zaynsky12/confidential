@@ -23,7 +23,7 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0x788E7b0be4BaAA89143F3C14CE34A606659A306c';
+const TRADING_ADDRESS = '0x35eCC51F4172c6ab2c5F0e51e75761D1473F5277';
 const P2P_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Express Server Setup
@@ -1317,6 +1317,29 @@ const TRADING_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "longOrderIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "shortOrderIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "updateData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "executeHybridBatch",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
     "stateMutability": "payable",
     "type": "receive"
   }
@@ -1398,6 +1421,10 @@ async function runKeeper() {
     });
     const nextOrderId = Number(nextOrderIdStr);
 
+    const pendingLongs = {};
+    const pendingShorts = {};
+    const executionQueue = [];
+
     for (let i = 1; i < nextOrderId; i++) { // Starts at 1
         try {
             const orderRaw = await client.readContract({
@@ -1428,16 +1455,12 @@ async function runKeeper() {
             let shouldExecute = false;
             
             if (order.orderType === 2 || order.orderType === 3) {
-                // Market Open (2) or Market Close (3) execute immediately
                 shouldExecute = true;
             } else if (order.orderType === 0) {
-                // Limit
                 shouldExecute = order.isLong ? (currentPrice <= order.triggerPrice) : (currentPrice >= order.triggerPrice);
             } else if (order.orderType === 1) {
-                // Stop
                 shouldExecute = order.isLong ? (currentPrice >= order.triggerPrice) : (currentPrice <= order.triggerPrice);
             } else if (order.orderType === 4) {
-                // TWAP
                 if (order.twapExecuted < order.twapSlices) {
                     const now = Math.floor(Date.now() / 1000);
                     if (order.twapExecuted === 0 || now >= order.twapLastExec + order.twapInterval) {
@@ -1447,18 +1470,62 @@ async function runKeeper() {
             }
 
             if (shouldExecute) {
-                console.log(`⚡ EXECUTING Order #${order.id} (Type: ${order.orderType})`);
+                // If it's an OPEN order (Limit 0, Stop 1, MarketOpen 2), we try to batch them
+                if (order.orderType === 0 || order.orderType === 1 || order.orderType === 2) {
+                    if (order.isLong) {
+                        if (!pendingLongs[order.pairId]) pendingLongs[order.pairId] = [];
+                        pendingLongs[order.pairId].push(order);
+                    } else {
+                        if (!pendingShorts[order.pairId]) pendingShorts[order.pairId] = [];
+                        pendingShorts[order.pairId].push(order);
+                    }
+                } else {
+                    // Closes (3) and TWAP (4) execute individually
+                    executionQueue.push(order);
+                }
+            }
+        } catch (err) { }
+    }
+
+    // A. Execute Opens (Hybrid Batch)
+    for (const pairId of Object.keys(currentPrices)) {
+        const longs = pendingLongs[pairId] || [];
+        const shorts = pendingShorts[pairId] || [];
+
+        if (longs.length > 0 || shorts.length > 0) {
+            console.log(`\n🤝 BATCHING OPENS on pair ${pairId}: ${longs.length} Longs, ${shorts.length} Shorts`);
+            const longIds = longs.map(o => BigInt(o.id));
+            const shortIds = shorts.map(o => BigInt(o.id));
+
+            try {
                 const hash = await wallet.writeContract({
                     address: TRADING_ADDRESS,
                     abi: TRADING_ABI,
-                    functionName: 'executeOrder',
-                    args: [BigInt(order.id), pythPayload],
+                    functionName: 'executeHybridBatch',
+                    args: [longIds, shortIds, pythPayload],
                     value: pythFee
                 });
-                console.log(`   ✅ EXECUTION SUCCESS! Tx: ${hash}`);
+                console.log(`   ✅ HYBRID BATCH EXECUTED! Tx: ${hash}\n`);
+            } catch (err) {
+                console.error(`❌ Batch failed:`, err.shortMessage || err.message);
             }
+        }
+    }
+
+    // B. Execute Closes & TWAP
+    for (const order of executionQueue) {
+        console.log(`⚡ EXECUTING Close/TWAP Order #${order.id} (Type: ${order.orderType})`);
+        try {
+            const hash = await wallet.writeContract({
+                address: TRADING_ADDRESS,
+                abi: TRADING_ABI,
+                functionName: 'executeOrder',
+                args: [BigInt(order.id), pythPayload],
+                value: pythFee
+            });
+            console.log(`   ✅ EXECUTION SUCCESS! Tx: ${hash}`);
         } catch (err) {
-            console.error(`❌ Failed to read/execute order #${i}:`, err.shortMessage || err.message);
+            console.error(`❌ Execution failed:`, err.shortMessage || err.message);
         }
     }
 
@@ -1569,6 +1636,3 @@ app.listen(PORT, () => {
 // Run AMM Keeper Loop
 runKeeper();
 setInterval(runKeeper, 5000);
-
-// Run Matchmaking Loop
-

@@ -14,7 +14,7 @@ async function main() {
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
   // Address from src/config/contracts.ts
-  const VAULT_ADDRESS = "0x718EbD82e2fB4f8D71D2C78cAF43171c1A656b08";
+  const VAULT_ADDRESS = "0x3a9e038bB29C2d8dc13891639b444a80B8F57952";
 
   console.log("Connecting to Vault at:", VAULT_ADDRESS);
   

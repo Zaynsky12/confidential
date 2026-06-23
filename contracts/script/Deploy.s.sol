@@ -38,7 +38,6 @@ contract DeployConfidential is Script {
         core.setVault(address(vault));
         core.setTrading(address(trading));
         core.setTreasury(msg.sender);      // Dev wallet = treasury for now
-        core.setInsuranceFund(msg.sender);  // Dev wallet = insurance for now
 
         // 6. Register trading pairs
 
