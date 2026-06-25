@@ -1,589 +1,466 @@
-import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom';
+import { useTradeStore } from '../store/useTradeStore';
 
+const getAssetLogo = (pair: string) => {
+  const base = pair.split('/')[0].toLowerCase()
+  const map: Record<string, string> = {
+    btc: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+    eth: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+    sol: 'https://cryptologos.cc/logos/solana-sol-logo.png',
+    link: 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+    arb: 'https://cryptologos.cc/logos/arbitrum-arb-logo.png',
+    doge: 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+    eur: 'https://flagcdn.com/w40/eu.png',
+    gbp: 'https://flagcdn.com/w40/gb.png',
+    usdjpy: 'https://flagcdn.com/w40/jp.png',
+    aapl: 'https://ui-avatars.com/api/?name=Apple&background=000000&color=fff&rounded=true&bold=true',
+    tsla: 'https://ui-avatars.com/api/?name=Tesla&background=cc0000&color=fff&rounded=true&bold=true',
+    spy: 'https://ui-avatars.com/api/?name=SPY&background=003366&color=fff&rounded=true&bold=true',
+    gold: 'https://cryptologos.cc/logos/pax-gold-paxg-logo.png',
+    silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
+    nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
+    pepe: 'https://cryptologos.cc/logos/pepe-pepe-logo.png',
+    wif: '/wif.jpg',
+    sui: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/sui/info/logo.png',
+    apt: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/aptos/info/logo.png',
+    avax: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/info/logo.png',
+    bnb: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png',
+    xrp: '/xrp.jpg',
+    near: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png'
+  }
+  return map[base] || `https://ui-avatars.com/api/?name=${base}&background=1a202c&color=fff&rounded=true&bold=true`
+}
 
 export default function Home() {
-  const { t } = useTranslation()
-
+  const markets = useTradeStore(state => state.markets);
   return (
-    <div className="home-container">
-      {/* Background Orbs */}
-      <div className="bg-orb orb-1"></div>
-      <div className="bg-orb orb-2"></div>
-      
-      {/* ═══ CLEAN NAVBAR ═══ */}
-      <nav className="home-nav">
-        <div className="home-nav-inner">
-          <div className="home-nav-left">
-            <Link to="/" className="home-nav-logo">
-              <img src="/logo.png" alt="Confidential" style={{ height: 28, width: 28, objectFit: 'contain' }} />
-              <span>Confidential</span>
-            </Link>
-          </div>
-          <div className="home-nav-links">
-            <a href="https://docs.confidential.exchange" target="_blank" rel="noreferrer">Docs</a>
-            <a href="https://blog.confidential.exchange" target="_blank" rel="noreferrer">Blog</a>
-            <Link to="/vaults">Vaults</Link>
-          </div>
-          <div className="home-nav-right">
-            <Link to="/trade" className="home-nav-cta">Launch App</Link>
-            
-          </div>
-        </div>
-      </nav>
-
-      <div className="home-content">
-        
-        {/* ═══ HERO ═══ */}
-        <section className="hero-section">
-          <h1 className="hero-title animate-fade-in-up">
-            {t('home.heroTitle')}
-          </h1>
-          <p className="hero-subtitle animate-fade-in-up delay-100">
-            {t('home.heroSubtitle')}
-          </p>
-          <div className="hero-cta animate-fade-in-up delay-200">
-            <Link to="/trade" className="btn-primary-large">
-              {t('home.startTrading')}
-            </Link>
-            <Link to="/vaults" className="btn-secondary-large">
-              {t('home.provideLiquidity')}
-            </Link>
-          </div>
-        </section>
-
-        {/* ═══ MARQUEE (SUPPORTED MARKETS) ═══ */}
-        <section className="marquee-section animate-fade-in-up delay-300">
-          <div className="marquee-container">
-            <div className="marquee-content">
-              {/* Duplicate list for infinite scroll effect */}
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="marquee-group">
-                  <div className="marquee-item"><img src="https://cryptologos.cc/logos/bitcoin-btc-logo.png" alt="BTC" /> BTC/USD</div>
-                  <div className="marquee-item"><img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="ETH" /> ETH/USD</div>
-                  <div className="marquee-item"><img src="https://cryptologos.cc/logos/solana-sol-logo.png" alt="SOL" /> SOL/USD</div>
-                  <div className="marquee-item"><img src="/xrp.jpg" alt="XRP" style={{ borderRadius: '50%' }} /> XRP/USD</div>
-                  <div className="marquee-item"><img src="/wif.jpg" alt="WIF" style={{ borderRadius: '50%' }} /> WIF/USD</div>
-                  <div className="marquee-item"><span style={{ fontSize: '18px' }}>🇪🇺</span> EUR/USD</div>
-                  <div className="marquee-item"><span style={{ fontSize: '18px' }}>🇬🇧</span> GBP/USD</div>
-                  <div className="marquee-item"><span style={{ fontSize: '18px' }}>🇯🇵</span> USD/JPY</div>
-                  <div className="marquee-item"><img src="https://cryptologos.cc/logos/pax-gold-paxg-logo.png" alt="GOLD" /> XAU/USD</div>
-                  <div className="marquee-item"><div style={{ width: 24, height: 24, borderRadius: '50%', background: '#c0c0c0', border: '1px solid #999' }}></div> XAG/USD</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ═══ METRICS ═══ */}
-        <section className="metrics-section animate-fade-in-up delay-300">
-          <div className="metric-box">
-            <div className="metric-label">{t('home.metrics.totalVolume')}</div>
-            <div className="metric-value">$1.24B</div>
-          </div>
-          <div className="metric-divider"></div>
-          <div className="metric-box">
-            <div className="metric-label">{t('home.metrics.totalTVL')}</div>
-            <div className="metric-value">$42.5M</div>
-          </div>
-          <div className="metric-divider"></div>
-          <div className="metric-box">
-            <div className="metric-label">{t('home.metrics.openInterest')}</div>
-            <div className="metric-value">$18.9M</div>
-          </div>
-        </section>
-
-        {/* ═══ FEATURES ═══ */}
-        <section className="features-section">
-          <h2 className="section-title">Why Confidential?</h2>
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">⚡</div>
-              <h3>{t('home.features.f1Title')}</h3>
-              <p>{t('home.features.f1Desc')}</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">💼</div>
-              <h3>{t('home.features.f2Title')}</h3>
-              <p>{t('home.features.f2Desc')}</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">🏦</div>
-              <h3>{t('home.features.f3Title')}</h3>
-              <p>{t('home.features.f3Desc')}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══ PARTNERS / INFRASTRUCTURE ═══ */}
-        <section className="partners-section">
-          <h2 className="section-title">{t('home.partners.title')}</h2>
-          <div className="features-grid">
-            <div className="feature-card partner-card">
-              <div className="partner-logo">
-                <img src="https://cryptologos.cc/logos/pyth-network-pyth-logo.png" alt="Pyth" />
-              </div>
-              <h3>{t('home.partners.p1Title')}</h3>
-              <p>{t('home.partners.p1Desc')}</p>
-            </div>
-            <div className="feature-card partner-card">
-              <div className="partner-logo">
-                <div style={{ width: 40, height: 40, borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold' }}>A</div>
-              </div>
-              <h3>{t('home.partners.p2Title')}</h3>
-              <p>{t('home.partners.p2Desc')}</p>
-            </div>
-            <div className="feature-card partner-card">
-              <div className="partner-logo">
-                <div style={{ width: 40, height: 40, borderRadius: '8px', background: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>⚡</div>
-              </div>
-              <h3>{t('home.partners.p3Title')}</h3>
-              <p>{t('home.partners.p3Desc')}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══ CTA BOTTOM ═══ */}
-        <section className="cta-bottom">
-          <Link to="/trade" className="btn-primary-large">{t('home.startTrading')}</Link>
-        </section>
-
-        {/* ═══ FOOTER ═══ */}
-        <footer className="home-footer">
-          <div className="footer-left">
-            <img src="/logo.png" alt="" style={{ height: 20, width: 20, objectFit: 'contain', opacity: 0.5 }} />
-            <span>© 2025 Confidential. All rights reserved.</span>
-          </div>
-          <div className="footer-right">
-            <a href="https://twitter.com/confidentialDEX" target="_blank" rel="noreferrer">Twitter</a>
-            <a href="https://discord.gg/confidential" target="_blank" rel="noreferrer">Discord</a>
-            <a href="https://docs.confidential.exchange" target="_blank" rel="noreferrer">Docs</a>
-          </div>
-        </footer>
-      </div>
-
+    <div className="min-h-screen overflow-x-hidden" style={{ backgroundColor: '#131313', color: '#e5e2e1', fontFamily: "'Geist', sans-serif" }}>
       <style>{`
-        .home-container {
-          position: relative;
-          min-height: 100vh;
-          background: #000;
-          color: #fff;
-          overflow: hidden;
-          font-family: 'Inter', sans-serif;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;600;700;800;900&display=swap');
 
-        /* ═══ Background Orbs ═══ */
-        .bg-orb {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(140px);
-          opacity: 0.12;
-          z-index: 0;
-          pointer-events: none;
+        .glow-mint {
+          box-shadow: 0 0 24px rgba(75, 255, 153, 0.2);
         }
-        .orb-1 { top: -15%; left: 5%; width: 55vw; height: 55vw; background: var(--color-accent); }
-        .orb-2 { bottom: -25%; right: -5%; width: 50vw; height: 50vw; background: #6366f1; }
-
-        /* ═══ NAVBAR ═══ */
-        .home-nav {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 100;
+        .glow-mint:hover {
+          box-shadow: 0 0 32px rgba(75, 255, 153, 0.4);
+        }
+        .glass-surface {
+          background: rgba(255, 255, 255, 0.03);
           backdrop-filter: blur(12px);
-          background: rgba(0,0,0,0.4);
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          -webkit-backdrop-filter: blur(12px);
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          border-left: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .home-nav-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 24px;
-          height: 64px;
+        .hero-overlay {
+          background: linear-gradient(to bottom, rgba(19,19,19,0.4) 0%, rgba(19,19,19,0.85) 100%);
+        }
+        .home-feature-card:hover {
+          transform: translateY(-4px);
+        }
+        .home-faq-item:hover {
+          background: #2a2a2a !important;
+        }
+        .home-footer-link:hover {
+          color: #1ae381 !important;
+          opacity: 1 !important;
+        }
+        .home-nav-link:hover {
+          color: #4BFF99 !important;
+        }
+
+        @keyframes scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes scroll-reverse {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
+        .market-marquee-container {
+          overflow: hidden;
+          white-space: nowrap;
+          width: 100%;
+          background: rgba(19, 19, 19, 0.4);
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(12px);
+          padding: 24px 0;
           display: flex;
-          align-items: center;
-          justify-content: space-between;
+          flex-direction: column;
+          gap: 20px;
+          z-index: 20;
         }
-        .home-nav-left { display: flex; align-items: center; }
-        .home-nav-logo {
+        .market-marquee {
+          display: flex;
+          width: max-content;
+        }
+        .marquee-left {
+          animation: scroll 120s linear infinite;
+        }
+        .marquee-right {
+          animation: scroll-reverse 120s linear infinite;
+        }
+        .market-marquee:hover {
+          animation-play-state: paused;
+        }
+        .market-item {
           display: flex;
           align-items: center;
           gap: 10px;
+          margin: 0 32px;
+          color: #e5e2e1;
+          font-family: 'Geist', sans-serif;
+          font-weight: 600;
+          font-size: 15px;
           text-decoration: none;
-          color: #fff;
+          transition: opacity 0.2s;
+        }
+        .market-item:hover {
+          opacity: 0.8;
+        }
+
+        /* ═══ Typography ═══ */
+        .t-headline-xl {
+          font-family: 'Geist', sans-serif;
+          font-size: 36px;
+          line-height: 42px;
+          letter-spacing: -0.04em;
           font-weight: 700;
-          font-size: 18px;
+        }
+        .t-headline-lg {
+          font-family: 'Geist', sans-serif;
+          font-size: 24px;
+          line-height: 32px;
           letter-spacing: -0.02em;
+          font-weight: 600;
         }
-        .home-nav-links {
-          display: flex;
-          gap: 32px;
-          align-items: center;
+        .t-headline-lg-mobile {
+          font-family: 'Geist', sans-serif;
+          font-size: 20px;
+          line-height: 28px;
+          font-weight: 600;
         }
-        .home-nav-links a {
-          color: rgba(255,255,255,0.5);
-          text-decoration: none;
+        .t-body-md {
+          font-family: 'Geist', sans-serif;
+          font-size: 16px;
+          line-height: 24px;
+          font-weight: 400;
+        }
+        .t-body-sm {
+          font-family: 'Geist', sans-serif;
           font-size: 14px;
+          line-height: 20px;
+          font-weight: 400;
+        }
+        .t-cta {
+          font-family: 'Geist', sans-serif;
+          font-size: 16px;
+          line-height: 20px;
+          letter-spacing: 0.02em;
+          font-weight: 600;
+        }
+        .t-label-mono {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          line-height: 16px;
+          letter-spacing: 0.05em;
           font-weight: 500;
-          transition: color 0.2s;
-        }
-        .home-nav-links a:hover { color: #fff; }
-        .home-nav-right {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .home-nav-cta {
-          background: #fff;
-          color: #000;
-          padding: 6px 20px;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 600;
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-        .home-nav-cta:hover {
-          background: rgba(255,255,255,0.9);
-          transform: translateY(-1px);
         }
 
-        /* ═══ CONTENT ═══ */
-        .home-content {
-          position: relative;
-          z-index: 1;
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 24px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        /* ═══ HERO ═══ */
-        .hero-section {
-          text-align: center;
-          max-width: 820px;
-          padding-top: 160px;
-          margin-bottom: 80px;
-        }
-        .hero-title {
-          font-size: clamp(36px, 6vw, 68px);
-          font-weight: 700;
-          line-height: 1.08;
-          margin: 0 0 24px 0;
-          letter-spacing: -0.035em;
-          background: linear-gradient(180deg, #FFFFFF 20%, #71717A 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .hero-subtitle {
-          font-size: clamp(15px, 1.8vw, 19px);
-          color: #a1a1aa;
-          line-height: 1.65;
-          margin: 0 auto 40px auto;
-          max-width: 560px;
-        }
-        .hero-cta {
-          display: flex;
-          gap: 16px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        .btn-primary-large {
-          background: var(--color-accent);
-          color: #000;
-          padding: 10px 28px;
-          border-radius: 8px;
-          font-size: 15px;
-          font-weight: 600;
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-        .btn-primary-large:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 24px rgba(96, 165, 250, 0.3);
-        }
-        .btn-secondary-large {
-          background: transparent;
-          color: #fff;
-          padding: 10px 28px;
-          border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.15);
-          font-size: 15px;
-          font-weight: 600;
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-        .btn-secondary-large:hover {
-          background: rgba(255,255,255,0.04);
-          border-color: rgba(255,255,255,0.3);
-        }
-
-        /* ═══ MARQUEE ═══ */
-        .marquee-section {
-          width: 100vw;
-          overflow: hidden;
-          background: rgba(255,255,255,0.02);
-          border-top: 1px solid rgba(255,255,255,0.05);
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-          padding: 16px 0;
-          margin-bottom: 60px;
-        }
-        .marquee-container {
-          display: flex;
-          overflow: hidden;
-          user-select: none;
-          mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-          -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-        }
-        .marquee-content {
-          display: flex;
-          flex-shrink: 0;
-          min-width: 100%;
-          animation: scroll 30s linear infinite;
-        }
-        .marquee-group {
-          display: flex;
-          align-items: center;
-          gap: 48px;
-          padding-right: 48px;
-        }
-        .marquee-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: 600;
-          font-size: 15px;
-          color: rgba(255,255,255,0.7);
-          white-space: nowrap;
-        }
-        .marquee-item img {
-          width: 24px;
-          height: 24px;
-          object-fit: contain;
-        }
-        @keyframes scroll {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-
-        /* ═══ METRICS ═══ */
-        .metrics-section {
-          display: flex;
-          align-items: center;
-          width: 100%;
-          max-width: 700px;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 16px;
-          background: rgba(255,255,255,0.02);
-          backdrop-filter: blur(8px);
-          padding: 32px 0;
-          margin-bottom: 100px;
-        }
-        .metric-box {
-          flex: 1;
-          text-align: center;
-        }
-        .metric-divider {
-          width: 1px;
-          height: 40px;
-          background: rgba(255,255,255,0.1);
-        }
-        .metric-label {
-          color: #71717a;
-          font-size: 13px;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          margin-bottom: 6px;
-        }
-        .metric-value {
-          font-size: 28px;
-          font-weight: 600;
-          font-family: var(--font-mono);
-          color: #fff;
-        }
-
-        /* ═══ FEATURES & PARTNERS ═══ */
-        .features-section, .partners-section {
-          width: 100%;
-          margin-bottom: 100px;
-        }
-        .section-title {
-          text-align: center;
-          font-size: 32px;
-          font-weight: 700;
-          margin: 0 0 48px 0;
-          letter-spacing: -0.02em;
-          color: #fff;
-        }
-        .features-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-        }
-        .feature-card {
-          background: rgba(255,255,255,0.025);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 16px;
-          padding: 32px 28px;
-          transition: all 0.3s;
-        }
-        .feature-card:hover {
-          transform: translateY(-4px);
-          background: rgba(255,255,255,0.04);
-          border-color: rgba(255,255,255,0.12);
-        }
-        .feature-icon { font-size: 28px; margin-bottom: 16px; }
-        .partner-logo {
-          margin-bottom: 20px;
-        }
-        .partner-logo img {
-          height: 40px;
-          object-fit: contain;
-        }
-        .feature-card h3 {
-          font-size: 18px;
-          font-weight: 600;
-          margin: 0 0 10px 0;
-          color: #fff;
-        }
-        .feature-card p {
-          font-size: 14px;
-          line-height: 1.65;
-          color: #71717a;
-          margin: 0;
-        }
-
-        /* ═══ CTA BOTTOM ═══ */
-        .cta-bottom {
-          margin-bottom: 100px;
-          text-align: center;
-        }
-
-        /* ═══ FOOTER ═══ */
-        .home-footer {
-          width: 100%;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 32px 0;
-          border-top: 1px solid rgba(255,255,255,0.06);
-          margin-bottom: 24px;
-        }
-        .footer-left {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #52525b;
-          font-size: 13px;
-        }
-        .footer-right {
-          display: flex;
-          gap: 24px;
-        }
-        .footer-right a {
-          color: #52525b;
-          text-decoration: none;
-          font-size: 13px;
-          font-weight: 500;
-          transition: color 0.2s;
-        }
-        .footer-right a:hover { color: #fff; }
-
-        /* ═══ ANIMATIONS ═══ */
-        .animate-fade-in-up {
-          animation: fadeInUp 0.7s ease-out forwards;
-          opacity: 0;
-        }
-        .delay-100 { animation-delay: 0.1s; }
-        .delay-200 { animation-delay: 0.2s; }
-        .delay-300 { animation-delay: 0.3s; }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ═══ MOBILE ═══ */
-        @media (max-width: 768px) {
-          .home-content {
-            padding: 0 16px;
+        /* ═══ Desktop overrides ═══ */
+        @media (min-width: 768px) {
+          .t-headline-xl {
+            font-size: 80px;
+            line-height: 88px;
           }
-          .home-nav-inner {
-            padding: 0 16px;
+          .t-headline-lg {
+            font-size: 32px;
+            line-height: 40px;
           }
-          .home-nav-logo span {
-            display: none;
+          .t-headline-lg-mobile {
+            font-size: 24px;
+            line-height: 32px;
           }
-          .home-nav-links { display: none; }
-          .home-nav-cta {
-            padding: 8px 16px;
-            font-size: 13px;
+          .home-stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
           }
-          .hero-section { padding-top: 100px; margin-bottom: 40px; width: 100%; }
-          .hero-title { font-size: clamp(32px, 8vw, 40px); }
-          .hero-subtitle { font-size: 15px; margin-bottom: 32px; }
-          
-          .hero-cta {
-            flex-direction: column;
-            width: 100%;
-            gap: 12px;
+          .home-stats-item:not(:first-child) {
+            border-left: 1px solid rgba(255,255,255,0.1);
           }
-          .btn-primary-large, .btn-secondary-large {
-            width: 100%;
-            text-align: center;
-            padding: 10px 0;
-            display: block;
+          .home-features-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
           }
-          
-          .metrics-section {
-            flex-direction: column;
-            gap: 0;
-            padding: 0;
-            width: 100%;
-            margin-bottom: 60px;
+          .home-footer-grid {
+            grid-template-columns: 1fr 1fr !important;
           }
-          .metric-box {
-            width: 100%;
-            padding: 24px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+          .home-footer-right {
+            align-items: flex-end !important;
           }
-          .metric-box:last-child { border-bottom: none; }
-          .metric-divider { display: none; }
-          .metric-value { font-size: 28px; }
-          
-          .features-grid {
-            grid-template-columns: 1fr;
-            width: 100%;
+          .home-nav-desktop {
+            display: flex !important;
           }
-          .feature-card {
-            padding: 24px;
+          .home-nav-container {
+            padding: 16px 64px !important;
           }
-          
-          .section-title {
-            font-size: 26px;
-            margin-bottom: 32px;
+          .home-section-pad {
+            padding-left: 64px !important;
+            padding-right: 64px !important;
           }
-          
-          .home-footer {
-            flex-direction: column;
-            gap: 24px;
-            text-align: center;
+          .home-trust-heading {
+            font-size: 56px !important;
+            line-height: 64px !important;
           }
-          .footer-right {
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 16px;
+          .home-token-heading {
+            font-size: 64px !important;
+            line-height: 72px !important;
           }
-          .marquee-section {
-            margin-bottom: 40px;
+          .home-features-heading {
+            font-size: 48px !important;
+            line-height: 56px !important;
           }
-          .cta-bottom {
-            width: 100%;
+          .md-block {
+            display: block !important;
           }
+        }
+        .md-block {
+          display: none;
         }
       `}</style>
+
+      {/* ═══ TopNavBar ═══ */}
+      <nav style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.1)', position: 'fixed', top: 0, zIndex: 50, width: '100%' }}>
+        <div className="home-nav-container" style={{ maxWidth: 1280, margin: '0 auto', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img src="/logo.png" alt="Confidential Logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'contain' }} />
+            <span className="hidden md:inline" style={{ fontFamily: "'Geist', sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: '-0.04em', color: '#fbfff8' }}>Confidential</span>
+          </div>
+          <div className="home-nav-desktop" style={{ display: 'none', alignItems: 'center', gap: 32 }}>
+            <Link to="/trade" className="home-nav-link" style={{ color: '#bacbbb', fontWeight: 500, fontFamily: "'Geist', sans-serif", fontSize: 16, letterSpacing: '0.02em', textDecoration: 'none', transition: 'color 0.3s' }}>Trade</Link>
+            <Link to="/vaults" className="home-nav-link" style={{ color: '#bacbbb', fontFamily: "'Geist', sans-serif", fontSize: 16, letterSpacing: '0.02em', fontWeight: 500, textDecoration: 'none', transition: 'color 0.3s' }}>Stake</Link>
+            <a href="https://docs.confidential.exchange" target="_blank" rel="noreferrer" className="home-nav-link" style={{ color: '#bacbbb', fontFamily: "'Geist', sans-serif", fontSize: 16, letterSpacing: '0.02em', fontWeight: 500, textDecoration: 'none', transition: 'color 0.3s' }}>Docs</a>
+          </div>
+          <Link to="/trade" className="glow-mint" style={{ backgroundColor: '#4BFF99', color: '#131313', padding: '8px 24px', borderRadius: 9999, fontFamily: "'Geist', sans-serif", fontSize: 14, fontWeight: 600, letterSpacing: '0.02em', textDecoration: 'none', display: 'inline-block', transition: 'all 0.3s' }}>
+            Launch App
+          </Link>
+        </div>
+      </nav>
+
+      {/* ═══ Hero Section ═══ */}
+      <section style={{ position: 'relative', display: 'flex', flexDirection: 'column', paddingTop: 140, backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBb_cWYwrsqX2bYrkJrvDCF9_x4mcbMa7q2xqeZ4YWhYdWYO1fIOwlkjErTIsZRXTHg4b68_uvTBZh5jL_ZzDq6Oe-gw_IOAgAh3xIf6hrS_CvFz8Puaj018StL_B5cv_jIJVFLv1cN032wks7CGnL-2BX-a47Lgz-gCkGhYW3beEMnt3bP9d9ghftm5xt9Hq0nkjybX0L0sHcfumueeZvFDhRjhU76HjZIpKFRZEZNhy9mUMVY4fzrS1hcAgKCUUoc-ZQfjsINvIZ_")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="hero-overlay" style={{ position: 'absolute', inset: 0 }}></div>
+        <div className="home-section-pad" style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', padding: '0 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 896, letterSpacing: '-0.04em', marginBottom: 24 }}>
+            Trade Perps With <br /><span style={{ color: '#4BFF99' }}>Arc-Level Speed.</span>
+          </h1>
+          <p className="t-body-md" style={{ color: '#bacbbb', maxWidth: 672, marginBottom: 0 }}>
+            Seamless. Flexible. Decentralized. Connect your wallet and trade instantly. Experience lightning-fast execution using USDC on the Arc ecosystem.
+          </p>
+        </div>
+
+        {/* ═══ Market Marquee ═══ */}
+        <div className="market-marquee-container" style={{ position: 'relative', marginTop: 80 }}>
+          {/* Baris Pertama: Gerak ke Kiri */}
+          <div className="market-marquee marquee-left">
+            {[...markets, ...markets].map((m, idx) => (
+              <Link 
+                to="/trade" 
+                key={`left-${m.id}-${idx}`} 
+                className="market-item" 
+                onClick={() => useTradeStore.getState().setActiveMarket(m.id)}
+              >
+                <img 
+                  src={getAssetLogo(m.pair)} 
+                  alt={m.pair} 
+                  style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
+                  onError={(e) => e.currentTarget.style.display = 'none'} 
+                />
+                <span>{m.pair}</span>
+                <span className="font-mono" style={{ color: m.change24h >= 0 ? '#4BFF99' : '#ff4b4b', marginLeft: 4, fontWeight: 500, fontSize: 13 }}>
+                  {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
+                </span>
+              </Link>
+            ))}
+          </div>
+          
+          {/* Baris Kedua: Gerak ke Kanan */}
+          <div className="market-marquee marquee-right">
+            {[...markets].reverse().concat([...markets].reverse()).map((m, idx) => (
+              <Link 
+                to="/trade" 
+                key={`right-${m.id}-${idx}`} 
+                className="market-item" 
+                onClick={() => useTradeStore.getState().setActiveMarket(m.id)}
+              >
+                <img 
+                  src={getAssetLogo(m.pair)} 
+                  alt={m.pair} 
+                  style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
+                  onError={(e) => e.currentTarget.style.display = 'none'} 
+                />
+                <span>{m.pair}</span>
+                <span className="font-mono" style={{ color: m.change24h >= 0 ? '#4BFF99' : '#ff4b4b', marginLeft: 4, fontWeight: 500, fontSize: 13 }}>
+                  {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Stats Bar ═══ */}
+      <section style={{ position: 'relative', zIndex: 30, padding: '0 16px', marginTop: 80, marginBottom: 80 }}>
+        <div className="glass-surface" style={{ maxWidth: 1024, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', alignItems: 'center', padding: '24px 32px', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', background: 'linear-gradient(135deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.9) 100%)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
+            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>24h Volume</span>
+            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>$32bn</span>
+          </div>
+          
+          <div className="md-block" style={{ width: 1, height: 64, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
+            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Traders</span>
+            <span className="t-headline-lg" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontSize: 36 }}>{'>'}10k</span>
+          </div>
+          
+          <div className="md-block" style={{ width: 1, height: 64, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
+            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Markets</span>
+            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>{'>'}70</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Features Section ═══ */}
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <h2 className="t-headline-lg home-features-heading" style={{ color: '#fbfff8', marginBottom: 48, textAlign: 'center', letterSpacing: '-0.02em', fontWeight: 700 }}>Built for maximum trading performance</h2>
+          <div className="home-features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+            {/* Feature 1 */}
+            <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
+                <span className="t-label-mono" style={{ color: '#4BFF99' }}>01</span>
+                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Powered by Arc</h3>
+              </div>
+              <p className="t-body-md" style={{ color: '#bacbbb' }}>
+                Enjoy ultimate flexibility and blazing-fast execution speeds on the Arc L1 ecosystem. Pay your execution fees seamlessly with Arc USDC.
+              </p>
+              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {['Crypto', 'RWA', 'Forex'].map(tag => (
+                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: '#201f1f', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.05)' }}>{tag}</span>
+                ))}
+              </div>
+            </div>
+            {/* Feature 2 */}
+            <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
+                <span className="t-label-mono" style={{ color: '#4BFF99' }}>02</span>
+                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Connect &amp; Trade</h3>
+              </div>
+              <p className="t-body-md" style={{ color: '#bacbbb' }}>
+                Say goodbye to complicated onboarding. Simply connect your wallet and start trading immediately with zero friction and no KYC required.
+              </p>
+              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="material-symbols-outlined" style={{ color: '#4BFF99', fontSize: 20 }}>bolt</span>
+                <span className="t-label-mono" style={{ color: '#4BFF99' }}>Instant Web3</span>
+              </div>
+            </div>
+            {/* Feature 3 */}
+            <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
+                <span className="t-label-mono" style={{ color: '#4BFF99' }}>03</span>
+                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Dual-Vault Architecture</h3>
+              </div>
+              <p className="t-body-md" style={{ color: '#bacbbb' }}>
+                Become the house through our flagship dual-vault system. Maximize your capital efficiency and earn real yield generated from platform fees.
+              </p>
+              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="material-symbols-outlined" style={{ color: '#4BFF99', fontSize: 20 }}>savings</span>
+                <span className="t-label-mono" style={{ color: '#4BFF99' }}>Real Yield</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Trust Section ═══ */}
+      <section className="home-section-pad" style={{ padding: '80px 16px', backgroundColor: '#131313', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, height: 600, background: '#4BFF99', borderRadius: '50%', filter: 'blur(150px)', opacity: 0.05, pointerEvents: 'none' }}></div>
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
+          <h2 className="t-headline-lg home-trust-heading" style={{ color: '#fbfff8', marginBottom: 24, letterSpacing: '-0.02em', fontWeight: 700 }}>
+            CEX Speed. <br /> DEX Security.
+          </h2>
+          <p className="t-body-md" style={{ color: '#bacbbb', maxWidth: 672, margin: '0 auto' }}>
+            Combining the seamless trading experience of centralized exchanges with full decentralization and transparency. You are always in control of your assets.
+          </p>
+        </div>
+      </section>
+
+      {/* ═══ Token Section ═══ */}
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#0e0e0e', borderTop: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', right: 0, bottom: 0, width: 400, height: 400, background: '#4BFF99', borderRadius: '50%', filter: 'blur(120px)', opacity: 0.1, pointerEvents: 'none' }}></div>
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h2 className="t-headline-xl home-token-heading" style={{ color: '#fbfff8', marginBottom: 24, letterSpacing: '-0.04em', fontSize: 36, lineHeight: '42px' }}>
+            Be the House. <br /><span style={{ color: '#4BFF99' }}>Earn Real Yield.</span>
+          </h2>
+          <p className="t-body-md" style={{ color: '#bacbbb', maxWidth: 672, marginBottom: 40 }}>
+            Our platform isn't just for traders. Deposit your USDC into our Vaults to earn passive income from platform trading fees. The future of finance is in your hands.
+          </p>
+          <a href="/vaults" className="glass-surface" style={{ color: '#fbfff8', border: '1px solid #62688F', padding: '16px 32px', borderRadius: 9999, fontFamily: "'Geist', sans-serif", fontSize: 16, fontWeight: 600, letterSpacing: '0.02em', textDecoration: 'none', display: 'inline-block', transition: 'all 0.3s' }}>
+            View Vault Liquidity
+          </a>
+        </div>
+      </section>
+
+      {/* ═══ FAQ Section ═══ */}
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ maxWidth: 768, margin: '0 auto' }}>
+          <h2 className="t-headline-lg" style={{ color: '#fbfff8', marginBottom: 48, textAlign: 'center', letterSpacing: '-0.02em' }}>You have questions. We have answers.</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              'How do I start trading?',
+              'What markets are supported?',
+              'How does the Vault system work?',
+            ].map((q) => (
+              <div key={q} className="glass-surface home-faq-item" style={{ padding: '16px 20px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.3s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 className="t-cta" style={{ color: '#fbfff8' }}>{q}</h4>
+                  <span className="material-symbols-outlined" style={{ color: '#bacbbb', flexShrink: 0, marginLeft: 12 }}>add</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Footer ═══ */}
+      <footer className="home-section-pad" style={{ backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 16px', width: '100%' }}>
+        <div className="home-footer-grid" style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr', gap: 32 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <img src="/logo.png" alt="Confidential Logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'contain' }} />
+              <span style={{ fontFamily: "'Geist', sans-serif", fontSize: 24, fontWeight: 900, letterSpacing: '-0.04em', color: '#fbfff8' }}>Confidential</span>
+            </div>
+            <p className="t-body-sm" style={{ color: '#bacbbb', maxWidth: 384 }}>
+              © 2026 Confidential DEX. All rights reserved. Built for the sovereign trader.
+            </p>
+          </div>
+          <div className="home-footer-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 16 }}>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              {['X', 'Discord', 'Telegram'].map(s => (
+                <a key={s} className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="#">{s}</a>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              {['Privacy Policy', 'Terms of Service'].map(s => (
+                <a key={s} className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="#">{s}</a>
+              ))}
+              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="https://docs.confidential.exchange" target="_blank" rel="noreferrer">Docs</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
-  )
+  );
 }

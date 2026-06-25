@@ -1,14 +1,19 @@
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Topbar from './components/Topbar'
 
 import Trade from './pages/Trade'
 import Vault from './pages/Vault'
 import Portfolio from './pages/Portfolio'
+import Home from './pages/Home'
 import { usePythPrices } from './hooks/usePythPrices'
 
-export default function App() {
+function PythPriceLoader() {
   usePythPrices()
+  return null
+}
+
+export default function App() {
   const location = useLocation()
   const isHome = location.pathname === '/'
 
@@ -28,16 +33,20 @@ export default function App() {
           border: '1px solid #333',
         }
       }} />
+      {/* Only load Pyth prices on non-home pages to prevent trade state interference */}
+      {!isHome && <PythPriceLoader />}
       {!isHome && <Topbar />}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: isHome ? 0 : 60 }}>
         <Routes>
-          <Route path="/" element={<Navigate to="/trade" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/trade" element={<Trade />} />
           <Route path="/vaults" element={<Vault />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/referrals" element={<DummyPage title="Referrals" />} />
           <Route path="/points" element={<DummyPage title="Points" />} />
           <Route path="/leaderboard" element={<DummyPage title="Leaderboard" />} />
+          {/* Catch-all: redirect any unknown route to Home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
