@@ -85,10 +85,10 @@ export default function Home() {
           border-top: 1px solid rgba(255, 255, 255, 0.05);
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(12px);
-          padding: 24px 0;
+          padding: 32px 0;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 32px;
           z-index: 20;
         }
         .market-marquee {
@@ -108,7 +108,7 @@ export default function Home() {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin: 0 32px;
+          margin: 0 48px;
           color: #e5e2e1;
           font-family: 'Geist', sans-serif;
           font-weight: 600;
