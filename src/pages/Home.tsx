@@ -123,8 +123,8 @@ export default function Home() {
         /* ═══ Typography ═══ */
         .t-headline-xl {
           font-family: 'Geist', sans-serif;
-          font-size: 36px;
-          line-height: 42px;
+          font-size: 52px;
+          line-height: 56px;
           letter-spacing: -0.04em;
           font-weight: 700;
         }
@@ -145,6 +145,12 @@ export default function Home() {
           font-family: 'Geist', sans-serif;
           font-size: 16px;
           line-height: 24px;
+          font-weight: 400;
+        }
+        .t-hero-p {
+          font-family: 'Geist', sans-serif;
+          font-size: 18px;
+          line-height: 28px;
           font-weight: 400;
         }
         .t-body-sm {
@@ -173,6 +179,10 @@ export default function Home() {
           .t-headline-xl {
             font-size: 80px;
             line-height: 88px;
+          }
+          .t-hero-p {
+            font-size: 20px;
+            line-height: 30px;
           }
           .t-headline-lg {
             font-size: 32px;
@@ -253,7 +263,7 @@ export default function Home() {
           <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 896, letterSpacing: '-0.04em', marginBottom: 24 }}>
             Trade Perps With <br /><span style={{ color: '#4BFF99' }}>Arc-Level Speed.</span>
           </h1>
-          <p className="t-body-md" style={{ color: '#bacbbb', maxWidth: 672, marginBottom: 0 }}>
+          <p className="t-hero-p" style={{ color: '#bacbbb', maxWidth: 672, marginBottom: 0 }}>
             Seamless. Flexible. Decentralized. Connect your wallet and trade instantly. Experience lightning-fast execution using USDC on the Arc ecosystem.
           </p>
         </div>
