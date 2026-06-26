@@ -173,6 +173,17 @@ export default function Home() {
           letter-spacing: 0.05em;
           font-weight: 500;
         }
+        .footer-logo {
+          width: 24px;
+          height: 24px;
+        }
+        .footer-title {
+          font-size: 20px;
+        }
+        .footer-copy {
+          font-size: 12px;
+          line-height: 18px;
+        }
 
         /* ═══ Desktop overrides ═══ */
         @media (min-width: 768px) {
@@ -191,6 +202,17 @@ export default function Home() {
           .t-headline-lg-mobile {
             font-size: 24px;
             line-height: 32px;
+          }
+          .footer-logo {
+            width: 32px !important;
+            height: 32px !important;
+          }
+          .footer-title {
+            font-size: 24px !important;
+          }
+          .footer-copy {
+            font-size: 14px !important;
+            line-height: 20px !important;
           }
           .home-stats-grid {
             grid-template-columns: repeat(3, 1fr) !important;
@@ -447,13 +469,13 @@ export default function Home() {
       {/* ═══ Footer ═══ */}
       <footer className="home-section-pad" style={{ backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 16px', width: '100%' }}>
         <div className="home-footer-grid" style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr', gap: 32 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <img src="/logo.png" alt="Confidential Logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'contain' }} />
-              <span style={{ fontFamily: "'Geist', sans-serif", fontSize: 24, fontWeight: 900, letterSpacing: '-0.04em', color: '#fbfff8' }}>Confidential</span>
+          <div className="home-footer-left" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/logo.png" alt="Confidential Logo" className="footer-logo" style={{ borderRadius: '50%', objectFit: 'contain' }} />
+              <span className="footer-title" style={{ fontFamily: "'Geist', sans-serif", fontWeight: 900, letterSpacing: '-0.04em', color: '#fbfff8' }}>Confidential</span>
             </div>
-            <p className="t-body-sm" style={{ color: '#bacbbb', maxWidth: 384 }}>
-              © 2026 Confidential DEX. All rights reserved. Built for the sovereign trader.
+            <p className="t-body-sm footer-copy" style={{ color: '#bacbbb', maxWidth: 384 }}>
+              © 2026 Confidential. All rights reserved.
             </p>
           </div>
           <div className="home-footer-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 16 }}>
