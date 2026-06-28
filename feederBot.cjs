@@ -1642,4 +1642,4 @@ app.listen(PORT, () => {
 
 // Run AMM Keeper Loop
 runKeeper();
-setInterval(runKeeper, 5000);
+setInterval(runKeeper, 2000);
