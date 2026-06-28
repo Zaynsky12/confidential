@@ -48,9 +48,9 @@ contract ConfidentialVault is ReentrancyGuard {
 
     // ── Security Caps ──
     uint256 public maxDepositPerUser = 1_000_000 * 1e6;
-    uint256 public maxDegenDeposits = 20_000_000 * 1e6; // $20M
-    uint256 public maxPrimeDeposits = 30_000_000 * 1e6; // $30M
-    uint256 public primeProtectionBps = 6000; // 60% capital protected
+    uint256 public maxDegenDeposits = 15_000_000 * 1e6; // $15M
+    uint256 public maxPrimeDeposits = 35_000_000 * 1e6; // $35M
+    uint256 public primeProtectionBps = 7000; // 70% capital protected
     bool public depositsEnabled = true;
 
     // ──────────── Events ────────────

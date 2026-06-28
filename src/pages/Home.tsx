@@ -184,23 +184,9 @@ export default function Home() {
           font-size: 12px;
           line-height: 18px;
         }
-        .hero-bg {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          padding-top: 100px;
-          background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBb_cWYwrsqX2bYrkJrvDCF9_x4mcbMa7q2xqeZ4YWhYdWYO1fIOwlkjErTIsZRXTHg4b68_uvTBZh5jL_ZzDq6Oe-gw_IOAgAh3xIf6hrS_CvFz8Puaj018StL_B5cv_jIJVFLv1cN032wks7CGnL-2BX-a47Lgz-gCkGhYW3beEMnt3bP9d9ghftm5xt9Hq0nkjybX0L0sHcfumueeZvFDhRjhU76HjZIpKFRZEZNhy9mUMVY4fzrS1hcAgKCUUoc-ZQfjsINvIZ_");
-          background-size: cover;
-          background-position: top center;
-          background-repeat: no-repeat;
-        }
 
         /* ═══ Desktop overrides ═══ */
         @media (min-width: 768px) {
-          .hero-bg {
-            padding-top: 140px;
-            background-position: center;
-          }
           .t-headline-xl {
             font-size: 80px;
             line-height: 88px;
@@ -293,7 +279,7 @@ export default function Home() {
       </nav>
 
       {/* ═══ Hero Section ═══ */}
-      <section className="hero-bg">
+      <section style={{ position: 'relative', display: 'flex', flexDirection: 'column', paddingTop: 140, backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBb_cWYwrsqX2bYrkJrvDCF9_x4mcbMa7q2xqeZ4YWhYdWYO1fIOwlkjErTIsZRXTHg4b68_uvTBZh5jL_ZzDq6Oe-gw_IOAgAh3xIf6hrS_CvFz8Puaj018StL_B5cv_jIJVFLv1cN032wks7CGnL-2BX-a47Lgz-gCkGhYW3beEMnt3bP9d9ghftm5xt9Hq0nkjybX0L0sHcfumueeZvFDhRjhU76HjZIpKFRZEZNhy9mUMVY4fzrS1hcAgKCUUoc-ZQfjsINvIZ_")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="hero-overlay" style={{ position: 'absolute', inset: 0 }}></div>
         <div className="home-section-pad" style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', padding: '0 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 896, letterSpacing: '-0.04em', marginBottom: 24 }}>

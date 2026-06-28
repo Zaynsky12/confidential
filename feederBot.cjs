@@ -23,7 +23,7 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0x35eCC51F4172c6ab2c5F0e51e75761D1473F5277';
+const TRADING_ADDRESS = '0x84a8B259d4c07eB042C046Cf5C95Db59a9407e40';
 const P2P_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Express Server Setup
@@ -1629,7 +1629,7 @@ async function runKeeper() {
 //                      START SERVICES
 // ══════════════════════════════════════════════════════════
 
-console.log('🚀 Starting Keeper Bot V5 (Hybrid PLP)...');
+console.log('🚀 Starting Keeper Bot V6 (Guaranteed Execution & Buffer)...');
 console.log(`📡 Connected to Trading: ${TRADING_ADDRESS}`);
 
 

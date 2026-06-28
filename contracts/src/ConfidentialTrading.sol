@@ -74,6 +74,7 @@ contract ConfidentialTrading is ReentrancyGuard {
 
     // Order expiry
     uint256 public maxOrderAge = 7 days;
+    uint256 public executionBufferBps = 30; // 0.3% buffer for Keeper latency
 
     // Duplicate close request prevention
     mapping(uint256 => bool) public hasActiveCloseRequest;
@@ -127,7 +128,7 @@ contract ConfidentialTrading is ReentrancyGuard {
         uint256 slPrice
     ) external payable nonReentrant returns (uint256 orderId) {
         require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
-        require(orderType <= 1, "Use placeMarketOrder for market"); // 0=limit, 1=stop
+        require(orderType <= 2, "Invalid orderType"); // 0=limit, 1=stop, 2=market
 
         // Validate TP/SL prices if set
         if (tpPrice > 0) {
@@ -363,6 +364,20 @@ contract ConfidentialTrading is ReentrancyGuard {
     //                      KEEPER EXECUTION
     // ══════════════════════════════════════════════════════════
 
+    /// @notice Helper to validate if an order meets its price condition without reverting
+    function _isValidBatchOrder(PendingOrder memory o, uint256 currentPrice, bool isLong) internal pure returns (bool) {
+        if (!o.isActive || o.isLong != isLong) return false;
+        
+        if (o.orderType == 0) {
+            if (isLong ? currentPrice > o.triggerPrice : currentPrice < o.triggerPrice) return false;
+        } else if (o.orderType == 1) {
+            if (isLong ? currentPrice < o.triggerPrice : currentPrice > o.triggerPrice) return false;
+        } else if (o.orderType == 2 && o.triggerPrice > 0) {
+            if (isLong ? currentPrice > o.triggerPrice : currentPrice < o.triggerPrice) return false;
+        }
+        return true;
+    }
+
     /// @notice Execute a batch of opposing orders at the same price with 0% price impact (P2P Matching)
     function executeHybridBatch(
         uint256[] calldata longOrderIds,
@@ -375,42 +390,53 @@ contract ConfidentialTrading is ReentrancyGuard {
             oracle.updatePriceFeeds{value: msg.value}(updateData);
         }
 
+        bytes32 batchPairId;
+        if (longOrderIds.length > 0) batchPairId = pendingOrders[longOrderIds[0]].pairId;
+        else if (shortOrderIds.length > 0) batchPairId = pendingOrders[shortOrderIds[0]].pairId;
+        else return;
+
+        (uint256 currentPrice, ) = oracle.getPrice(batchPairId);
+
+        // Pass 1: Validate and count eligible volume
         uint256 totalLongSize = 0;
         uint256 totalShortSize = 0;
-        bytes32 batchPairId;
 
         for (uint i = 0; i < longOrderIds.length; i++) {
             PendingOrder storage o = pendingOrders[longOrderIds[i]];
-            require(o.isActive && o.isLong, "Invalid long");
-            if (i == 0) batchPairId = o.pairId;
-            else require(o.pairId == batchPairId, "Pair mismatch");
-            totalLongSize += o.sizeUsd;
+            if (o.pairId == batchPairId && _isValidBatchOrder(o, currentPrice, true)) {
+                totalLongSize += o.sizeUsd;
+            }
         }
 
         for (uint i = 0; i < shortOrderIds.length; i++) {
             PendingOrder storage o = pendingOrders[shortOrderIds[i]];
-            require(o.isActive && !o.isLong, "Invalid short");
-            if (longOrderIds.length == 0 && i == 0) batchPairId = o.pairId;
-            else require(o.pairId == batchPairId, "Pair mismatch");
-            totalShortSize += o.sizeUsd;
+            if (o.pairId == batchPairId && _isValidBatchOrder(o, currentPrice, false)) {
+                totalShortSize += o.sizeUsd;
+            }
         }
 
-        (uint256 currentPrice, ) = oracle.getPrice(batchPairId);
         uint256 matchedVolume = totalLongSize < totalShortSize ? totalLongSize : totalShortSize;
 
-        _processBatchSide(longOrderIds, currentPrice, matchedVolume, true);
-        _processBatchSide(shortOrderIds, currentPrice, matchedVolume, false);
+        // Pass 2: Execute
+        _processBatchSide(longOrderIds, currentPrice, matchedVolume, true, batchPairId);
+        _processBatchSide(shortOrderIds, currentPrice, matchedVolume, false, batchPairId);
     }
 
     function _processBatchSide(
         uint256[] calldata orderIds,
         uint256 currentPrice,
         uint256 matchedVolume,
-        bool isLong
+        bool isLong,
+        bytes32 batchPairId
     ) internal {
         uint256 processed = 0;
         for (uint i = 0; i < orderIds.length; i++) {
             PendingOrder storage o = pendingOrders[orderIds[i]];
+            
+            // Skip invalid or mismatched orders instead of reverting
+            if (o.pairId != batchPairId || !_isValidBatchOrder(o, currentPrice, isLong)) {
+                continue; 
+            }
             
             uint256 orderMatched = 0;
             if (processed < matchedVolume) {
@@ -418,16 +444,14 @@ contract ConfidentialTrading is ReentrancyGuard {
                 orderMatched = o.sizeUsd <= remainingMatch ? o.sizeUsd : remainingMatch;
             }
             
-            if (o.orderType == 0) require(isLong ? currentPrice <= o.triggerPrice : currentPrice >= o.triggerPrice, "Limit not reached");
-            if (o.orderType == 1) require(isLong ? currentPrice >= o.triggerPrice : currentPrice <= o.triggerPrice, "Stop not reached");
-
             _executeOpen(o, currentPrice, orderMatched);
             o.isActive = false;
             processed += o.sizeUsd;
             
             if (o.executionFee > 0) {
                 (bool success, ) = msg.sender.call{value: o.executionFee}("");
-                require(success, "Keeper fee failed");
+                // Silent fail to prevent keeper fee rejection from DoSing the batch
+                if (!success) {} 
             }
             emit OrderExecuted(orderIds[i], nextPositionId - 1);
         }
@@ -463,12 +487,26 @@ contract ConfidentialTrading is ReentrancyGuard {
         (uint256 currentPrice, ) = oracle.getPrice(order.pairId);
 
         if (order.orderType == 0) { // Limit
-            require(order.isLong ? currentPrice <= order.triggerPrice : currentPrice >= order.triggerPrice, "Limit not reached");
-            _executeOpen(order, currentPrice, 0);
+            uint256 bufferPrice = order.isLong 
+                ? order.triggerPrice + (order.triggerPrice * executionBufferBps / 10000) 
+                : order.triggerPrice - (order.triggerPrice * executionBufferBps / 10000);
+            
+            require(order.isLong ? currentPrice <= bufferPrice : currentPrice >= bufferPrice, "Limit not reached");
+            
+            uint256 execPrice = order.isLong 
+                ? (currentPrice < order.triggerPrice ? currentPrice : order.triggerPrice) 
+                : (currentPrice > order.triggerPrice ? currentPrice : order.triggerPrice);
+                
+            _executeOpen(order, execPrice, 0);
             order.isActive = false;
         } else if (order.orderType == 1) { // Stop
-            require(order.isLong ? currentPrice >= order.triggerPrice : currentPrice <= order.triggerPrice, "Stop not reached");
-            _executeOpen(order, currentPrice, 0);
+            uint256 bufferPrice = order.isLong 
+                ? order.triggerPrice - (order.triggerPrice * executionBufferBps / 10000) 
+                : order.triggerPrice + (order.triggerPrice * executionBufferBps / 10000);
+                
+            require(order.isLong ? currentPrice >= bufferPrice : currentPrice <= bufferPrice, "Stop not reached");
+            
+            _executeOpen(order, order.triggerPrice, 0);
             order.isActive = false;
         } else if (order.orderType == 2) { // Market Open
             bool slippageOk = order.isLong ? currentPrice <= order.triggerPrice : currentPrice >= order.triggerPrice;
@@ -664,19 +702,28 @@ contract ConfidentialTrading is ReentrancyGuard {
         
         bool isTp = false;
         bool shouldClose = false;
+        uint256 executionPrice = currentPrice;
         
         if (pos.tpPrice > 0) {
-            isTp = pos.isLong ? currentPrice >= pos.tpPrice : currentPrice <= pos.tpPrice;
+            uint256 tpBufferLong = pos.tpPrice - (pos.tpPrice * executionBufferBps / 10000);
+            uint256 tpBufferShort = pos.tpPrice + (pos.tpPrice * executionBufferBps / 10000);
+            
+            isTp = pos.isLong ? currentPrice >= tpBufferLong : currentPrice <= tpBufferShort;
             shouldClose = isTp;
+            if (shouldClose) executionPrice = pos.tpPrice;
         }
         if (!shouldClose && pos.slPrice > 0) {
-            shouldClose = pos.isLong ? currentPrice <= pos.slPrice : currentPrice >= pos.slPrice;
+            uint256 slBufferLong = pos.slPrice + (pos.slPrice * executionBufferBps / 10000);
+            uint256 slBufferShort = pos.slPrice - (pos.slPrice * executionBufferBps / 10000);
+            
+            shouldClose = pos.isLong ? currentPrice <= slBufferLong : currentPrice >= slBufferShort;
+            if (shouldClose) executionPrice = pos.slPrice;
         }
         
         require(shouldClose, "TP/SL not triggered");
         
-        emit TPSLTriggered(positionId, isTp, currentPrice);
-        _executeClose(positionId, currentPrice);
+        emit TPSLTriggered(positionId, isTp, executionPrice);
+        _executeClose(positionId, executionPrice);
     }
 
     function liquidate(uint256 positionId, bytes[] calldata updateData) external payable nonReentrant {
@@ -1093,5 +1140,10 @@ contract ConfidentialTrading is ReentrancyGuard {
     function setMaxOrderAge(uint256 _seconds) external onlyOwner {
         require(_seconds >= 1 hours && _seconds <= 30 days, "1h-30d range");
         maxOrderAge = _seconds;
+    }
+
+    function setExecutionBufferBps(uint256 _bps) external onlyOwner {
+        require(_bps <= 100, "Max 1% buffer");
+        executionBufferBps = _bps;
     }
 }
