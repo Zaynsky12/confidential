@@ -4,6 +4,7 @@ import { CONTRACTS, ABIS } from '../config/contracts'
 import { useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useUSDCApproval } from './useUSDCApproval'
+import { useTradeStore } from '../store/useTradeStore'
 
 const fetchPythVaa = async (pythPriceId: string) => {
   const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${pythPriceId}`
@@ -64,21 +65,27 @@ export function useConfidentialTrading() {
       const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
       const acceptablePriceUnits = acceptablePriceUsd > 0 ? parseUnits(acceptablePriceUsd.toFixed(18), 18) : 0n
 
+      const market = useTradeStore.getState().markets.find(m => m.pair === pairName)
+      if (!market) throw new Error("Market not found")
+      
+      const updateData = await fetchPythVaa(market.pythPriceId)
+      const pythFee = parseUnits('0.001', 18) // 0.001 ARC for Pyth update fee
+
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'placeOrder',
+        functionName: 'placeMarketOrder',
         args: [
           pairId,
           isLong,
           sizeUnits,
           BigInt(leverage),
-          acceptablePriceUnits, // acts as triggerPrice/slippage limit for Market Open
-          2, // orderType 2 = Market Open
           tpUnits,
-          slUnits
+          slUnits,
+          acceptablePriceUnits,
+          updateData
         ],
-        value: EXECUTION_FEE,
+        value: pythFee,
       } as any)
 
       toast.dismiss('trade')
