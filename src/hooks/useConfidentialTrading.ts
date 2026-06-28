@@ -4,7 +4,6 @@ import { CONTRACTS, ABIS } from '../config/contracts'
 import { useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useUSDCApproval } from './useUSDCApproval'
-import { useTradeStore } from '../store/useTradeStore'
 
 const fetchPythVaa = async (pythPriceId: string) => {
   const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${pythPriceId}`
