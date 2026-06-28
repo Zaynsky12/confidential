@@ -1387,6 +1387,8 @@ async function runKeeper() {
   if (isRunning) return; // Concurrency Lock
   isRunning = true;
 
+  process.stdout.write(`\r⏳ [${new Date().toLocaleTimeString()}] Bot is actively scanning mempool...`);
+
   try {
     // 1. Fetch Pyth Prices
     const ids = PAIRS.map(p => p.pythId).join('&ids[]=');
@@ -1519,7 +1521,7 @@ async function runKeeper() {
 
     // B. Execute Closes & TWAP
     for (const order of executionQueue) {
-        console.log(`⚡ EXECUTING Close/TWAP Order #${order.id} (Type: ${order.orderType})`);
+        console.log(`\n⚡ EXECUTING Close/TWAP Order #${order.id} (Type: ${order.orderType})`);
         try {
             const hash = await wallet.writeContract({
                 address: TRADING_ADDRESS,
