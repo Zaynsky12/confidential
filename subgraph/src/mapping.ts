@@ -160,6 +160,8 @@ export function handlePositionLiquidated(event: PositionLiquidated): void {
   if (position != null) {
     position.isOpen = false
     position.closedAt = event.block.timestamp
+    position.exitPrice = event.params.executionPrice
+    position.pnl = position.collateral.times(BigInt.fromI32(-1))
     position.save()
 
     let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
