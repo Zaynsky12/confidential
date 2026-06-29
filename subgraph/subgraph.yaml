@@ -6,9 +6,9 @@ dataSources:
     name: ConfidentialTrading
     network: arc-testnet
     source:
-      address: "0x84a8B259d4c07eB042C046Cf5C95Db59a9407e40"
+      address: "0x2e2D16b4cA6C617b4e0DBD07DC4246d3F88C3D34"
       abi: ConfidentialTrading
-      startBlock: 48320000
+      startBlock: 49262800
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
