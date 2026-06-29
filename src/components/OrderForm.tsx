@@ -615,7 +615,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
               </button>
               <button 
                 onClick={() => {
-                  const val = Math.min(maxLeverage, Math.max(1, Number(tempLeverage) || 1));
+                  const val = Math.min(maxLeverage, Math.max(1, Math.round(Number(tempLeverage) || 1)));
                   setLeverage(val);
                   setIsLeverageModalOpen(false);
                 }}
