@@ -2,6 +2,8 @@ const { createWalletClient, createPublicClient, http, keccak256, toHex } = requi
 const { privateKeyToAccount } = require('viem/accounts');
 require('dotenv').config();
 const { defineChain } = require('viem');
+const fs = require('fs');
+const path = require('path');
 
 const arcTestnet = defineChain({
   id: 5042002,
@@ -23,25 +25,30 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0x84a8B259d4c07eB042C046Cf5C95Db59a9407e40';
-const P2P_ADDRESS = '0x0000000000000000000000000000000000000000';
+const TRADING_ADDRESS = '0x2e2D16b4cA6C617b4e0DBD07DC4246d3F88C3D34';
+const TRADING_ABI = require('./src/abis/ConfidentialTrading.json').abi;
+
+const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
+const PYTH_ABI = [
+  { "inputs": [{ "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }], "name": "getUpdateFee", "outputs": [{ "internalType": "uint256", "name": "feeAmount", "type": "uint256" }], "stateMutability": "view", "type": "function" }
+];
+
+const GOLDSKY_URL = 'https://api.goldsky.com/api/public/project_cmq6wbchslca901xaekhtfer7/subgraphs/confidentialdex/108/gn';
 
 // Express Server Setup
 const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// FIX MEDIUM-4: Restrict CORS to known frontend origins
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000', 'https://confidential.finance'],
   methods: ['GET', 'POST'],
 }));
 app.use(express.json());
 
-// FIX MEDIUM-3: Rate limiting to prevent DoS/spam
 const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const RATE_LIMIT_MAX = 30; // 30 requests per minute per IP
+const RATE_LIMIT_WINDOW = 60000;
+const RATE_LIMIT_MAX = 30;
 
 function rateLimit(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress;
@@ -61,1299 +68,6 @@ function rateLimit(req, res, next) {
   }
   next();
 }
-
-// In-Memory Orderbook
-// Structure: { pairId: { longs: [order1, order2], shorts: [order1, order2] } }
-const orderbook = {};
-// Updated ABI for V2 (TWAP, TP/SL, Funding)
-const TRADING_ABI = [
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_usdc",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_core",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_vault",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_oracle",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "ReentrancyGuardReentrantCall",
-    "type": "error"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newLiquidationPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "CollateralAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newLiquidationPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "CollateralRemoved",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      }
-    ],
-    "name": "OrderCancelled",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      }
-    ],
-    "name": "OrderExecuted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "pairId",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "orderType",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "triggerPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "OrderPlaced",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "exitPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "int256",
-        "name": "pnl",
-        "type": "int256"
-      }
-    ],
-    "name": "PositionClosed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "additionalSizeUsd",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newEntryPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newLiquidationPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "PositionIncreased",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "executionPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "liquidator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "reward",
-        "type": "uint256"
-      }
-    ],
-    "name": "PositionLiquidated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "pairId",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isLong",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "sizeUsd",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "entryPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "leverage",
-        "type": "uint256"
-      }
-    ],
-    "name": "PositionOpened",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "closeSizeUsd",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "exitPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "int256",
-        "name": "pnl",
-        "type": "int256"
-      }
-    ],
-    "name": "PositionPartialClose",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isTakeProfit",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "executionPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "TPSLTriggered",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "sliceNumber",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "sizeUsd",
-        "type": "uint256"
-      }
-    ],
-    "name": "TWAPSliceExecuted",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "MIN_COLLATERAL",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "MIN_POSITION_SIZE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "addCollateral",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      }
-    ],
-    "name": "cancelOrder",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "closePositionInstantly",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "closePercent",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "closePositionPartial",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "core",
-    "outputs": [
-      {
-        "internalType": "contract ConfidentialCore",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      }
-    ],
-    "name": "createCloseRequest",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "pairId",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bool",
-        "name": "isLong",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalSizeUsd",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "leverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slices",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "intervalSec",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tpPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "createTwapOrder",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "positionIds",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "executeADL",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "executeOrder",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "executeTPSL",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "hasActiveCloseRequest",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "additionalSizeUsd",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "additionalLeverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "acceptablePrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "increasePosition",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "liquidate",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "liquidationRewardBps",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "maxOrderAge",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "nextOrderId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "nextPositionId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "oracle",
-    "outputs": [
-      {
-        "internalType": "contract PythPriceOracle",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "pendingOrders",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "pairId",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "isLong",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "sizeUsd",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "collateral",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "leverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "triggerPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "acceptablePrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint8",
-        "name": "orderType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bool",
-        "name": "isActive",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "createdAt",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "feePaid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "executionFee",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tpPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "twapSlices",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "twapInterval",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "twapExecuted",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "twapLastExec",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "pairId",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bool",
-        "name": "isLong",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "sizeUsd",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "leverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tpPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "acceptablePrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "placeMarketOrder",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "posId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "pairId",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bool",
-        "name": "isLong",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "sizeUsd",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "leverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "triggerPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint8",
-        "name": "orderType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tpPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "placeOrder",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "orderId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "positions",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "pairId",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "isLong",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "sizeUsd",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "collateral",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "entryPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "leverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "liquidationPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "openedAt",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "isOpen",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tpPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "int256",
-        "name": "entryFundingIndex",
-        "type": "int256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "lastRolloverSettled",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "removeCollateral",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "rolloverFeePerHour",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bps",
-        "type": "uint256"
-      }
-    ],
-    "name": "setLiquidationRewardBps",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_seconds",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMaxOrderAge",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_fee",
-        "type": "uint256"
-      }
-    ],
-    "name": "setRolloverFeePerHour",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "positionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "newTpPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "newSlPrice",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateTpSl",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "usdc",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "userOrders",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "userPositions",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "vault",
-    "outputs": [
-      {
-        "internalType": "contract ConfidentialVault",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "longOrderIds",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "shortOrderIds",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "updateData",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "executeHybridBatch",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "stateMutability": "payable",
-    "type": "receive"
-  }
-];
-
-const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
-const PYTH_ABI = [
-  { "inputs": [{ "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }], "name": "getUpdateFee", "outputs": [{ "internalType": "uint256", "name": "feeAmount", "type": "uint256" }], "stateMutability": "view", "type": "function" }
-];
 
 const PAIRS = [
   { name: 'BTC/USDC', pythId: '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43' },
@@ -1384,10 +98,10 @@ const PAIRS = [
 let isRunning = false;
 
 async function runKeeper() {
-  if (isRunning) return; // Concurrency Lock
+  if (isRunning) return;
   isRunning = true;
 
-  process.stdout.write(`\r⏳ [${new Date().toLocaleTimeString()}] Bot is actively scanning mempool...`);
+  process.stdout.write(`\r⏳ [${new Date().toLocaleTimeString()}] Fetching from Subgraph & Pyth...`);
 
   try {
     // 1. Fetch Pyth Prices
@@ -1420,226 +134,177 @@ async function runKeeper() {
       }
     }
 
-    // 2. CHECK PENDING ORDERS
-    const nextOrderIdStr = await client.readContract({
-      address: TRADING_ADDRESS,
-      abi: TRADING_ABI,
-      functionName: 'nextOrderId',
+    // 2. Fetch Active Orders and Positions via Subgraph
+    const query = `
+      {
+        orders(where: { isActive: true }, first: 1000) {
+          orderId
+          orderType
+          triggerPrice
+          isLong
+          twapSlices
+          twapExecuted
+          pairId
+        }
+        positions(where: { isOpen: true }, first: 1000) {
+          positionId
+          pairId
+          isLong
+          liquidationPrice
+          tpPrice
+          slPrice
+        }
+      }
+    `;
+
+    const sgResponse = await fetch(GOLDSKY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
     });
-    const nextOrderId = Number(nextOrderIdStr);
+    
+    const sgData = await sgResponse.json();
+    if (!sgData || !sgData.data) {
+        throw new Error("Failed to fetch from subgraph");
+    }
 
-    const pendingLongs = {};
-    const pendingShorts = {};
-    const executionQueue = [];
+    const { orders, positions } = sgData.data;
+    
+    // 3. Process Orders Individually
+    for (const order of orders) {
+        const currentPrice = currentPrices[order.pairId];
+        if (!currentPrice) continue;
 
-    for (let i = 1; i < nextOrderId; i++) { // Starts at 1
-        try {
-            const orderRaw = await client.readContract({
-                address: TRADING_ADDRESS,
-                abi: TRADING_ABI,
-                functionName: 'pendingOrders',
-                args: [BigInt(i)]
-            });
-            
-            const isActive = orderRaw[8];
-            if (!isActive) continue;
+        const isLong = order.isLong;
+        const triggerPrice = BigInt(order.triggerPrice);
+        const orderType = Number(order.orderType);
 
-            const order = {
-                id: i,
-                pairId: orderRaw[0],
-                isLong: orderRaw[2],
-                triggerPrice: orderRaw[6],
-                orderType: orderRaw[7],
-                twapSlices: Number(orderRaw[15]),
-                twapInterval: Number(orderRaw[16]),
-                twapExecuted: Number(orderRaw[17]),
-                twapLastExec: Number(orderRaw[18])
-            };
-
-            const currentPrice = currentPrices[order.pairId];
-            if (!currentPrice) continue;
-
-            let shouldExecute = false;
-            
-            if (order.orderType === 2 || order.orderType === 3) {
-                shouldExecute = true;
-            } else if (order.orderType === 0) {
-                shouldExecute = order.isLong ? (currentPrice <= order.triggerPrice) : (currentPrice >= order.triggerPrice);
-            } else if (order.orderType === 1) {
-                shouldExecute = order.isLong ? (currentPrice >= order.triggerPrice) : (currentPrice <= order.triggerPrice);
-            } else if (order.orderType === 4) {
-                if (order.twapExecuted < order.twapSlices) {
+        let shouldExecute = false;
+        
+        if (orderType === 2 || orderType === 3) {
+            shouldExecute = true; // Market orders / closes
+        } else if (orderType === 0) {
+            shouldExecute = isLong ? (currentPrice <= triggerPrice) : (currentPrice >= triggerPrice);
+        } else if (orderType === 1) {
+            shouldExecute = isLong ? (currentPrice >= triggerPrice) : (currentPrice <= triggerPrice);
+        } else if (orderType === 4) {
+            // Fetch missing TWAP fields from contract
+            try {
+                const orderRaw = await client.readContract({
+                    address: TRADING_ADDRESS,
+                    abi: TRADING_ABI,
+                    functionName: 'pendingOrders',
+                    args: [BigInt(order.orderId)]
+                });
+                const twapInterval = Number(orderRaw[16]);
+                const twapLastExec = Number(orderRaw[18]);
+                if (Number(order.twapExecuted) < Number(order.twapSlices)) {
                     const now = Math.floor(Date.now() / 1000);
-                    if (order.twapExecuted === 0 || now >= order.twapLastExec + order.twapInterval) {
+                    if (Number(order.twapExecuted) === 0 || now >= twapLastExec + twapInterval) {
                         shouldExecute = true;
                     }
                 }
-            }
+            } catch(e) {}
+        }
 
-            if (shouldExecute) {
-                // If it's an OPEN order (Limit 0, Stop 1, MarketOpen 2), we try to batch them
-                if (order.orderType === 0 || order.orderType === 1 || order.orderType === 2) {
-                    if (order.isLong) {
-                        if (!pendingLongs[order.pairId]) pendingLongs[order.pairId] = [];
-                        pendingLongs[order.pairId].push(order);
-                    } else {
-                        if (!pendingShorts[order.pairId]) pendingShorts[order.pairId] = [];
-                        pendingShorts[order.pairId].push(order);
-                    }
-                } else {
-                    // Closes (3) and TWAP (4) execute individually
-                    executionQueue.push(order);
-                }
-            }
-        } catch (err) { }
-    }
-
-    // A. Execute Opens (Hybrid Batch)
-    for (const pairId of Object.keys(currentPrices)) {
-        const longs = pendingLongs[pairId] || [];
-        const shorts = pendingShorts[pairId] || [];
-
-        if (longs.length > 0 || shorts.length > 0) {
-            console.log(`\n🤝 BATCHING OPENS on pair ${pairId}: ${longs.length} Longs, ${shorts.length} Shorts`);
-            const longIds = longs.map(o => BigInt(o.id));
-            const shortIds = shorts.map(o => BigInt(o.id));
-
+        if (shouldExecute) {
+            console.log(`\n⚡ EXECUTING Order #${order.orderId} (Type: ${orderType})`);
             try {
                 const hash = await wallet.writeContract({
                     address: TRADING_ADDRESS,
                     abi: TRADING_ABI,
-                    functionName: 'executeHybridBatch',
-                    args: [longIds, shortIds, pythPayload],
+                    functionName: 'executeOrder',
+                    args: [BigInt(order.orderId), pythPayload],
                     value: pythFee
                 });
-                console.log(`   ✅ HYBRID BATCH EXECUTED! Tx: ${hash}\n`);
+                console.log(`   ✅ EXECUTION SUCCESS! Tx: ${hash}`);
             } catch (err) {
-                console.error(`❌ Batch failed:`, err.shortMessage || err.message);
+                console.error(`❌ Execution failed:`, err.shortMessage || err.message);
             }
         }
     }
 
-    // B. Execute Closes & TWAP
-    for (const order of executionQueue) {
-        console.log(`\n⚡ EXECUTING Close/TWAP Order #${order.id} (Type: ${order.orderType})`);
-        try {
-            const hash = await wallet.writeContract({
-                address: TRADING_ADDRESS,
-                abi: TRADING_ABI,
-                functionName: 'executeOrder',
-                args: [BigInt(order.id), pythPayload],
-                value: pythFee
-            });
-            console.log(`   ✅ EXECUTION SUCCESS! Tx: ${hash}`);
-        } catch (err) {
-            console.error(`❌ Execution failed:`, err.shortMessage || err.message);
+    // 4. Process Liquidations and TP/SL
+    for (const pos of positions) {
+        const currentPrice = currentPrices[pos.pairId];
+        if (!currentPrice) continue;
+
+        const isLong = pos.isLong;
+        const liquidationPrice = BigInt(pos.liquidationPrice);
+        const tpPrice = pos.tpPrice ? BigInt(pos.tpPrice) : 0n;
+        const slPrice = pos.slPrice ? BigInt(pos.slPrice) : 0n;
+
+        // 4A. Liquidations
+        let shouldLiquidate = false;
+        if (isLong) {
+          shouldLiquidate = currentPrice <= liquidationPrice;
+        } else {
+          shouldLiquidate = currentPrice >= liquidationPrice;
+        }
+
+        if (shouldLiquidate) {
+          console.log(`🚨 LIQUIDATING Position #${pos.positionId}...`);
+          try {
+              const hash = await wallet.writeContract({
+                  address: TRADING_ADDRESS,
+                  abi: TRADING_ABI,
+                  functionName: 'liquidate',
+                  args: [BigInt(pos.positionId), pythPayload],
+                  value: pythFee
+              });
+              console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
+          } catch (err) {
+              console.error(`❌ Liquidation failed:`, err.shortMessage || err.message);
+          }
+          continue; // Skip TP/SL
+        }
+
+        // 4B. TP / SL
+        if (tpPrice > 0n || slPrice > 0n) {
+            let shouldCloseTpSl = false;
+            let isTp = false;
+            
+            if (tpPrice > 0n) {
+                isTp = isLong ? (currentPrice >= tpPrice) : (currentPrice <= tpPrice);
+                shouldCloseTpSl = isTp;
+            }
+            if (!shouldCloseTpSl && slPrice > 0n) {
+                shouldCloseTpSl = isLong ? (currentPrice <= slPrice) : (currentPrice >= slPrice);
+            }
+
+            if (shouldCloseTpSl) {
+                console.log(`🎯 ${isTp ? 'TAKE PROFIT' : 'STOP LOSS'} TRIGGERED for Position #${pos.positionId}...`);
+                try {
+                    const hash = await wallet.writeContract({
+                        address: TRADING_ADDRESS,
+                        abi: TRADING_ABI,
+                        functionName: 'executeTPSL',
+                        args: [BigInt(pos.positionId), pythPayload],
+                        value: pythFee
+                    });
+                    console.log(`   ✅ TP/SL EXECUTED! Tx: ${hash}`);
+                } catch (err) {
+                    console.error(`❌ TP/SL failed:`, err.shortMessage || err.message);
+                }
+            }
         }
     }
 
-    // 3. CHECK LIQUIDATIONS AND TP/SL
-    const nextPosIdStr = await client.readContract({
-      address: TRADING_ADDRESS,
-      abi: TRADING_ABI,
-      functionName: 'nextPositionId',
-    });
-    const nextPosId = Number(nextPosIdStr);
-
-    for (let i = 1; i < nextPosId; i++) { // Starts at 1
-      try {
-          const posRaw = await client.readContract({
-            address: TRADING_ADDRESS,
-            abi: TRADING_ABI,
-            functionName: 'positions',
-            args: [BigInt(i)]
-          });
-
-          const isOpen = posRaw[9];
-          if (!isOpen) continue;
-
-          const pos = {
-              id: i,
-              pairId: posRaw[0],
-              isLong: posRaw[2],
-              liquidationPrice: posRaw[7],
-              tpPrice: posRaw[10],
-              slPrice: posRaw[11]
-          };
-
-          const currentPrice = currentPrices[pos.pairId];
-          if (!currentPrice) continue;
-
-          // 3A. Liquidations
-          let shouldLiquidate = false;
-          if (pos.isLong) {
-            shouldLiquidate = currentPrice <= pos.liquidationPrice;
-          } else {
-            shouldLiquidate = currentPrice >= pos.liquidationPrice;
-          }
-
-          if (shouldLiquidate) {
-            console.log(`🚨 LIQUIDATING Position #${pos.id}...`);
-            const hash = await wallet.writeContract({
-                address: TRADING_ADDRESS,
-                abi: TRADING_ABI,
-                functionName: 'liquidate',
-                args: [BigInt(pos.id), pythPayload],
-                value: pythFee
-            });
-            console.log(`   ✅ LIQUIDATED SUCCESS! Tx: ${hash}`);
-            continue; // Skip TP/SL check if liquidated
-          }
-
-          // 3B. TP / SL
-          if (pos.tpPrice > 0n || pos.slPrice > 0n) {
-              let shouldCloseTpSl = false;
-              let isTp = false;
-              
-              if (pos.tpPrice > 0n) {
-                  isTp = pos.isLong ? (currentPrice >= pos.tpPrice) : (currentPrice <= pos.tpPrice);
-                  shouldCloseTpSl = isTp;
-              }
-              if (!shouldCloseTpSl && pos.slPrice > 0n) {
-                  shouldCloseTpSl = pos.isLong ? (currentPrice <= pos.slPrice) : (currentPrice >= pos.slPrice);
-              }
-
-              if (shouldCloseTpSl) {
-                  console.log(`🎯 ${isTp ? 'TAKE PROFIT' : 'STOP LOSS'} TRIGGERED for Position #${pos.id}...`);
-                  const hash = await wallet.writeContract({
-                      address: TRADING_ADDRESS,
-                      abi: TRADING_ABI,
-                      functionName: 'executeTPSL',
-                      args: [BigInt(pos.id), pythPayload],
-                      value: pythFee
-                  });
-                  console.log(`   ✅ TP/SL EXECUTED! Tx: ${hash}`);
-              }
-          }
-
-      } catch (err) {
-          console.error(`❌ Failed to process pos #${i}:`, err.shortMessage || err.message);
-      }
-    }
-
   } catch (e) {
-    console.error('Error in Keeper Loop:', e.shortMessage || e.message);
+    console.error('\nError in Keeper Loop:', e.shortMessage || e.message);
   } finally {
-      isRunning = false; // Release Lock
+      isRunning = false;
   }
 }
 
-// ══════════════════════════════════════════════════════════
-//                      START SERVICES
-// ══════════════════════════════════════════════════════════
-
-console.log('🚀 Starting Keeper Bot V6 (Guaranteed Execution & Buffer)...');
+console.log('🚀 Starting Keeper Bot V7 (Subgraph Optimized, No P2P)...');
 console.log(`📡 Connected to Trading: ${TRADING_ADDRESS}`);
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🌐 API listening on port ${PORT}`);
 });
 
-// Run AMM Keeper Loop
+// Run AMM Keeper Loop every 2 seconds
 runKeeper();
 setInterval(runKeeper, 2000);
