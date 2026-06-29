@@ -373,10 +373,10 @@ export default function Home() {
             <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
                 <span className="t-label-mono" style={{ color: '#4BFF99' }}>01</span>
-                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Powered by Arc</h3>
+                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Guaranteed Execution</h3>
               </div>
               <p className="t-body-md" style={{ color: '#bacbbb' }}>
-                Enjoy ultimate flexibility and blazing-fast execution speeds on the Arc L1 ecosystem. Pay your execution fees seamlessly with Arc USDC.
+                Powered by a high-performance Subgraph indexer and Direct-to-Vault architecture. Zero P2P matching delays. 100% instant execution on the Arc L1.
               </p>
               <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {['Crypto', 'RWA', 'Forex'].map(tag => (
@@ -452,7 +452,7 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
               'How do I start trading?',
-              'What markets are supported?',
+              'Are there any P2P matching delays?',
               'How does the Vault system work?',
             ].map((q) => (
               <div key={q} className="glass-surface home-faq-item" style={{ padding: '16px 20px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.3s' }}>
