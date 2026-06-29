@@ -25,7 +25,7 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0xc562903F7e5d38C6aB23EB806aD63166586c456A';
+const TRADING_ADDRESS = '0x2e2D16b4cA6C617b4e0DBD07DC4246d3F88C3D34';
 const TRADING_ABI = [{"inputs":[{"internalType":"uint256[]","name":"positionIds","type":"uint256[]"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"executeADL","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderId","type":"uint256"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"executeOrder","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"positionId","type":"uint256"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"executeTPSL","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"positionId","type":"uint256"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"liquidate","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"pendingOrders","outputs":[{"internalType":"bytes32","name":"pairId","type":"bytes32"},{"internalType":"address","name":"trader","type":"address"},{"internalType":"bool","name":"isLong","type":"bool"},{"internalType":"uint256","name":"sizeUsd","type":"uint256"},{"internalType":"uint256","name":"collateral","type":"uint256"},{"internalType":"uint256","name":"leverage","type":"uint256"},{"internalType":"uint256","name":"triggerPrice","type":"uint256"},{"internalType":"uint8","name":"orderType","type":"uint8"},{"internalType":"bool","name":"isActive","type":"bool"},{"internalType":"uint256","name":"createdAt","type":"uint256"},{"internalType":"uint256","name":"positionId","type":"uint256"},{"internalType":"uint256","name":"feePaid","type":"uint256"},{"internalType":"uint256","name":"executionFee","type":"uint256"},{"internalType":"uint256","name":"tpPrice","type":"uint256"},{"internalType":"uint256","name":"slPrice","type":"uint256"},{"internalType":"uint256","name":"twapSlices","type":"uint256"},{"internalType":"uint256","name":"twapInterval","type":"uint256"},{"internalType":"uint256","name":"twapExecuted","type":"uint256"},{"internalType":"uint256","name":"twapLastExec","type":"uint256"}],"stateMutability":"view","type":"function"}];
 
 const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
@@ -165,6 +165,7 @@ async function runKeeper() {
     
     const sgData = await sgResponse.json();
     if (!sgData || !sgData.data) {
+        console.error("Subgraph Error Details:", JSON.stringify(sgData));
         throw new Error("Failed to fetch from subgraph");
     }
 
@@ -184,9 +185,15 @@ async function runKeeper() {
         if (orderType === 2 || orderType === 3) {
             shouldExecute = true; // Market orders / closes
         } else if (orderType === 0) {
-            shouldExecute = isLong ? (currentPrice <= triggerPrice) : (currentPrice >= triggerPrice);
+            const bufferPrice = isLong 
+                ? triggerPrice + (triggerPrice * 30n / 10000n) 
+                : triggerPrice - (triggerPrice * 30n / 10000n);
+            shouldExecute = isLong ? (currentPrice <= bufferPrice) : (currentPrice >= bufferPrice);
         } else if (orderType === 1) {
-            shouldExecute = isLong ? (currentPrice >= triggerPrice) : (currentPrice <= triggerPrice);
+            const bufferPrice = isLong 
+                ? triggerPrice - (triggerPrice * 30n / 10000n) 
+                : triggerPrice + (triggerPrice * 30n / 10000n);
+            shouldExecute = isLong ? (currentPrice >= bufferPrice) : (currentPrice <= bufferPrice);
         } else if (orderType === 4) {
             // Fetch missing TWAP fields from contract
             try {
@@ -265,11 +272,15 @@ async function runKeeper() {
             let isTp = false;
             
             if (tpPrice > 0n) {
-                isTp = isLong ? (currentPrice >= tpPrice) : (currentPrice <= tpPrice);
+                const tpBufferLong = tpPrice - (tpPrice * 30n / 10000n);
+                const tpBufferShort = tpPrice + (tpPrice * 30n / 10000n);
+                isTp = isLong ? (currentPrice >= tpBufferLong) : (currentPrice <= tpBufferShort);
                 shouldCloseTpSl = isTp;
             }
             if (!shouldCloseTpSl && slPrice > 0n) {
-                shouldCloseTpSl = isLong ? (currentPrice <= slPrice) : (currentPrice >= slPrice);
+                const slBufferLong = slPrice + (slPrice * 30n / 10000n);
+                const slBufferShort = slPrice - (slPrice * 30n / 10000n);
+                shouldCloseTpSl = isLong ? (currentPrice <= slBufferLong) : (currentPrice >= slBufferShort);
             }
 
             if (shouldCloseTpSl) {
@@ -305,6 +316,6 @@ app.listen(PORT, () => {
     console.log(`🌐 API listening on port ${PORT}`);
 });
 
-// Run AMM Keeper Loop every 2 seconds
+// Run AMM Keeper Loop every 4 seconds to test Goldsky rate limits
 runKeeper();
-setInterval(runKeeper, 2000);
+setInterval(runKeeper, 4000);
