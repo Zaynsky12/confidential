@@ -2,21 +2,41 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
-import "../src/ConfidentialCore.sol";
 
-contract UpdateLeverageScript is Script {
+interface IConfidentialCore {
+    function updatePairLeverage(bytes32 pairId, uint256 maxLeverage_) external;
+}
+
+contract UpdateLeverage is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
+        uint256 ownerPrivateKey = vm.envUint("OWNER_PRIVATE_KEY");
+        vm.startBroadcast(ownerPrivateKey);
 
-        // Arc Testnet Core address
-        ConfidentialCore core = ConfidentialCore(0x769C307cA53C2b84DeceA5B2A6F45304cd7785Cb);
+        IConfidentialCore core = IConfidentialCore(0x3396f443b8D0D144C831cf7EB4b0cAE5c3BaBd27);
 
-        bytes32 goldPairId = keccak256(abi.encodePacked("GOLD/USDC"));
-        bytes32 silverPairId = keccak256(abi.encodePacked("SILVER/USDC"));
+        // Crypto (100x)
+        core.updatePairLeverage(keccak256(abi.encodePacked("BTC/USDC")), 100);
+        core.updatePairLeverage(keccak256(abi.encodePacked("ETH/USDC")), 100);
 
-        core.updatePairLeverage(goldPairId, 100);
-        core.updatePairLeverage(silverPairId, 100);
+        // Crypto (50x)
+        core.updatePairLeverage(keccak256(abi.encodePacked("LINK/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("ARB/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("AVAX/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("SUI/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("APT/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("NEAR/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("DOGE/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("PEPE/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("WIF/USDC")), 50);
+
+        // RWA (50x)
+        core.updatePairLeverage(keccak256(abi.encodePacked("GOLD/USDC")), 50);
+        core.updatePairLeverage(keccak256(abi.encodePacked("SILVER/USDC")), 50);
+
+        // RWA (20x)
+        core.updatePairLeverage(keccak256(abi.encodePacked("AAPL/USDC")), 20);
+        core.updatePairLeverage(keccak256(abi.encodePacked("TSLA/USDC")), 20);
+        core.updatePairLeverage(keccak256(abi.encodePacked("NVDA/USDC")), 20);
 
         vm.stopBroadcast();
     }
