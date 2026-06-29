@@ -316,10 +316,27 @@ export default function Vault() {
                 </div>
 
                 <button className="submit-btn btn btn-green" 
-                  disabled={isPending || (!amt && !isWrongNetwork && isConnected) || (Number(amt) <= 0 && !isWrongNetwork && isConnected) || (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw')} 
+                  disabled={
+                    isPending || 
+                    (!amt && !isWrongNetwork && isConnected) || 
+                    (Number(amt) <= 0 && !isWrongNetwork && isConnected) || 
+                    (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0)) ||
+                    (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw')
+                  } 
                   onClick={handleAction}
                 >
-                  {isPending ? 'Processing...' : !isConnected ? 'Connect Wallet' : isWrongNetwork ? 'Switch to Arc Testnet' : (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw') ? `${activeTab === 'Degen' ? '2' : '5'}-Day Lockup Active` : activeAction}
+                  {isPending 
+                    ? 'Processing...' 
+                    : !isConnected 
+                    ? 'Connect Wallet' 
+                    : isWrongNetwork 
+                    ? 'Switch to Arc Testnet' 
+                    : (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0))
+                    ? 'No Shares to Withdraw'
+                    : (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw') 
+                    ? `${activeTab === 'Degen' ? '2' : '5'}-Day Lockup Active` 
+                    : activeAction
+                  }
                 </button>
               </div>
             </div>
