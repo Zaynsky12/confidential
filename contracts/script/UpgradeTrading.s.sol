@@ -8,7 +8,7 @@ import "../src/ConfidentialTrading.sol";
 contract UpgradeTrading is Script {
     address constant USDC = 0x3600000000000000000000000000000000000000;
     address constant CORE = 0x3396f443b8D0D144C831cf7EB4b0cAE5c3BaBd27;
-    address constant VAULT = 0x3a9e038bB29C2d8dc13891639b444a80B8F57952;
+    address constant VAULT = 0x64b5a121D7a0CAcAB2F0fde5957768CfF9745FaE;
     address constant ORACLE = 0x897b9947185079B42d94CbbF332192CEFd9ACCFA;
 
     function run() external {

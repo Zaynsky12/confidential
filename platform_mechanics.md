@@ -2,140 +2,81 @@
 
 **Confidential DEX** adalah bursa derivatif terdesentralisasi (*Decentralized Perpetual Exchange*) generasi terbaru yang memadukan kecepatan eksekusi bursa terpusat (CEX) dengan transparansi dan keamanan absolut khas Web3. Dibangun di atas infrastruktur *smart contract* modular yang sangat dioptimalkan, platform ini secara khusus dirancang untuk memecahkan tiga masalah fundamental di ranah DeFi: latensi eksekusi yang tinggi, biaya *slippage* yang merugikan, dan risiko manipulasi harga oleh paus (*whale manipulation*).
 
-### 🚀 Keunggulan Utama
+---
 
-1. **Kecepatan Setara CEX dengan Jeda Pintar 2 Detik:** Melalui integrasi infrastruktur *Oracle Pyth* yang menyuntikkan harga seketika, pesanan (*Market*, *Limit*, *Stop*) dimasukkan ke dalam "Ember Waktu 2 Detik" (Asynchronous Batching) oleh Keeper Bot. Jeda sangat singkat ini memberikan kesempatan bagi sistem untuk mencarikan lawan P2P sebelum dilempar ke Vault.
-2. **Zero Slippage via Hybrid P2P Matching:** Berbeda dengan DEX AMM konvensional yang membebankan *price impact* tinggi pada setiap pesanan, mesin pencocokan *Confidential* memprioritaskan benturan pesanan *Long* dan *Short* secara *on-chain* di dalam satu *batch*. Hasilnya adalah eksekusi harga sempurna (0% slippage) tepat di harga Oracle saat itu.
-3. **Likuiditas Super Dalam (Guaranteed Liquidity):** Didukung penuh oleh *Automated Market Maker* (AMM) bertingkat sebagai lapisan cadangan (*fallback*), *trader* tidak akan pernah kekurangan lawan transaksi. Ukuran pesanan raksasa dapat diakomodasi kapan saja tanpa hambatan.
-4. **Proteksi Modal Institusional (70% Prime Protection):** Sebagai pelopor sistem *Dual-Tranche Vault*, Confidential DEX melindungi Penyedia Likuiditas (*Liquidity Provider*) kelas *Prime* secara matematis di tingkat *smart contract*. Eksposur kerugian maksimal mereka dibatasi dengan ketat, menjadikan DEX ini instrumen *yield* yang aman bagi dana institusional.
+## 1. 🚀 Keunggulan Arsitektur V7 (Direct-to-Vault)
+
+Setelah melalui berbagai iterasi, Confidential DEX kini beroperasi dengan model **V7 Direct-to-Vault Execution** yang mengutamakan kecepatan dan kepastian eksekusi.
+
+*   **Zero-Latency Settlement:** Mengeliminasi sistem antrean *Peer-to-Peer* lambat. Setiap pesanan (*Market*, *Limit*, *Stop*) langsung dibenturkan ke dalam *Liquidity Vault* untuk penyelesaian instan (1-langkah).
+*   **Guaranteed Liquidity:** *Trader* tidak perlu menunggu lawan transaksi. Kapasitas Vault menjamin bahwa pesanan sebesar apa pun akan tereksekusi secara absolut selama utilitas Vault mencukupi.
+*   **Zero-Delay Pipeline (Event-Driven):** Infrastruktur pencatatan *Goldsky GraphQL Subgraph* dan *Pyth Network* dikombinasikan secara asinkron. Setiap tekanan tombol "Buy" dari UI langsung memaketkan harga *Oracle* terkini ke dalam transaksi *blockchain*, menjamin nol jeda.
 
 ---
 
-## 1. 🏗️ Model Arsitektur: 100% On-Chain Hybrid P2P + PLP
+## 2. 🏦 Spesifikasi Likuiditas: Dual-Tranche Vault
 
-Setelah melalui berbagai iterasi pengujian keamanan, Confidential DEX bertransisi dari model *Peer-to-Pool* murni menuju arsitektur **Hybrid Peer-to-Peer (P2P) + Peer-to-Liquidity Pool (PLP)**.
+Likuiditas di DEX ini disegmentasi menjadi dua lapisan brankas (*tranche*) independen dengan batas kapasitas maksimal absolut (Total TVL Cap) sebesar **$50.000.000 USDC**. Brankas beroperasi menggunakan standar ERC-4626 Tokenized Vault dengan sistem *Auto-Compounding* (cUSDC).
 
-Sistem *Limit* dan *Market* tradisional seringkali rentan terhadap manipulasi atau membebankan *slippage* yang tidak masuk akal. Dengan arsitektur Hybrid *On-Chain* kami:
-- **Anti-Spam:** Setiap pembuatan pesanan mewajibkan komitmen kolateral (USDC) di awal, mengeliminasi risiko pembengkakan antrean palsu (*order spamming*).
-- **Kepastian Eksekusi Ekstrem:** Pesanan tidak harus menunggu lawan. Jika P2P tidak tersedia, likuiditas dari *Vault* (PLP) akan otomatis mengeksekusi pesanan tanpa jeda.
+### 🔴 Degen Vault (Junior Tranche)
+Diperuntukkan bagi penyedia likuiditas (LP) dengan profil risiko tinggi yang mendambakan pertumbuhan modal agresif.
+*   **Kapasitas Maksimal (Porsi):** **$15.000.000** (30% dari Total TVL)
+*   **Insentif Keuntungan:** Mendapatkan persentase laba **3x lipat lebih besar** dari seluruh pendapatan protokol (Biaya *Trading*, Likuidasi, *Funding Rate*, dan Kerugian *Trader*).
+*   **Risiko (First-Loss):** Bertindak sebagai bantalan perisai pertama. Jika *trader* menang, uang kemenangan akan ditarik sepenuhnya dari Degen Vault terlebih dahulu. Degen Vault dapat tergerus hingga $0 (memicu *Epoch Reset*).
+*   **Lockup Period:** 2 Hari (172.800 detik). Uang yang disetor akan dikunci selama 2 hari kalender absolut tanpa celah pintas.
 
----
-
-## 2. ⚡ Mesin Pencocokan "Hybrid Order-Book"
-
-Logika eksekusi Confidential DEX menggabungkan efisiensi *Order-book* dengan kedalaman likuiditas *Passive Liquidity Pool (Vault)* untuk meminimalisir risiko bagi *Liquidity Provider* (LP) sekaligus memberikan harga terbaik bagi *trader*.
-
-### Cara Kerja Pencocokan Dua Lapis (Ember 2 Detik):
-
-1. **Lapis Pertama (P2P Order-Book — Zero Slippage):** Bot *sequencer* mengumpulkan semua pesanan *Market*, *Limit*, dan *Stop* yang masuk dalam jendela waktu 2 detik. Jika ada *Long* dan *Short* yang bersinggungan di harga Oracle, keduanya dibenturkan secara langsung. *Vault* sama sekali tidak menanggung risiko jaminan, dan kedua *trader* menikmati eksekusi dengan **0% Slippage**.
-2. **Lapis Kedua (PLP Fallback):** Sisa volume pesanan yang tidak memiliki pasangan P2P dalam jeda 2 detik tersebut akan otomatis dilempar ke *Vault* untuk dieksekusi dengan *Slippage* standar AMM. Pesanan *Close*, *TP*, *SL*, dan *TWAP* selalu dieksekusi di lapis kedua ini untuk menjamin penyelesaian PnL yang absolut.
-
-### 🔍 Analogi Eksekusi (Kasus: $5K Long vs $10K Short)
-
-- **Trader A** memasang order **LONG $5,000**
-- **Trader B** memasang order **SHORT $10,000** di harga yang sama
-
-Saat dieksekusi melalui fitur `executeHybridBatch`, inilah yang terjadi secara *on-chain*:
-
-| Tahap Pemrosesan | Lawan Transaksi | Volume Eksekusi | Risiko Vault (LP) | Price Impact |
-|---|---|---|---|---|
-| **Tahap 1 (P2P)** | Trader A ($5K) ⚔️ Trader B ($5K) | $5,000 | **TIDAK ADA** | **0%** |
-| **Tahap 2 (PLP)** | Sisa Trader B ($5K) ⚔️ Vault | $5,000 | Ditanggung Vault | Ada (Standar) |
-
-**Hasil Eksekusi Akhir:**
-- **Trader A (Long $5K):** Posisi terbuka penuh 100% dengan **0% Slippage**.
-- **Trader B (Short $10K):** Posisi terbuka penuh 100%. Sistem pintar kami menerapkan **Blended Price Impact (Slippage Rata-rata)**. *Slippage* hanya dihitung dari sisa $5.000 beban *Vault*, lalu dirata-ratakan secara proporsional ke total $10.000 pesanan. Trader B menikmati "diskon slippage" berkat efisiensi P2P.
-- **Vault LP:** Mengalami penghematan risiko drastis, dari yang seharusnya menanggung eksposur $15.000, kini hanya menanggung arah *Short* sebesar $5.000.
+### 🔵 Prime Vault (Senior Tranche)
+Diperuntukkan bagi institusi atau *whale* yang mengutamakan keamanan dan apresiasi nilai konstan.
+*   **Kapasitas Maksimal (Porsi):** **$35.000.000** (70% dari Total TVL)
+*   **Insentif Keuntungan:** Mendapatkan sisa 1x porsi profit reguler. Kenaikan nilai *shares* berjalan perlahan namun memiliki resistensi tinggi terhadap kejatuhan tajam.
+*   **Proteksi Ekstrem:** Dilindungi secara matematis dari risiko kebangkrutan (Lihat detail *Capital Protection* di Bab 3).
+*   **Lockup Period:** 5 Hari (432.000 detik). Uang yang disetor dikunci lebih lama demi menjaga stabilitas cadangan kas bursa.
 
 ---
 
-## 3. 🤖 Sistem Eksekusi Otomatis & Peran Keeper Bot
+## 3. 🛡️ Proteksi Sistemik & Manajemen Risiko
 
-Ekosistem Confidential DEX dirancang secara hibrida antara desentralisasi penuh dan keamanan terpusat. Fungsi eksekusi pesanan normal (`executeOrder`, `executeTPSL`, dan `liquidate`) beroperasi secara **100% Permissionless** (siapa saja dapat menjadi eksekutor). Namun, untuk fitur pencocokan *P2P Batch* (`executeHybridBatch`), hanya **Keeper Bot Resmi** yang terdaftar di *Smart Contract* yang diizinkan memicunya demi menjamin keamanan dan efisiensi *batching*.
+Untuk menjaga roda ekonomi *smart contract* tetap berputar stabil, ekosistem dibekali dengan tembok pertahanan matematis:
 
-Terdapat tiga mandat krusial bagi sistem Keeper:
+### A. Vault Utilization Cap (Batas Maksimal Eksekusi) : `80%`
+*   Berlaku saat *trader* **MEMBUKA** posisi.
+*   Sistem tidak akan mengizinkan pembukaan posisi baru jika uang tunai yang sedang terpakai untuk menahan posisi berjalan (*Open Interest*) menyentuh **80%** dari saldo Vault. Sisa **20%** adalah dana kas (*Cash Reserve*) suci yang dijamin tersedia agar para LP selalu bisa menarik (*Withdraw*) aset mereka kapanpun tanpa kegagalan transaksi (*Revert*).
 
-### A. Pencocokan P2P Massal (`executeHybridBatch` - Khusus Keeper Resmi)
-- **Tugas:** Menyatukan kelompok pesanan *Long* dan *Short* yang saling melengkapi dan mengeksekusinya dalam satu transaksi *batch* untuk efisiensi gas dan *zero-slippage*.
+### B. Prime Capital Protection (Sabuk Pengaman Modal) : `70%`
+*   Berlaku saat *trader* paus **MENUTUP** posisi (Membawa kemenangan raksasa).
+*   Jika seorang *trader* mencetak profit tak terhingga hingga menguras $15 Juta dari Degen Vault menjadi $0, kerugian tersebut akan mulai bocor/merembes ke Prime Vault.
+*   Namun, *Smart Contract* akan langsung menurunkan pemutus daya (*circuit breaker*): **Maksimal kerugian yang boleh ditanggung Prime Vault hanyalah 30%**. Sisa **70% dari Total Aset Prime Vault dikunci absolut** dan tidak dapat diklaim sebagai kemenangan *trader* (*Profit Capping*).
 
-### B. Eksekusi Pesanan Individu (`executeOrder` & `executeTPSL`)
-- **Tugas:** Memantau pergerakan harga *Oracle* secara *real-time*. Begitu menyentuh target *Limit*, *Stop Loss*, atau jadwal irisan *TWAP*, Bot akan memicu eksekusi *on-chain*.
-- **Imbalan:** Bot eksekutor pertama mengklaim **100% Execution Fee** (dalam bentuk koin *native* jaringan) yang telah dialokasikan trader sebelumnya.
-
-### C. Likuidasi Posisi Kritis (`liquidate`)
-- **Tugas:** Memantau kesehatan *Margin* (kolateral) dari setiap posisi aktif. Jika saldo jaminan dikurangi *Net PnL* dan biaya bergulir telah melampaui ambang kebangkrutan, Bot wajib membunuh posisi tersebut.
-- **Imbalan:** Bot menerima **Liquidation Reward instan sebesar 1%** dari *Effective Collateral* trader yang tersisa.
-
----
-
-## 4. ⚖️ Dua Benteng Likuiditas: Utilization Cap vs Prime Protection
-
-Untuk mengeliminasi risiko insolvensi dan melindungi modal investor, protokol ini mengadopsi dua lapis pembatasan matematis:
-
-### A. Vault Utilization Cap (Batas Eksposur Trading)
-Beroperasi sebagai gerbang keamanan saat trader **MEMBUKA** posisi.
-- **Batas Maksimal:** `80%` dari total likuiditas gabungan (Degen + Prime).
-- **Fungsi:** Menyisakan cadangan tunai (*cash reserve*) sebesar 20% secara permanen. Hal ini menjamin bahwa setiap permintaan penarikan (*withdraw*) oleh LP atau pencairan *Take Profit* oleh trader akan selalu sukses diproses tanpa status *revert* akibat kekosongan dana cair.
-
-### B. Prime Capital Protection (Sabuk Pengaman Modal)
-Beroperasi sebagai mitigasi risiko ekstrem saat trader memenangkan transaksi raksasa dan **MENUTUP** posisi.
-- **Tingkat Perlindungan:** `70%` dari likuiditas Prime Vault.
-- **Fungsi:** Menghentikan perembesan kerugian (*Profit Capping*). Sekalipun kemenangan trader mampu menguras Degen Vault secara total hingga $0, *Smart Contract* akan membekukan 70% sisa modal Prime Vault. Dana ini mutlak dilindungi dan tidak dapat ditarik sebagai kemenangan trader.
+### C. Emergency Auto-Deleveraging (ADL) : `95%`
+*   Garis pertahanan krisis likuiditas paling ekstrem. 
+*   Jika karena satu dan lain hal pergerakan pasar menyebabkan utilitas kas Vault melonjak melebihi **95%**, *Keeper Bot* diberikan wewenang membunuh posisi-posisi menguntungkan (*profitable*) milik *trader* secara paksa untuk mengembalikan likuiditas ke zona aman.
 
 ---
 
-## 5. 🏦 Arsitektur Dual-Tranche Vault (Degen vs Prime)
+## 4. 🤖 Peran Keeper Bot (Sistem Eksekusi Otomatis)
 
-Likuiditas di DEX ini disegmentasi menjadi dua lapisan brankas independen dengan profil risiko yang bertolak belakang:
+Eksekusi transaksi berjalan secara otomatis *(Automation)* di latar belakang berkat **Keeper Bot** yang menyala 24/7 di *server* independen:
 
-### 🔄 Mekanisme Auto-Compounding (USDC ↔ cUSDC)
-Vault beroperasi menggunakan standar **ERC-4626 Tokenized Vault**.
-1. **Deposit (Minting):** LP menyetorkan *USDC* dan menerima resi *cUSDC* (*Confidential USDC*) yang merepresentasikan nilai saham (*shares*) dari total *pool*.
-2. **Apresiasi Harga:** Setiap kali protokol mendulang pendapatan dari *Trading Fee*, Biaya Bergulir, atau kerugian PnL trader, pasokan fisik *USDC* bertambah sementara keping *cUSDC* tetap. Secara matematis, rasio tukar 1 *cUSDC* akan terus naik melampaui $1.
-3. **Withdrawal (Burning):** LP mengembalikan *cUSDC* mereka ke *Smart Contract* dan menerima lebih banyak *USDC* daripada modal awal mereka. Sistem ini menghapus kebutuhan tombol "Claim Reward" yang memboroskan gas.
+1.  **Eksekusi Pending Order:** Mengawal posisi *Limit* dan *Stop Order* milik *trader*. Begitu target harga tersentuh oleh pergerakan data *Pyth Oracle*, Bot secara instan menyuntikkan fungsi penyelesaian (`executeOrder`) ke dalam *blockchain*.
+2.  **Pemenggalan Likuidasi:** Memantau tingkat kesehatan kolateral (jaminan). Bot akan memenggal posisi jika rasio kebangkrutan tersentuh dan mendapatkan **imbalan tunai 1%** (*Liquidation Reward*) dari sisa jaminan *trader*.
 
-### Profil Risiko Brankas:
-
-#### 🔴 Degen Vault (First-Loss Tranche)
-- **Karakter:** Berisiko tinggi dengan imbal hasil agresif. Mendapatkan persentase laba **3x lipat lebih besar** dari total ekosistem.
-- **Porsi Total:** 30% dari Total Maksimal Deposit Vault.
-- **Risiko Tameng:** Berfungsi sebagai bantalan pertama. Jika trader profit, uang ditarik dari Degen Vault terlebih dahulu. Vault ini dapat tergerus hingga $0 (memicu *Epoch Reset*).
-- **Lockup Period:** 2 Hari (172.800 detik).
-
-#### 🔵 Prime Vault (Senior Tranche)
-- **Karakter:** Stabil dan defensif. Kenaikan harga *cUSDC Prime* berlangsung konsisten tanpa gejolak tajam.
-- **Porsi Total:** 70% dari Total Maksimal Deposit Vault.
-- **Proteksi Ekstrem:** Dilindungi oleh benteng **Capital Protection 70%**.
-- **Lockup Period:** 5 Hari (432.000 detik).
+*(Catatan: Fungsi eksekusi ini beroperasi 100% Permissionless, artinya siapapun di seluruh dunia berhak menyalakan bot mereka sendiri dan berkompetisi mendapatkan imbalan eksekusi).*
 
 ---
 
-## 6. ✨ Eksekusi Fungsional Kelas Institusi
+## 5. ✨ Eksekusi Fungsional Tingkat Institusi
 
-1. **TWAP (Time-Weighted Average Price):** Algoritma pemecah *order* masif menjadi irisan-irisan kecil (*slices*) secara berkala. *Smart contract* mengakumulasi sisa presisi irisan di akhir siklus untuk menihilkan *rounding loss*.
-2. **Averaging (Increase Position):** Menambahkan volume pada posisi terbuka menggunakan perhitungan **Harmonic Average Price**, sebuah formula anti-eksploitasi yang kebal dari manipulasi PnL buatan.
-3. **Instant Partial Close:** Menutup sebagian volume posisi untuk merealisasikan profit tanpa harus melikuidasi keseluruhan transaksi.
-4. **Dynamic TP / SL & Harga Terjamin (Guaranteed Execution):** Modifikasi titik *Take Profit* dan *Stop Loss* dapat dilakukan secara dinamis kapanpun. Saat target tersentuh, PnL *trader* dikunci mutlak menggunakan angka target tersebut (*Guaranteed Price*), mengamankan *trader* dari kerugian selisih harga eksekusi di jaringan (*slippage*).
-5. **Execution Buffer (Anti-Jarum):** Transaksi otomatis dilindungi oleh batas toleransi keterlambatan jaringan sebesar 0.3% (30 bps). Jika fluktuasi liar ("jarum") membuat harga berbalik menjauhi TP/SL saat transaksi diproses *blockchain*, pesanan tetap sukses dieksekusi selama pantulannya tidak melewati batas 0.3%. Selisih kerugian *latency* ini didanai (disubsidi) oleh Vault untuk memberikan pengalaman trading setara GMX.
-6. **Adjustable Collateral:** Penambahan atau pengurangan jaminan (*margin*) untuk mengelola risiko likuidasi secara presisi.
-7. **Continuous Funding Rate & Zero Borrow Fee:** Menghilangkan beban *Rollover/Borrow Fee* (0%) untuk memanjakan *trader*. Sebagai gantinya, risiko arah pasar dikelola sepenuhnya melalui *Dynamic Funding Rate*—pajak penyeimbang pasar di mana kelompok mayoritas (misal *Long*) membayar insentif bergulir kepada kelompok minoritas (*Short*). Ini menjamin *Vault* bebas dari risiko satu arah (*directional risk*).
+*   **Zero Borrow Fee & Dynamic Funding Rate:** Membuang beban sewa *(borrow fee)* menjadi **0%** untuk meringankan *trader*. Risiko *directional* (kecenderungan mayoritas memegang posisi seragam) ditekan menggunakan pajak keseimbangan *(Funding Rate)*: Mayoritas mensubsidi Minoritas.
+*   **Execution Buffer (Anti-Jarum) 0.3%:** Jika fluktuasi liar *(latency spike)* membuat harga bergeser menjauh dari SL/TP *trader* saat diproses di *blockchain*, eksekusi tetap sukses selama pergeserannya di bawah 0.3% *(30 bps)*.
+*   **Harmonic Averaging Price:** Perhitungan *entry* baru saat *trader* menambah posisi menggunakan rata-rata harmonik, memblokir manipulasi taktik penambahan posisi buatan.
+*   **TWAP (Time-Weighted Average Price):** Pemecah irisan order besar ke dalam rentang waktu terkalibrasi untuk meminimalkan dampak harga kuadratik.
 
 ---
 
-## 7. 🛡️ 13 Lapis Pertahanan Anti-Eksploitasi (Smart Contract)
+## 6. 🔐 Lapis Pertahanan Anti-Eksploitasi Jaringan
 
-Protokol ini dipersenjatai dengan 13 pengaman tingkat tinggi untuk menghalau vektor serangan DeFi:
-
-1. **Anti-Flash Loan & MEV (5-Second Cooldown):** Segala bentuk pembukaan atau penutupan posisi, termasuk memicu target TP/SL, terkunci mutlak selama 5 detik sejak pesanan awal, menetralkan eksploitasi arbitrase *Flash Loan* lintas-blok. (Catatan: *Trader* bebas memperbarui angka target TP/SL mereka kapan saja).
-2. **Dynamic Solvency Check:** Saat merealisasikan profit, kontrak memverifikasi likuiditas *USDC* fisik. Jika terjadi defisit ekstrem, profit disesuaikan secara dinamis untuk mencegah *revert* sistemik.
-3. **Strict CEI (Checks-Effects-Interactions):** Semua fungsi mutasi status (penurunan OI, pembaruan PnL) dieksekusi **sebelum** uang ditransfer keluar. Mengeliminasi celah *Reentrancy Attack*.
-4. **Oracle Confidence Interval:** Transaksi otomatis dibatalkan jika *spread* volatilitas data harga dari Pyth melebihi standar deviasi yang sehat, memblokir perdagangan di harga semu.
-5. **Emergency ADL (Auto-Deleveraging):** Posisi sehat hanya dapat dipaksa tutup oleh *Keeper* jika Utilisasi Vault menyentuh angka kritis (> 95%), mencegah likuidasi sepihak di kondisi normal.
-6. **Quadratic Price Impact:** Paus yang mencoba menyerap likuiditas tunggal akan dihadapkan pada penalti slippage kuadratik, menciptakan ketidakefisienan ekonomi bagi penyerang.
-7. **TWAP Re-Validation:** Irisan eksekusi TWAP senantiasa divalidasi ulang dengan batasan *Open Interest* secara *real-time*, menihilkan serangan penumpukan order masa depan.
-8. **Closing Fee Accounting:** Mencegah kebocoran ganda (*Double Extraction*) melalui rekonsiliasi biaya internal Vault sebelum didistribusikan ke dompet *Treasury*.
-9. **Anti-Donation Attack (ERC-4626):** Deposit awal LP akan mengunci sebagian fraksi saham (*Minimum Liquidity*) secara permanen, menyumbat jalur serangan inflasi nilai *shares*.
-10. **Automated Epoch Bankruptcy:** Jika *Vault* terkuras habis, sistem mereset rasio *shares* menjadi 1:1, menolak beban hutang (*negative equity*) bagi LP di siklus berikutnya.
-11. **Slippage Hard-Revert:** Garis pertahanan terakhir yang langsung membatalkan eksekusi jika pergeseran harga eksternal merugikan ambang batas *trader*.
-12. **2-Step Admin Transfer:** Mencegah musibah pengambilalihan tak terduga (*fat-finger error*) saat memindahkan hak akses *Ownership* ke dompet lain.
-13. **Anti-Whale P2P Exploit (Blended Impact):** Menggagalkan taktik eksploitasi di mana Paus memancing likuiditas P2P mikro untuk mendapatkan 0% *slippage* pada pesanan raksasa. Sistem *Blended Impact* memastikan Paus tetap menanggung penalti *slippage* AMM sesuai bobot volume pesanan yang ditanggung oleh *Vault*.
+1.  **Anti-Flash Loan & MEV (5-Second Cooldown):** Posisi yang baru saja dibuka mustahil ditutup atau dikutak-katik dalam waktu 5 detik. Mengeliminasi total eksploitasi serangan *Flash Loan* dalam satu siklus blok.
+2.  **Oracle Confidence Interval:** Sistem menolak berdagang jika selisih rentang tebakan *(Confidence Interval)* dari data Pyth melebihi batas rasional akibat badai volatilitas eksternal.
+3.  **Strict CEI (Checks-Effects-Interactions):** Semua perpindahan uang (USDC) dieksekusi murni di akhir baris setelah penurunan OI dan pencatatan PnL, menutup lubang maut *Reentrancy Attack*.
+4.  **Anti-Donation Attack (ERC-4626):** Setoran deposit $1.000 pertama dalam Vault dikorbankan (*burnt*) permanen untuk mencegah eksploitasi inflasi rasio harga *shares*.
+5.  **Automated Epoch Bankruptcy:** LP tidak mewarisi "utang" dari keruntuhan harga. Jika sebuah Vault tergerus hingga saldo $0 akibat kemenangan beruntun *trader*, *shares* akan direset bersih menjadi rasio 1:1 di Epoch baru.

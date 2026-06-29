@@ -25,7 +25,7 @@ const account = privateKeyToAccount(privateKey);
 const client = createPublicClient({ chain: arcTestnet, transport: http() });
 const wallet = createWalletClient({ account, chain: arcTestnet, transport: http() });
 
-const TRADING_ADDRESS = '0x2e2D16b4cA6C617b4e0DBD07DC4246d3F88C3D34';
+const TRADING_ADDRESS = '0xc562903F7e5d38C6aB23EB806aD63166586c456A';
 const TRADING_ABI = [{"inputs":[{"internalType":"uint256[]","name":"positionIds","type":"uint256[]"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"executeADL","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderId","type":"uint256"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"executeOrder","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"positionId","type":"uint256"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"executeTPSL","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"positionId","type":"uint256"},{"internalType":"bytes[]","name":"updateData","type":"bytes[]"}],"name":"liquidate","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"pendingOrders","outputs":[{"internalType":"bytes32","name":"pairId","type":"bytes32"},{"internalType":"address","name":"trader","type":"address"},{"internalType":"bool","name":"isLong","type":"bool"},{"internalType":"uint256","name":"sizeUsd","type":"uint256"},{"internalType":"uint256","name":"collateral","type":"uint256"},{"internalType":"uint256","name":"leverage","type":"uint256"},{"internalType":"uint256","name":"triggerPrice","type":"uint256"},{"internalType":"uint8","name":"orderType","type":"uint8"},{"internalType":"bool","name":"isActive","type":"bool"},{"internalType":"uint256","name":"createdAt","type":"uint256"},{"internalType":"uint256","name":"positionId","type":"uint256"},{"internalType":"uint256","name":"feePaid","type":"uint256"},{"internalType":"uint256","name":"executionFee","type":"uint256"},{"internalType":"uint256","name":"tpPrice","type":"uint256"},{"internalType":"uint256","name":"slPrice","type":"uint256"},{"internalType":"uint256","name":"twapSlices","type":"uint256"},{"internalType":"uint256","name":"twapInterval","type":"uint256"},{"internalType":"uint256","name":"twapExecuted","type":"uint256"},{"internalType":"uint256","name":"twapLastExec","type":"uint256"}],"stateMutability":"view","type":"function"}];
 
 const PYTH_ADDRESS = '0x2880aB155794e7179c9eE2e38200202908C17B43';
@@ -33,7 +33,7 @@ const PYTH_ABI = [
   { "inputs": [{ "internalType": "bytes[]", "name": "updateData", "type": "bytes[]" }], "name": "getUpdateFee", "outputs": [{ "internalType": "uint256", "name": "feeAmount", "type": "uint256" }], "stateMutability": "view", "type": "function" }
 ];
 
-const GOLDSKY_URL = 'https://api.goldsky.com/api/public/project_cmq6wbchslca901xaekhtfer7/subgraphs/confidentialdex/109/gn';
+const GOLDSKY_URL = 'https://api.goldsky.com/api/public/project_cmq6wbchslca901xaekhtfer7/subgraphs/confidentialdex/110/gn';
 
 // Express Server Setup
 const express = require('express');

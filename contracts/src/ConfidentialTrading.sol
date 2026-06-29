@@ -761,19 +761,26 @@ contract ConfidentialTrading is ReentrancyGuard {
     }
 
     /// @notice Settle accrued fees on a position and reset tracking timestamps
-    /// @dev Used internally by increasePosition to prevent fee exploitation
-    function _settleAccruedFees(Position storage pos) internal returns (uint256 totalFees) {
+    /// @dev Used internally to prevent fee exploitation and properly credit negative funding
+    function _settleAccruedFees(Position storage pos) internal {
         uint256 rollover = _calcRolloverFee(pos);
         core.updateFunding(pos.pairId);
         int256 funding = _calcFundingFee(pos);
 
-        totalFees = rollover;
-        if (funding > 0) totalFees += uint256(funding);
+        int256 netFee = int256(rollover) + funding;
 
-        if (totalFees > 0) {
-            require(totalFees < pos.collateral, "Position liquidatable from fees");
-            pos.collateral -= totalFees;
-            vault.settleAccruedFees(totalFees);
+        if (netFee > 0) {
+            uint256 feeToPay = uint256(netFee);
+            require(feeToPay < pos.collateral, "Position liquidatable from fees");
+            pos.collateral -= feeToPay;
+            vault.settleAccruedFees(feeToPay);
+        } else if (netFee < 0) {
+            // Trader earned money from funding, extract reward from Vault PnL pool
+            uint256 reward = uint256(-netFee);
+            pos.collateral += reward;
+            vault.settlePosition(address(this), 0, int256(reward));
+            _safeTransfer(address(vault), reward);
+            vault.reserveBacking(reward);
         }
 
         // Reset tracking
@@ -961,7 +968,10 @@ contract ConfidentialTrading is ReentrancyGuard {
             return;
         }
 
-        // Calculate proportional amounts for the closed portion
+        // CRITICAL FIX: Settle all elapsed fees globally FIRST
+        _settleAccruedFees(pos);
+
+        // Now pos.collateral is up-to-date. Calculate proportional amounts
         uint256 closeSizeUsd = (pos.sizeUsd * closePercent) / 10000;
         uint256 closeCollateral = (pos.collateral * closePercent) / 10000;
 
@@ -979,28 +989,14 @@ contract ConfidentialTrading is ReentrancyGuard {
             pnl = (int256(pos.entryPrice) - int256(currentPrice)) * int256(closeSizeUsd) / int256(pos.entryPrice);
         }
 
-        // Proportional fees for closed portion
+        // Only deduction left is the closing fee!
         uint256 closingFee = core.calculateFee(closeSizeUsd, false);
-        uint256 rolloverFee = (closeSizeUsd * rolloverFeePerHour * (block.timestamp - pos.lastRolloverSettled)) / (3600 * 1e6);
-
-        core.updateFunding(pos.pairId);
-        int256 fundingDelta = core.cumulativeFundingIndex(pos.pairId) - pos.entryFundingIndex;
-        int256 fundingFee;
-        if (pos.isLong) {
-            fundingFee = (int256(closeSizeUsd) * fundingDelta) / 1e18;
-        } else {
-            fundingFee = -(int256(closeSizeUsd) * fundingDelta) / 1e18;
-        }
-
-        int256 totalDeductions = int256(closingFee) + int256(rolloverFee) + fundingFee;
-        int256 netPnl = pnl - totalDeductions;
+        int256 netPnl = pnl - int256(closingFee);
 
         // Update state BEFORE transfers (CEI)
         pos.sizeUsd = remainSize;
         pos.collateral = remainCollateral;
         pos.leverage = remainSize / remainCollateral;
-        // FIX MEDIUM-3: Reset rollover timestamp to prevent double-charging on remainder
-        pos.lastRolloverSettled = block.timestamp;
         pos.liquidationPrice = _calcLiqPrice(pos.entryPrice, remainSize, remainCollateral, pos.isLong);
 
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, closeSizeUsd);
