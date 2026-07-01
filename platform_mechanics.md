@@ -75,7 +75,7 @@ Sistem keuangan bot dirancang secara adil agar operator bot tidak pernah mengala
 ## 5. ✨ Eksekusi Fungsional Tingkat Institusi
 
 *   **Zero Borrow Fee & Dynamic Funding Rate:** Membuang beban sewa *(borrow fee)* menjadi **0%** untuk meringankan *trader*. Risiko *directional* (kecenderungan mayoritas memegang posisi seragam) ditekan menggunakan pajak keseimbangan *(Funding Rate)*: Mayoritas mensubsidi Minoritas.
-*   **Limit Order Discipline (0% Buffer):** Limit Order menggunakan ketepatan 100% tanpa buffer eksekusi prematur (standar GMX/Avantis). Pesanan hanya terbuka jika harga pasar tepat menyentuh atau melewati target.
+*   **Limit Order Discipline (0% Buffer):** Limit Order menggunakan ketepatan 100% tanpa buffer eksekusi prematur. Pesanan hanya terbuka jika harga pasar tepat menyentuh atau melewati target.
 *   **Execution Buffer (Anti-Jarum) 0.3%:** Khusus untuk Stop Order, Take Profit (TP), dan Stop Loss (SL), terdapat buffer eksekusi 0.3% *(30 bps)* untuk melindungi trader dari gagal eksekusi *(revert)* saat volatilitas atau *market crash* mendadak.
 *   **Harmonic Averaging Price:** Perhitungan *entry* baru saat *trader* menambah posisi menggunakan rata-rata harmonik, memblokir manipulasi taktik penambahan posisi buatan.
 *   **On-Chain Max Leverage Tiers:** Batas leverage diatur langsung di smart contract sesuai kelas volatilitas aset: **100x** untuk aset kripto utama (BTC, ETH, SOL) dan Forex; **50x** untuk Altcoins dan Komoditas (Emas/Perak); serta **20x** untuk Indeks Saham (S&P500, NASDAQ).
