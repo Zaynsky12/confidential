@@ -70,7 +70,7 @@ async function main() {
   console.log(`🔑 Keeper Wallet: ${wallet.address}`);
 
   // Load contract addresses
-  let TRADING_ADDRESS = "0x523758d17F8916d7C700Ed8F75FAf7dbc996d560"; // Default V1 address
+  let TRADING_ADDRESS = "0x51468799Ad7B61B011677E0408252b38Ed10442E"; // Default V1 address
   try {
     const deployPath1 = path.join(__dirname, "latest_deploy.json");
     const deployPath2 = path.join(__dirname, "scripts/latest_deploy.json");
@@ -87,7 +87,7 @@ async function main() {
 
   let tradingAbi = [
     "function nextOrderId() view returns (uint256)",
-    "function pendingOrders(uint256) view returns (bytes32 pairId, address trader, bool isLong, uint256 sizeUsd, uint256 collateral, uint256 leverage, uint256 triggerPrice, uint8 orderType, bool isActive, uint256 createdAt, uint256 executedAt, uint256 positionId, uint256 tpPrice, uint256 slPrice, uint256 twapSlices, uint256 twapExecuted, uint256 acceptablePrice, uint256 executionFee, uint256 twapLastExec, uint256 feePaid)",
+    "function pendingOrders(uint256) view returns (bytes32 pairId, address trader, bool isLong, uint256 sizeUsd, uint256 collateral, uint256 leverage, uint256 triggerPrice, uint8 orderType, bool isActive, uint256 createdAt, uint256 positionId, uint256 feePaid, uint256 executionFee, uint256 tpPrice, uint256 slPrice, uint256 twapSlices, uint256 twapInterval, uint256 twapExecuted, uint256 twapLastExec)",
     "function executeOrder(uint256 orderId, bytes[] calldata updateData) payable",
     "function nextPositionId() view returns (uint256)",
     "function positions(uint256) view returns (bytes32 pairId, address trader, bool isLong, uint256 sizeUsd, uint256 collateral, uint256 entryPrice, uint256 leverage, uint256 liquidationPrice, uint256 openedAt, bool isOpen, uint256 tpPrice, uint256 slPrice, int256 entryFundingIndex, uint256 lastRolloverSettled)",

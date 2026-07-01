@@ -4,13 +4,13 @@
 
 ---
 
-## 1. 🚀 Keunggulan Arsitektur V7 (Direct-to-Vault)
+## 1. 🚀 Keunggulan Arsitektur V1 (Direct-to-Vault & Unified Keeper)
 
-Setelah melalui berbagai iterasi, Confidential DEX kini beroperasi dengan model **V7 Direct-to-Vault Execution** yang mengutamakan kecepatan dan kepastian eksekusi.
+Setelah melalui proses pembersihan dan peremajaan kode, Confidential DEX kini beroperasi dengan model **V1 Direct-to-Vault Execution** yang bersih, efisien, dan mengutamakan kecepatan eksekusi.
 
 *   **Zero-Latency Settlement:** Mengeliminasi sistem antrean *Peer-to-Peer* lambat. Setiap pesanan (*Market*, *Limit*, *Stop*) langsung dibenturkan ke dalam *Liquidity Vault* untuk penyelesaian instan (1-langkah).
 *   **Guaranteed Liquidity:** *Trader* tidak perlu menunggu lawan transaksi. Kapasitas Vault menjamin bahwa pesanan sebesar apa pun akan tereksekusi secara absolut selama utilitas Vault mencukupi.
-*   **Zero-Delay Pipeline (Event-Driven):** Infrastruktur pencatatan *Goldsky GraphQL Subgraph* dan *Pyth Network* dikombinasikan secara asinkron. Setiap tekanan tombol "Buy" dari UI langsung memaketkan harga *Oracle* terkini ke dalam transaksi *blockchain*, menjamin nol jeda.
+*   **Zero-Delay Pipeline (Event-Driven & Unified Bot):** Infrastruktur pencatatan *Goldsky GraphQL Subgraph* dan *Pyth Network* dikombinasikan secara asinkron. Setiap tekanan tombol "Buy" dari UI langsung memaketkan harga *Oracle* terkini, dan didukung oleh *Unified Keeper Bot* yang memonitor pasar 24/7.
 
 ---
 
@@ -53,12 +53,20 @@ Untuk menjaga roda ekonomi *smart contract* tetap berputar stabil, ekosistem dib
 
 ---
 
-## 4. 🤖 Peran Keeper Bot (Sistem Eksekusi Otomatis)
+## 4. 🤖 Peran & Ekonomi Keeper Bot (`feederBot.cjs`)
 
-Eksekusi transaksi berjalan secara otomatis *(Automation)* di latar belakang berkat **Keeper Bot** yang menyala 24/7 di *server* independen:
+Eksekusi otomatisasi platform dijalankan secara mandiri oleh satu **Unified Keeper Bot** yang menyala 24/7 di *server* VPS. Bot ini melakukan 3 siklus penyapu sekaligus setiap **4 detik**:
 
-1.  **Eksekusi Pending Order:** Mengawal posisi *Limit* dan *Stop Order* milik *trader*. Begitu target harga tersentuh oleh pergerakan data *Pyth Oracle*, Bot secara instan menyuntikkan fungsi penyelesaian (`executeOrder`) ke dalam *blockchain*.
-2.  **Pemenggalan Likuidasi:** Memantau tingkat kesehatan kolateral (jaminan). Bot akan memenggal posisi jika rasio kebangkrutan tersentuh dan mendapatkan **imbalan tunai 1%** (*Liquidation Reward*) dari sisa jaminan *trader*.
+1.  **Eksekusi Pending Order:** Mengawal order *Limit*, *Stop Market*, *TWAP*, hingga *delayed Market Order*. Begitu harga pasar dari Pyth Oracle menyentuh angka target (`triggerPrice`), bot langsung memanggil fungsi `executeOrder` ke blockchain.
+2.  **Take Profit & Stop Loss (TP/SL):** Memantau batas atas dan batas bawah posisi aktif para trader. Ketika target untung/rugi tercapai, bot memicu `executeTPSL` untuk menutup posisi secara otomatis.
+3.  **Likuidasi Posisi Underwater:** Memindai tingkat kesehatan jaminan (*collateral ratio*) trader. Jika margin tidak lagi memenuhi syarat minimal, bot memicu `liquidate` untuk mengamankan kas pool.
+
+### 💰 Mekanisme Biaya, Gas, & Imbalan (Fee Economics)
+Sistem keuangan bot dirancang secara adil agar operator bot tidak pernah mengalami kerugian atau tekor saldo:
+*   **Pemantauan 100% Gratis:** Aktivitas bot menyapu dan membaca harga setiap 4 detik adalah operasi *Read-Only* ke jaringan RPC, sehingga **tidak memakan gas fee sepeser pun (Rp 0 / 0 ARC)**.
+*   **Biaya Eksekusi Dibayar User:** Saat *User* (Trader) memasang order, mereka diwajibkan menyertakan **Execution Fee (dalam koin ARC)** dan **Trading Fee (dalam USDC)** dari dompet mereka sendiri.
+*   **Keeper Reward (Imbalan Bot):** Ketika bot mengeksekusi order nyata ke blockchain, bot mengeluarkan sedikit gas fee + `0.001 ARC` untuk biaya verifikasi Pyth Oracle. Saat transaksi berhasil, *smart contract* otomatis **mentransfer seluruh Execution Fee milik User tadi ke dompet Bot (`msg.sender`)** sebagai imbalan kerja keras bot!
+*   **Distribusi Fee Trading (USDC):** Dari total fee USDC yang dibayar trader, smart contract membaginya menjadi **70% ke Vault** (menaikkan dividen/harga token LP) dan **30% ke Treasury** (kas developer platform).
 
 *(Catatan: Fungsi eksekusi ini beroperasi 100% Permissionless, artinya siapapun di seluruh dunia berhak menyalakan bot mereka sendiri dan berkompetisi mendapatkan imbalan eksekusi).*
 
@@ -67,7 +75,8 @@ Eksekusi transaksi berjalan secara otomatis *(Automation)* di latar belakang ber
 ## 5. ✨ Eksekusi Fungsional Tingkat Institusi
 
 *   **Zero Borrow Fee & Dynamic Funding Rate:** Membuang beban sewa *(borrow fee)* menjadi **0%** untuk meringankan *trader*. Risiko *directional* (kecenderungan mayoritas memegang posisi seragam) ditekan menggunakan pajak keseimbangan *(Funding Rate)*: Mayoritas mensubsidi Minoritas.
-*   **Execution Buffer (Anti-Jarum) 0.3%:** Jika fluktuasi liar *(latency spike)* membuat harga bergeser menjauh dari SL/TP *trader* saat diproses di *blockchain*, eksekusi tetap sukses selama pergeserannya di bawah 0.3% *(30 bps)*.
+*   **Limit Order Discipline (0% Buffer):** Limit Order menggunakan ketepatan 100% tanpa buffer eksekusi prematur (standar GMX/Avantis). Pesanan hanya terbuka jika harga pasar tepat menyentuh atau melewati target.
+*   **Execution Buffer (Anti-Jarum) 0.3%:** Khusus untuk Stop Order, Take Profit (TP), dan Stop Loss (SL), terdapat buffer eksekusi 0.3% *(30 bps)* untuk melindungi trader dari gagal eksekusi *(revert)* saat volatilitas atau *market crash* mendadak.
 *   **Harmonic Averaging Price:** Perhitungan *entry* baru saat *trader* menambah posisi menggunakan rata-rata harmonik, memblokir manipulasi taktik penambahan posisi buatan.
 *   **TWAP (Time-Weighted Average Price):** Pemecah irisan order besar ke dalam rentang waktu terkalibrasi untuk meminimalkan dampak harga kuadratik.
 

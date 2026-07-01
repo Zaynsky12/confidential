@@ -393,12 +393,8 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         (uint256 currentPrice, ) = oracle.getPrice(order.pairId);
 
-        if (order.orderType == 0) { // Limit
-            uint256 bufferPrice = order.isLong 
-                ? order.triggerPrice + (order.triggerPrice * executionBufferBps / 10000) 
-                : order.triggerPrice - (order.triggerPrice * executionBufferBps / 10000);
-            
-            require(order.isLong ? currentPrice <= bufferPrice : currentPrice >= bufferPrice, "Limit not reached");
+        if (order.orderType == 0) { // Limit - 0% buffer (standard GMX/Avantis)
+            require(order.isLong ? currentPrice <= order.triggerPrice : currentPrice >= order.triggerPrice, "Limit not reached");
             
             uint256 execPrice = order.isLong 
                 ? (currentPrice < order.triggerPrice ? currentPrice : order.triggerPrice) 
