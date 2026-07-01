@@ -27,7 +27,7 @@ The V2 Architecture separates concerns into three primary contracts to maximize 
 
 ### Infrastructure
 - **Blockchain:** Arc Testnet (`rpc.testnet.arc.network`)
-- **Data Subgraph:** Goldsky Subgraph (`1.0.4`)
+- **Data Subgraph:** Goldsky Subgraph (`0.1`)
 - **Oracle Network:** Pyth Network
 - **Keeper Bot:** Custom Node.js Bot running on PM2 for background liquidations and Limit Orders.
 
