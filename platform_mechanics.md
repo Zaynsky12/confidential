@@ -4,9 +4,9 @@
 
 ---
 
-## 1. 🚀 Keunggulan Arsitektur V1 (Direct-to-Vault & Unified Keeper)
+## 1. 🚀 Keunggulan Arsitektur V2 (Direct-to-Vault & Unified Keeper)
 
-Setelah melalui proses pembersihan dan peremajaan kode, Confidential DEX kini beroperasi dengan model **V1 Direct-to-Vault Execution** yang bersih, efisien, dan mengutamakan kecepatan eksekusi.
+Setelah melalui proses pembersihan dan peremajaan kode, Confidential DEX kini beroperasi dengan model **V2 Direct-to-Vault Execution** yang bersih, efisien, dan mengutamakan kecepatan eksekusi.
 
 *   **Zero-Latency Settlement:** Mengeliminasi sistem antrean *Peer-to-Peer* lambat. Setiap pesanan (*Market*, *Limit*, *Stop*) langsung dibenturkan ke dalam *Liquidity Vault* untuk penyelesaian instan (1-langkah).
 *   **Guaranteed Liquidity:** *Trader* tidak perlu menunggu lawan transaksi. Kapasitas Vault menjamin bahwa pesanan sebesar apa pun akan tereksekusi secara absolut selama utilitas Vault mencukupi.
@@ -78,6 +78,7 @@ Sistem keuangan bot dirancang secara adil agar operator bot tidak pernah mengala
 *   **Limit Order Discipline (0% Buffer):** Limit Order menggunakan ketepatan 100% tanpa buffer eksekusi prematur (standar GMX/Avantis). Pesanan hanya terbuka jika harga pasar tepat menyentuh atau melewati target.
 *   **Execution Buffer (Anti-Jarum) 0.3%:** Khusus untuk Stop Order, Take Profit (TP), dan Stop Loss (SL), terdapat buffer eksekusi 0.3% *(30 bps)* untuk melindungi trader dari gagal eksekusi *(revert)* saat volatilitas atau *market crash* mendadak.
 *   **Harmonic Averaging Price:** Perhitungan *entry* baru saat *trader* menambah posisi menggunakan rata-rata harmonik, memblokir manipulasi taktik penambahan posisi buatan.
+*   **On-Chain Max Leverage Tiers:** Batas leverage diatur langsung di smart contract sesuai kelas volatilitas aset: **100x** untuk aset kripto utama (BTC, ETH, SOL) dan Forex; **50x** untuk Altcoins dan Komoditas (Emas/Perak); serta **20x** untuk Indeks Saham (S&P500, NASDAQ).
 *   **TWAP (Time-Weighted Average Price):** Pemecah irisan order besar ke dalam rentang waktu terkalibrasi untuk meminimalkan dampak harga kuadratik.
 
 ---
