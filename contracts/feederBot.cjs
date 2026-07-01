@@ -70,24 +70,44 @@ async function main() {
   console.log(`🔑 Keeper Wallet: ${wallet.address}`);
 
   // Load contract addresses
-  let deployInfo;
+  let TRADING_ADDRESS = "0x523758d17F8916d7C700Ed8F75FAf7dbc996d560"; // Default V1 address
   try {
     const deployPath1 = path.join(__dirname, "latest_deploy.json");
     const deployPath2 = path.join(__dirname, "scripts/latest_deploy.json");
     const deployPath = fs.existsSync(deployPath1) ? deployPath1 : deployPath2;
-    deployInfo = JSON.parse(fs.readFileSync(deployPath, "utf8"));
+    if (fs.existsSync(deployPath)) {
+      const deployInfo = JSON.parse(fs.readFileSync(deployPath, "utf8"));
+      TRADING_ADDRESS = deployInfo.tradingAddress;
+    }
   } catch (e) {
-    console.error("❌ ERROR: Could not read latest_deploy.json!");
-    process.exit(1);
+    console.log("ℹ️ latest_deploy.json not found, using default V1 address.");
   }
 
-  const TRADING_ADDRESS = deployInfo.tradingAddress;
   console.log(`📈 Trading Contract: ${TRADING_ADDRESS}`);
 
-  const tradingArtifact = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "artifacts/src/ConfidentialTrading.sol/ConfidentialTrading.json"))
-  );
-  const tradingContract = new ethers.Contract(TRADING_ADDRESS, tradingArtifact.abi, wallet);
+  let tradingAbi = [
+    "function nextOrderId() view returns (uint256)",
+    "function pendingOrders(uint256) view returns (bytes32 pairId, address trader, bool isLong, uint256 sizeUsd, uint256 collateral, uint256 leverage, uint256 triggerPrice, uint8 orderType, bool isActive, uint256 createdAt, uint256 executedAt, uint256 positionId, uint256 tpPrice, uint256 slPrice, uint256 twapSlices, uint256 twapExecuted, uint256 acceptablePrice, uint256 executionFee, uint256 twapLastExec, uint256 feePaid)",
+    "function executeOrder(uint256 orderId, bytes[] calldata updateData) payable",
+    "function nextPositionId() view returns (uint256)",
+    "function positions(uint256) view returns (bytes32 pairId, address trader, bool isLong, uint256 sizeUsd, uint256 collateral, uint256 entryPrice, uint256 leverage, uint256 liquidationPrice, uint256 openedAt, bool isOpen, uint256 tpPrice, uint256 slPrice, int256 entryFundingIndex, uint256 lastRolloverSettled)",
+    "function liquidate(uint256 positionId, bytes[] calldata updateData) payable",
+    "function executeTPSL(uint256 positionId, bytes[] calldata updateData) payable"
+  ];
+
+  try {
+    const artPath1 = path.join(__dirname, "artifacts/src/ConfidentialTrading.sol/ConfidentialTrading.json");
+    const artPath2 = path.join(__dirname, "../artifacts/src/ConfidentialTrading.sol/ConfidentialTrading.json");
+    const artPath = fs.existsSync(artPath1) ? artPath1 : artPath2;
+    if (fs.existsSync(artPath)) {
+      const tradingArtifact = JSON.parse(fs.readFileSync(artPath, "utf8"));
+      tradingAbi = tradingArtifact.abi;
+    }
+  } catch (e) {
+    console.log("ℹ️ ABI file not found, using embedded minimal ABI.");
+  }
+
+  const tradingContract = new ethers.Contract(TRADING_ADDRESS, tradingAbi, wallet);
 
   const PYTH_FEE = ethers.parseUnits("0.001", 18); // 0.001 ARC for oracle update
 
