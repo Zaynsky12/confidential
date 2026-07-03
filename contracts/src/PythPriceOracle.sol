@@ -93,8 +93,8 @@ contract PythPriceOracle {
         IPyth.Price memory p = pyth.getPriceNoOlderThan(feedId, maxStaleness);
         require(p.price > 0, "Invalid negative price");
         
-        // Advanced: Reject if Oracle confidence is wider than 1% of the price (extreme volatility / untrusted price)
-        require((uint64(p.conf) * 100) / uint64(p.price) <= 1, "Oracle confidence too wide");
+        // MED-4 FIX: Relaxed from 1% to 2% to support Forex pairs during weekend/low-liquidity periods
+        require((uint64(p.conf) * 100) / uint64(p.price) <= 2, "Oracle confidence too wide");
 
         // Convert Pyth price (int64 * 10^expo) to uint256 with 18 decimals
         if (p.expo >= 0) {

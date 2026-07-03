@@ -161,7 +161,7 @@ contract ConfidentialVault is ReentrancyGuard {
         uint256 _totalAssets = isDegen ? totalDegenAssets : totalPrimeAssets;
 
         uint256 usdcAmount = (shareAmount * _totalAssets) / _totalShares;
-        if (usdcAmount > usdc.balanceOf(address(this))) revert InsufficientLiquidity();
+        if (usdcAmount > availableLiquidity() || usdcAmount > usdc.balanceOf(address(this))) revert InsufficientLiquidity();
 
         if (isDegen) {
             totalDegenShares -= shareAmount;
@@ -294,6 +294,9 @@ contract ConfidentialVault is ReentrancyGuard {
     ) external onlyTrading {
         totalBacking = totalBacking > collateral ? totalBacking - collateral : 0;
 
+        // MED-3: Defensive check — reward cannot exceed collateral
+        if (reward > collateral) reward = collateral;
+
         uint256 vaultReceives = collateral - reward;
         _distributeProfit(vaultReceives);
 
@@ -304,24 +307,21 @@ contract ConfidentialVault is ReentrancyGuard {
         emit LiquidationSettled(trader, liquidator, collateral, reward);
     }
 
+    /// @notice CRIT-1 FIX: Closing fee is already deducted from netPnl in settlePosition.
+    /// This function only handles the vault/treasury split WITHOUT double-deducting totalAssets.
+    /// The vault portion stays in the vault (already there from trader's collateral).
+    /// Only the treasury portion is transferred out.
     function distributeClosingFee(uint256 totalFee) external onlyTrading {
-        (uint256 toVault, uint256 toTreasury) = core.getFeeSplit(totalFee);
+        (, uint256 toTreasury) = core.getFeeSplit(totalFee);
+        uint256 toVault = totalFee - toTreasury;
 
+        // Vault portion: fee stays in vault as LP profit (already present as USDC)
+        if (toVault > 0) {
+            _distributeProfit(toVault);
+        }
+
+        // Treasury portion: transfer out from vault's USDC balance
         if (toTreasury > 0) {
-            uint256 _totalAssets = totalDegenAssets + totalPrimeAssets;
-            if (_totalAssets > 0) {
-                uint256 degenDeduct = (toTreasury * totalDegenAssets) / _totalAssets;
-                uint256 primeDeduct = toTreasury - degenDeduct;
-                totalDegenAssets -= degenDeduct;
-                totalPrimeAssets -= primeDeduct;
-                
-                if (totalDegenAssets == 0 && degenDeduct > 0) {
-                    degenEpoch++; totalDegenShares = 0; emit EpochReset(true, degenEpoch);
-                }
-                if (totalPrimeAssets == 0 && primeDeduct > 0) {
-                    primeEpoch++; totalPrimeShares = 0; emit EpochReset(false, primeEpoch);
-                }
-            }
             require(usdc.transfer(core.treasury(), toTreasury), "Transfer failed");
         }
 
@@ -331,6 +331,34 @@ contract ConfidentialVault is ReentrancyGuard {
     function receiveFees(uint256 amount) external onlyTrading {
         _distributeProfit(amount);
         emit FeeReceived(amount);
+    }
+
+    /// @notice CRIT-2 FIX: Pay funding reward to a position by increasing vault backing.
+    /// @dev Called by Trading contract when a trader earns negative funding.
+    ///      Vault pays the reward from LP assets (loss to LPs, gain to trader).
+    function payFundingReward(uint256 amount) external onlyTrading {
+        if (amount == 0) return;
+        
+        // Deduct from LP assets using first-loss waterfall (same as trader profit)
+        if (amount <= totalDegenAssets) {
+            totalDegenAssets -= amount;
+        } else {
+            uint256 remainingLoss = amount - totalDegenAssets;
+            totalDegenAssets = 0;
+            degenEpoch++;
+            totalDegenShares = 0;
+            emit EpochReset(true, degenEpoch);
+            
+            totalPrimeAssets = totalPrimeAssets > remainingLoss ? totalPrimeAssets - remainingLoss : 0;
+            if (totalPrimeAssets == 0) {
+                primeEpoch++;
+                totalPrimeShares = 0;
+                emit EpochReset(false, primeEpoch);
+            }
+        }
+        
+        // Increase backing to account for the reward now owed to the position
+        totalBacking += amount;
     }
 
     // ══════════════════════════════════════════════════════════

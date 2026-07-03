@@ -7,7 +7,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config();
 
 async function main() {
     console.log("🚀 Starting FULL Deployment of Confidential DEX V1 (Fresh Start)");

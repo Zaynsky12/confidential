@@ -311,6 +311,8 @@ contract ConfidentialCore {
     function updateFunding(bytes32 pairId) external onlyTrading returns (int256) {
         uint256 elapsed = block.timestamp - lastFundingUpdate[pairId];
         if (elapsed == 0) return cumulativeFundingIndex[pairId];
+        // HIGH-2 FIX: Cap elapsed at 1 hour to prevent massive funding spikes on inactive pairs
+        if (elapsed > 1 hours) elapsed = 1 hours;
 
         PairConfig memory pair = pairs[pairId];
         uint256 maxOI = pair.maxLongOI;

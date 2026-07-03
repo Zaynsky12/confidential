@@ -238,6 +238,8 @@ contract ConfidentialTrading is ReentrancyGuard {
         
         // Cooldown check to prevent flash loan manipulation
         require(block.timestamp >= pos.openedAt + core.minPositionDuration(), "Cooldown active");
+        // HIGH-3: Check pause state
+        require(!core.paused(), "Protocol paused");
 
         if (updateData.length > 0) {
             oracle.updatePriceFeeds{value: msg.value}(updateData);
@@ -593,6 +595,8 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         // FIX EXPLOIT-4: Enforce cooldown to prevent flash loan TP/SL bypass
         require(block.timestamp >= pos.openedAt + core.minPositionDuration(), "Cooldown active");
+        // HIGH-3: Check pause state
+        require(!core.paused(), "Protocol paused");
         
         (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
         
@@ -629,6 +633,7 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Not open");
+        // NOTE: Liquidations are intentionally ALLOWED during pause to protect vault solvency
 
         (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
 
@@ -771,12 +776,11 @@ contract ConfidentialTrading is ReentrancyGuard {
             pos.collateral -= feeToPay;
             vault.settleAccruedFees(feeToPay);
         } else if (netFee < 0) {
-            // Trader earned money from funding, extract reward from Vault PnL pool
+            // CRIT-2 FIX: Clean funding reward path
+            // Vault deducts LP assets and increases backing atomically
             uint256 reward = uint256(-netFee);
+            vault.payFundingReward(reward);
             pos.collateral += reward;
-            vault.settlePosition(address(this), 0, int256(reward));
-            _safeTransfer(address(vault), reward);
-            vault.reserveBacking(reward);
         }
 
         // Reset tracking
@@ -1020,7 +1024,8 @@ contract ConfidentialTrading is ReentrancyGuard {
     }
 
     function setRolloverFeePerHour(uint256 _fee) external onlyOwner {
-        require(_fee == 0, "Zero borrow fee enforced");
+        // HIGH-1 FIX: Allow non-zero values with a max cap (0.01% per hour = 100)
+        require(_fee <= 100, "Max 0.01% per hour");
         rolloverFeePerHour = _fee;
     }
 
