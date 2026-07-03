@@ -63,7 +63,7 @@ contract ConfidentialTrading is ReentrancyGuard {
     mapping(address => uint256[]) public userPositions;
     mapping(address => uint256[]) public userOrders;
 
-    uint256 public rolloverFeePerHour = 0; // 0% per hour (Zero Borrow Fee like Reya)
+    uint256 public rolloverFeePerHour = 0; // 0% per hour (Zero Borrow Fee)
     
     // Limits
     uint256 public constant MIN_POSITION_SIZE = 1 * 1e6; // $1 min size

@@ -74,7 +74,7 @@ Sistem keuangan bot dirancang secara adil agar operator bot tidak pernah mengala
 
 ## 5. ✨ Eksekusi Fungsional Tingkat Institusi
 
-*   **Zero Borrow Fee & Dynamic Funding Rate:** Membuang beban sewa *(borrow fee)* menjadi **0%** untuk meringankan *trader*. Risiko *directional* (kecenderungan mayoritas memegang posisi seragam) ditekan menggunakan pajak keseimbangan *(Funding Rate)*: Mayoritas mensubsidi Minoritas.
+*   **Dynamic Skew-Based P2P Funding Rate:** Membuang beban sewa (Borrow Fee) menjadi 0% agar lebih ringan. Platform menerapkan *Continuous P2P Funding Rate* yang sangat dinamis berdasarkan rasio ketidakseimbangan *(skew)* antara Long dan Short (bukan berdasarkan rasio pemakaian Vault). Mayoritas akan langsung membayar Minoritas. Jika pasar 100% Long, mereka akan dikenakan fee maksimal (misal 0.0125% per jam) yang bisa langsung memberikan peluang profit *(arbitrase)* bagi siapapun yang berani masuk membuka posisi Short untuk menyeimbangkan pasar.
 *   **Limit Order Discipline (0% Buffer):** Limit Order menggunakan ketepatan 100% tanpa buffer eksekusi prematur. Pesanan hanya terbuka jika harga pasar tepat menyentuh atau melewati target.
 *   **Execution Buffer (Anti-Jarum) 0.3%:** Khusus untuk Stop Order, Take Profit (TP), dan Stop Loss (SL), terdapat buffer eksekusi 0.3% *(30 bps)* untuk melindungi trader dari gagal eksekusi *(revert)* saat volatilitas atau *market crash* mendadak.
 *   **Harmonic Averaging Price:** Perhitungan *entry* baru saat *trader* menambah posisi menggunakan rata-rata harmonik, memblokir manipulasi taktik penambahan posisi buatan.

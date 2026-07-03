@@ -40,7 +40,7 @@ contract ConfidentialCore {
     // ── Vault Utilization Cap ──
     uint256 public utilizationCapBps = 8000; // 80%
 
-    // ── Funding Rate System (Reya-style P2P) ──
+    // ── Funding Rate System (Dynamic P2P) ──
     // Continuous funding: majority side pays minority side based on OI skew ratio
     // Rate scales with (longOI - shortOI) / (longOI + shortOI), not maxOI
     uint256 public baseFundingRate = 3e15; // 0.3% per day at 100% skew (1e18 scale)
@@ -303,11 +303,11 @@ contract ConfidentialCore {
     }
 
     // ══════════════════════════════════════════════════════════
-    //              CONTINUOUS FUNDING RATE (Reya-style P2P)
+    //              CONTINUOUS FUNDING RATE (Dynamic P2P)
     // ══════════════════════════════════════════════════════════
 
     /// @notice Update cumulative funding index for a pair. Called by Trading on every open/close.
-    /// @dev Reya-style: rate = (netOI / totalOI) * baseFundingRate * elapsed / 86400
+    /// @dev Dynamic: rate = (netOI / totalOI) * baseFundingRate * elapsed / 86400
     ///      Uses skew ratio (netOI/totalOI) instead of (netOI/maxOI) for meaningful rates
     ///      Positive index = longs pay shorts, Negative index = shorts pay longs
     function updateFunding(bytes32 pairId) external onlyTrading returns (int256) {
