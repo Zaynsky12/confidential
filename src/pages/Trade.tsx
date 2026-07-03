@@ -66,7 +66,7 @@ export default function Trade() {
     totalOI = longOIVal + shortOIVal
   }
 
-  // Read projected funding rate directly from Core contract (8hr rate in 1e18 scale)
+  // Read projected funding rate directly from Core contract (1hr rate in 1e18 scale)
   const { data: projectedFundingRaw } = useReadContract({
     address: CONTRACTS.CORE as `0x${string}`,
     abi: ABIS.CORE,
@@ -75,9 +75,9 @@ export default function Trade() {
     query: { refetchInterval: 10000 }
   })
 
-  // Convert 8hr projected rate (int256, 1e18 scale) to 1hr rate percentage
+  // Convert 1hr projected rate (int256, 1e18 scale) to percentage
   const hourlyFundingRate = projectedFundingRaw
-    ? (Number(projectedFundingRaw) / 1e18) * (1 / 8) * 100
+    ? (Number(projectedFundingRaw) / 1e18) * 100
     : 0
   const formatFR = (rate: number) => Math.abs(rate) < 0.00005 ? '0.0000%' : `${rate >= 0 ? '+' : ''}${rate.toFixed(4)}%`
   const frColor = (rate: number) => rate === 0 ? 'var(--color-text2)' : rate > 0 ? 'var(--color-green)' : 'var(--color-red)'

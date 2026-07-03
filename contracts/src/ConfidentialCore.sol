@@ -40,9 +40,10 @@ contract ConfidentialCore {
     // ── Vault Utilization Cap ──
     uint256 public utilizationCapBps = 8000; // 80%
 
-    // ── Funding Rate System ──
-    // Continuous funding: long pays short (or vice versa) based on OI imbalance
-    uint256 public fundingRateCoefficient = 100; // Adjustable scale factor
+    // ── Funding Rate System (Reya-style P2P) ──
+    // Continuous funding: majority side pays minority side based on OI skew ratio
+    // Rate scales with (longOI - shortOI) / (longOI + shortOI), not maxOI
+    uint256 public baseFundingRate = 3e15; // 0.3% per day at 100% skew (1e18 scale)
     mapping(bytes32 => int256) public cumulativeFundingIndex; // per pair, scaled 1e18
     mapping(bytes32 => uint256) public lastFundingUpdate;     // timestamp per pair
 
@@ -302,32 +303,36 @@ contract ConfidentialCore {
     }
 
     // ══════════════════════════════════════════════════════════
-    //              CONTINUOUS FUNDING RATE
+    //              CONTINUOUS FUNDING RATE (Reya-style P2P)
     // ══════════════════════════════════════════════════════════
 
     /// @notice Update cumulative funding index for a pair. Called by Trading on every open/close.
-    /// @dev Funding = (longOI - shortOI) / maxOI * coefficient * elapsed / 86400
-    ///      Positive index = longs pay, Negative index = shorts pay
+    /// @dev Reya-style: rate = (netOI / totalOI) * baseFundingRate * elapsed / 86400
+    ///      Uses skew ratio (netOI/totalOI) instead of (netOI/maxOI) for meaningful rates
+    ///      Positive index = longs pay shorts, Negative index = shorts pay longs
     function updateFunding(bytes32 pairId) external onlyTrading returns (int256) {
         uint256 elapsed = block.timestamp - lastFundingUpdate[pairId];
         if (elapsed == 0) return cumulativeFundingIndex[pairId];
-        // HIGH-2 FIX: Cap elapsed at 1 hour to prevent massive funding spikes on inactive pairs
+        // Cap elapsed at 1 hour to prevent massive funding spikes on inactive pairs
         if (elapsed > 1 hours) elapsed = 1 hours;
 
-        PairConfig memory pair = pairs[pairId];
-        uint256 maxOI = pair.maxLongOI;
-        if (maxOI == 0) {
+        uint256 _longOI = longOI[pairId];
+        uint256 _shortOI = shortOI[pairId];
+        uint256 totalOI = _longOI + _shortOI;
+
+        if (totalOI == 0) {
             lastFundingUpdate[pairId] = block.timestamp;
             return cumulativeFundingIndex[pairId];
         }
 
-        // Net OI imbalance drives funding direction
-        int256 netOI = int256(longOI[pairId]) - int256(shortOI[pairId]);
+        // Skew-proportional funding: (netOI / totalOI) determines rate intensity
+        // At 100% skew (all one side), rate = baseFundingRate per day
+        // At 50% skew, rate = 50% of baseFundingRate per day
+        int256 netOI = int256(_longOI) - int256(_shortOI);
 
-        // fundingDelta = netOI / maxOI * coefficient * elapsed / 86400
-        // Scaled to 1e18 for precision
-        int256 fundingDelta = (netOI * int256(fundingRateCoefficient) * int256(elapsed) * 1e18) 
-            / (int256(maxOI) * 86400 * 10000);
+        // fundingDelta = (netOI / totalOI) * baseFundingRate * elapsed / 86400
+        int256 fundingDelta = (netOI * int256(baseFundingRate) * int256(elapsed)) 
+            / (int256(totalOI) * 86400);
 
         cumulativeFundingIndex[pairId] += fundingDelta;
         lastFundingUpdate[pairId] = block.timestamp;
@@ -337,15 +342,17 @@ contract ConfidentialCore {
         return cumulativeFundingIndex[pairId];
     }
 
-    /// @notice Get projected 8-hour funding rate for a pair (for frontend display)
+    /// @notice Get projected 1-hour funding rate for a pair (for frontend display)
+    /// @return Hourly funding rate in 1e18 scale. Positive = longs pay, negative = shorts pay.
     function getProjectedFundingRate(bytes32 pairId) external view returns (int256) {
-        PairConfig memory pair = pairs[pairId];
-        uint256 maxOI = pair.maxLongOI;
-        if (maxOI == 0) return 0;
+        uint256 _longOI = longOI[pairId];
+        uint256 _shortOI = shortOI[pairId];
+        uint256 totalOI = _longOI + _shortOI;
+        if (totalOI == 0) return 0;
 
-        int256 netOI = int256(longOI[pairId]) - int256(shortOI[pairId]);
-        // Project for 8 hours (28800 seconds)
-        return (netOI * int256(fundingRateCoefficient) * 28800 * 1e18) / (int256(maxOI) * 86400 * 10000);
+        int256 netOI = int256(_longOI) - int256(_shortOI);
+        // Project for 1 hour (3600 seconds)
+        return (netOI * int256(baseFundingRate) * 3600) / (int256(totalOI) * 86400);
     }
 
     // ══════════════════════════════════════════════════════════
@@ -447,9 +454,9 @@ contract ConfidentialCore {
     //              FUNDING RATE PARAMETERS
     // ══════════════════════════════════════════════════════════
 
-    function setFundingRateCoefficient(uint256 _coefficient) external onlyOwner {
-        require(_coefficient <= 1000, "Too high"); // Max 10x multiplier
-        fundingRateCoefficient = _coefficient;
+    function setBaseFundingRate(uint256 _rate) external onlyOwner {
+        require(_rate <= 1e16, "Max 1% per day"); // Safety cap
+        baseFundingRate = _rate;
     }
 
     function setMaxPriceImpact(uint256 _maxBps) external onlyOwner {
