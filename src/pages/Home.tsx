@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTradeStore } from '../store/useTradeStore';
+import { useReadContract } from 'wagmi';
+import { CONTRACTS, ABIS } from '../config/contracts';
 
 const getAssetLogo = (pair: string) => {
   const base = pair.split('/')[0].toLowerCase()
@@ -32,7 +35,39 @@ const getAssetLogo = (pair: string) => {
 }
 
 export default function Home() {
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const markets = useTradeStore(state => state.markets);
+  
+  // Fetch live stats from the smart contract
+  const { data: nextPositionId } = useReadContract({
+    address: CONTRACTS.TRADING as `0x${string}`,
+    abi: ABIS.TRADING,
+    functionName: 'nextPositionId',
+    query: {
+      refetchInterval: 10000, // refresh every 10s
+    }
+  });
+
+  const activeTraders = nextPositionId ? Number(nextPositionId) - 1 : 0;
+  const displayTraders = activeTraders > 0 ? activeTraders.toLocaleString() : '...';
+  
+  // Calculate Global Volume from the sum of all individual market 24h volumes
+  const totalVolume = markets.reduce((acc, curr) => acc + (curr.volume24h || 0), 0);
+  
+  // Format the total volume beautifully (e.g., "$1.2M", "$32.4B")
+  let formattedVolume = "$0";
+  if (totalVolume > 0) {
+    if (totalVolume >= 1_000_000_000) {
+      formattedVolume = `$${(totalVolume / 1_000_000_000).toFixed(2)}B`;
+    } else if (totalVolume >= 1_000_000) {
+      formattedVolume = `$${(totalVolume / 1_000_000).toFixed(2)}M`;
+    } else if (totalVolume >= 1_000) {
+      formattedVolume = `$${(totalVolume / 1_000).toFixed(2)}K`;
+    } else {
+      formattedVolume = `$${totalVolume.toFixed(2)}`;
+    }
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ backgroundColor: '#131313', color: '#e5e2e1', fontFamily: "'Geist', sans-serif" }}>
       <style>{`
@@ -283,10 +318,10 @@ export default function Home() {
         <div className="hero-overlay" style={{ position: 'absolute', inset: 0 }}></div>
         <div className="home-section-pad" style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', padding: '0 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 896, letterSpacing: '-0.04em', marginBottom: 24 }}>
-            Trade Perps With <br /><span style={{ color: '#4BFF99' }}>Arc-Level Speed.</span>
+            The Universal <br /><span style={{ color: '#4BFF99' }}>Leverage Protocol.</span>
           </h1>
           <p className="t-hero-p" style={{ color: '#bacbbb', maxWidth: 672, marginBottom: 0 }}>
-            Seamless. Flexible. Decentralized. Connect your wallet and trade instantly. Experience lightning-fast execution using USDC on the Arc ecosystem.
+            Trade crypto, forex, and commodities with up to 100x leverage. Institutional liquidity, zero slippage, and absolute on-chain transparency on the Arc Network.
           </p>
         </div>
 
@@ -344,22 +379,22 @@ export default function Home() {
       <section style={{ position: 'relative', zIndex: 30, padding: '0 16px', marginTop: 80, marginBottom: 80 }}>
         <div className="glass-surface" style={{ maxWidth: 1024, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', alignItems: 'center', padding: '24px 32px', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', background: 'linear-gradient(135deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.9) 100%)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
-            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>24h Volume</span>
-            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>$32bn</span>
+            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Global Volume</span>
+            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>{formattedVolume}</span>
           </div>
           
           <div className="md-block" style={{ width: 1, height: 64, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
             <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Traders</span>
-            <span className="t-headline-lg" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontSize: 36 }}>{'>'}10k</span>
+            <span className="t-headline-lg" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontSize: 36 }}>{displayTraders}</span>
           </div>
           
           <div className="md-block" style={{ width: 1, height: 64, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
             <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Markets</span>
-            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>{'>'}70</span>
+            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>{markets.length}</span>
           </div>
         </div>
       </section>
@@ -367,20 +402,20 @@ export default function Home() {
       {/* ═══ Features Section ═══ */}
       <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <h2 className="t-headline-lg home-features-heading" style={{ color: '#fbfff8', marginBottom: 48, textAlign: 'center', letterSpacing: '-0.02em', fontWeight: 700 }}>Built for maximum trading performance</h2>
+          <h2 className="t-headline-lg home-features-heading" style={{ color: '#fbfff8', marginBottom: 48, textAlign: 'center', letterSpacing: '-0.02em', fontWeight: 700 }}>Engineered for Institutional Scale</h2>
           <div className="home-features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
             {/* Feature 1 */}
             <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
                 <span className="t-label-mono" style={{ color: '#4BFF99' }}>01</span>
-                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Guaranteed Execution</h3>
+                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Deterministic Settlement</h3>
               </div>
               <p className="t-body-md" style={{ color: '#bacbbb' }}>
-                Powered by a high-performance Subgraph indexer and Direct-to-Vault architecture. Zero P2P matching delays. 100% instant execution on the Arc L1.
+                Eliminate orderbook front-running and MEV. Our direct-to-vault architecture guarantees sub-second execution powered by high-fidelity Pyth Oracle data.
               </p>
               <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {['Crypto', 'RWA', 'Forex'].map(tag => (
-                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: '#201f1f', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.05)' }}>{tag}</span>
+                {['Anti-MEV', 'Sub-second', 'Pyth Network'].map(tag => (
+                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.2)' }}>{tag}</span>
                 ))}
               </div>
             </div>
@@ -388,77 +423,91 @@ export default function Home() {
             <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
                 <span className="t-label-mono" style={{ color: '#4BFF99' }}>02</span>
-                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Connect &amp; Trade</h3>
+                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Quadratic Slippage Engine</h3>
               </div>
               <p className="t-body-md" style={{ color: '#bacbbb' }}>
-                Say goodbye to complicated onboarding. Simply connect your wallet and start trading immediately with zero friction and no KYC required.
+                Retail trades execute with absolute 0% slippage. Massive institutional position sizing triggers an asymmetric penalty function to protect underlying protocol liquidity.
               </p>
-              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ color: '#4BFF99', fontSize: 20 }}>bolt</span>
-                <span className="t-label-mono" style={{ color: '#4BFF99' }}>Instant Web3</span>
+              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {['Zero Slippage', 'Whale Protection'].map(tag => (
+                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.2)' }}>{tag}</span>
+                ))}
               </div>
             </div>
             {/* Feature 3 */}
             <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
                 <span className="t-label-mono" style={{ color: '#4BFF99' }}>03</span>
-                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Dual-Vault Architecture</h3>
+                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Tranche-Based Yield Matrix</h3>
               </div>
               <p className="t-body-md" style={{ color: '#bacbbb' }}>
-                Become the house through our flagship dual-vault system. Maximize your capital efficiency and earn real yield generated from platform fees.
+                Hedge against market volatility. Deploy capital into our Dual-Vault system to earn passive, auto-compounding yields derived directly from protocol revenue.
               </p>
-              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ color: '#4BFF99', fontSize: 20 }}>savings</span>
-                <span className="t-label-mono" style={{ color: '#4BFF99' }}>Real Yield</span>
+              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {['Real Yield', 'Auto-Compound'].map(tag => (
+                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.2)' }}>{tag}</span>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ Trust Section ═══ */}
-      <section className="home-section-pad" style={{ padding: '80px 16px', backgroundColor: '#131313', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, height: 600, background: '#4BFF99', borderRadius: '50%', filter: 'blur(150px)', opacity: 0.05, pointerEvents: 'none' }}></div>
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="t-headline-lg home-trust-heading" style={{ color: '#fbfff8', marginBottom: 24, letterSpacing: '-0.02em', fontWeight: 700 }}>
-            CEX Speed. <br /> DEX Security.
-          </h2>
-          <p className="t-body-md" style={{ color: '#bacbbb', maxWidth: 672, margin: '0 auto' }}>
-            Combining the seamless trading experience of centralized exchanges with full decentralization and transparency. You are always in control of your assets.
-          </p>
-        </div>
-      </section>
+
 
       {/* ═══ Token Section ═══ */}
       <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#0e0e0e', borderTop: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: 0, bottom: 0, width: 400, height: 400, background: '#4BFF99', borderRadius: '50%', filter: 'blur(120px)', opacity: 0.1, pointerEvents: 'none' }}></div>
         <div style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 className="t-headline-xl home-token-heading" style={{ color: '#fbfff8', marginBottom: 24, letterSpacing: '-0.04em', fontSize: 36, lineHeight: '42px' }}>
-            Be the House. <br /><span style={{ color: '#4BFF99' }}>Earn Real Yield.</span>
+            Earn Sustainable Yield <br />with <span style={{ color: '#4BFF99' }}>Confidential Vaults.</span>
           </h2>
           <p className="t-body-md" style={{ color: '#bacbbb', maxWidth: 672, marginBottom: 40 }}>
-            Our platform isn't just for traders. Deposit your USDC into our Vaults to earn passive income from platform trading fees. The future of finance is in your hands.
+            Our platform isn't just for traders. Deposit your USDC into the Degen or Prime vaults to earn passive income from platform trading fees and liquidations.
           </p>
-          <a href="/vaults" className="glass-surface" style={{ color: '#fbfff8', border: '1px solid #62688F', padding: '16px 32px', borderRadius: 9999, fontFamily: "'Geist', sans-serif", fontSize: 16, fontWeight: 600, letterSpacing: '0.02em', textDecoration: 'none', display: 'inline-block', transition: 'all 0.3s' }}>
+          <a href="/vaults" className="glass-surface" style={{ color: '#fbfff8', border: '1px solid #4BFF99', padding: '16px 32px', borderRadius: 9999, fontFamily: "'Geist', sans-serif", fontSize: 16, fontWeight: 600, letterSpacing: '0.02em', textDecoration: 'none', display: 'inline-block', transition: 'all 0.3s' }}>
             View Vault Liquidity
           </a>
         </div>
       </section>
 
       {/* ═══ FAQ Section ═══ */}
-      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <section className="home-section-pad" style={{ padding: '80px 16px', backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ maxWidth: 768, margin: '0 auto' }}>
-          <h2 className="t-headline-lg" style={{ color: '#fbfff8', marginBottom: 48, textAlign: 'center', letterSpacing: '-0.02em' }}>You have questions. We have answers.</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h2 className="t-headline-lg" style={{ color: '#fbfff8', marginBottom: 48, textAlign: 'center', letterSpacing: '-0.02em', fontWeight: 700 }}>
+            Frequently Asked Questions
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
-              'How do I start trading?',
-              'Are there any P2P matching delays?',
-              'How does the Vault system work?',
-            ].map((q) => (
-              <div key={q} className="glass-surface home-faq-item" style={{ padding: '16px 20px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.3s' }}>
+              {
+                q: 'How do I start trading?',
+                a: 'Simply connect your Web3 wallet (e.g. MetaMask, WalletConnect) and you are ready. No KYC, no deposits, and no complicated onboarding. Trade directly from your wallet with zero friction on the Arc Network.'
+              },
+              {
+                q: 'Are there any P2P matching delays?',
+                a: 'Absolutely not. We bypass traditional orderbook models. Your trades are executed instantly against our direct-to-vault liquidity pool, powered by high-fidelity Pyth Oracle prices. Experience zero latency and guaranteed execution.'
+              },
+              {
+                q: 'How does the Vault system work?',
+                a: 'Our Tranche-Based Yield Matrix allows you to act as the house. By depositing USDC into the Degen or Prime vaults, you provide the liquidity that powers all trades. In return, you earn a share of platform fees and liquidations, automatically compounded.'
+              },
+            ].map((faq, idx) => (
+              <div 
+                key={idx} 
+                className="glass-surface home-faq-item" 
+                style={{ padding: '20px 24px', borderRadius: 12, cursor: 'pointer', transition: 'all 0.3s', border: activeFaq === idx ? '1px solid #4BFF99' : '1px solid rgba(255, 255, 255, 0.05)' }} 
+                onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 className="t-cta" style={{ color: '#fbfff8' }}>{q}</h4>
-                  <span className="material-symbols-outlined" style={{ color: '#bacbbb', flexShrink: 0, marginLeft: 12 }}>add</span>
+                  <h4 className="t-cta" style={{ color: activeFaq === idx ? '#4BFF99' : '#fbfff8', transition: 'color 0.3s' }}>{faq.q}</h4>
+                  <span className="material-symbols-outlined" style={{ color: activeFaq === idx ? '#4BFF99' : '#bacbbb', flexShrink: 0, marginLeft: 12, transform: activeFaq === idx ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform 0.3s, color 0.3s' }}>
+                    add
+                  </span>
+                </div>
+                <div style={{ maxHeight: activeFaq === idx ? 200 : 0, overflow: 'hidden', transition: 'max-height 0.4s ease-in-out' }}>
+                  <p className="t-body-md" style={{ color: '#bacbbb', paddingTop: 16, margin: 0, lineHeight: '26px' }}>
+                    {faq.a}
+                  </p>
                 </div>
               </div>
             ))}
@@ -485,10 +534,9 @@ export default function Home() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              {['Privacy Policy', 'Terms of Service'].map(s => (
-                <a key={s} className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="#">{s}</a>
-              ))}
-              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="https://docs.confidential.exchange" target="_blank" rel="noreferrer">Docs</a>
+              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="http://localhost:5173/legal/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</a>
+              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="http://localhost:5173/legal/terms-of-service" target="_blank" rel="noreferrer">Terms of Service</a>
+              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="http://localhost:5173" target="_blank" rel="noreferrer">Docs</a>
             </div>
           </div>
         </div>

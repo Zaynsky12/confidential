@@ -147,7 +147,7 @@ export default function Trade() {
 
               <div className="chart-stat-item">
                 <span className="chart-stat-label">24h Change</span>
-                <span className={`font-mono chart-stat-value ${activeMarket.change24h >= 0 ? 'text-green' : 'text-red'}`}>
+                <span className="font-mono chart-stat-value" style={{ color: activeMarket.change24h >= 0 ? 'var(--color-green)' : 'var(--color-red)' }}>
                   {activeMarket.change24h >= 0 ? '+' : ''}{activeMarket.change24h.toFixed(2)}%
                 </span>
               </div>
