@@ -196,6 +196,24 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     else setSize(baseSize.toFixed(4))
   }
 
+  const handleTpPercent = (percent: number) => {
+    if (!effectivePrice) return;
+    const movePct = percent / leverage / 100;
+    const targetPrice = side === 'long' 
+      ? effectivePrice * (1 + movePct) 
+      : effectivePrice * (1 - movePct);
+    setTakeProfit(targetPrice < 10 ? targetPrice.toFixed(4) : targetPrice.toFixed(2));
+  }
+
+  const handleSlPercent = (percent: number) => {
+    if (!effectivePrice) return;
+    const movePct = percent / leverage / 100;
+    const targetPrice = side === 'long' 
+      ? effectivePrice * (1 - movePct) 
+      : effectivePrice * (1 + movePct);
+    setStopLoss(targetPrice < 10 ? targetPrice.toFixed(4) : targetPrice.toFixed(2));
+  }
+
   const isInsufficientBalance = orderSummary ? orderSummary.totalRequired > balance : false
   const exceedsLiquidity = (Number(orderSummary?.notional) || 0) > availableLiquidity
 
@@ -485,14 +503,28 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         {showTpSl && (
           <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, animationDuration: '200ms' }}>
             <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
-              <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Take Profit</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize:11, color:'#8e8e93' }}>Take Profit</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[25, 50, 100, 300].map(p => (
+                    <span key={p} onClick={() => handleTpPercent(p)} style={{ fontSize: 10, cursor: 'pointer', color: '#4BFF99', background: 'rgba(75, 255, 153, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 600, transition: 'background 0.2s' }}>{p}%</span>
+                  ))}
+                </div>
+              </div>
               <div style={{ display:'flex', alignItems:'center' }}>
                 <input type="number" placeholder="0.00" value={takeProfit} onChange={e=>setTakeProfit(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
                 <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
               </div>
             </div>
             <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px' }}>
-              <span style={{ fontSize:11, color:'#8e8e93', marginBottom:2 }}>Stop Loss</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize:11, color:'#8e8e93' }}>Stop Loss</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[10, 25, 50, 75].map(p => (
+                    <span key={p} onClick={() => handleSlPercent(p)} style={{ fontSize: 10, cursor: 'pointer', color: '#ff4b4b', background: 'rgba(255, 75, 75, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 600, transition: 'background 0.2s' }}>-{p}%</span>
+                  ))}
+                </div>
+              </div>
               <div style={{ display:'flex', alignItems:'center' }}>
                 <input type="number" placeholder="0.00" value={stopLoss} onChange={e=>setStopLoss(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, fontFamily: 'var(--font-mono)' }} />
                 <span style={{ fontSize:11, color:'#8e8e93' }}>USD</span>
