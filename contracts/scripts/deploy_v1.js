@@ -12,7 +12,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config();
 
 async function main() {
-    console.log("🚀 Starting FULL Deployment of Confidential DEX V1 (Fresh Start)");
+    console.log("🚀 Starting FULL Deployment of Confidential DEX V2 (Fresh Start)");
     console.log("═══════════════════════════════════════════════════════");
 
     if (!process.env.PRIVATE_KEY || process.env.PRIVATE_KEY.length < 64) {
@@ -46,7 +46,7 @@ async function main() {
     // ═══════════════════════════════════════════
     // Step 1: Deploy ConfidentialCore (NEW)
     // ═══════════════════════════════════════════
-    console.log("\n1️⃣  Deploying ConfidentialCore V1...");
+    console.log("\n1️⃣  Deploying ConfidentialCore V2...");
     const CoreFactory = getFactory("ConfidentialCore");
     const core = await CoreFactory.deploy(usdcAddress, oracleAddress);
     await core.waitForDeployment();
@@ -56,7 +56,7 @@ async function main() {
     // ═══════════════════════════════════════════
     // Step 2: Deploy ConfidentialVault (NEW)
     // ═══════════════════════════════════════════
-    console.log("\n2️⃣  Deploying ConfidentialVault V1...");
+    console.log("\n2️⃣  Deploying ConfidentialVault V2...");
     const VaultFactory = getFactory("ConfidentialVault");
     const vault = await VaultFactory.deploy(usdcAddress, coreAddress);
     await vault.waitForDeployment();
@@ -66,7 +66,7 @@ async function main() {
     // ═══════════════════════════════════════════
     // Step 3: Deploy ConfidentialTrading (NEW)
     // ═══════════════════════════════════════════
-    console.log("\n3️⃣  Deploying ConfidentialTrading V1...");
+    console.log("\n3️⃣  Deploying ConfidentialTrading V2...");
     const TradingFactory = getFactory("ConfidentialTrading");
     const trading = await TradingFactory.deploy(usdcAddress, coreAddress, vaultAddress, oracleAddress);
     await trading.waitForDeployment();

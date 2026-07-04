@@ -4,9 +4,9 @@
 
 ---
 
-## 1. 🚀 Keunggulan Arsitektur V2 (Direct-to-Vault & Unified Keeper)
+## 1. 🚀 Keunggulan Arsitektur V1 (Direct-to-Vault & Unified Keeper)
 
-Setelah melalui proses pembersihan dan peremajaan kode, Confidential DEX kini beroperasi dengan model **V2 Direct-to-Vault Execution** yang bersih, efisien, dan mengutamakan kecepatan eksekusi.
+Setelah melalui proses pembersihan dan peremajaan kode, Confidential DEX kini beroperasi dengan model **V1 Direct-to-Vault Execution** yang bersih, efisien, dan mengutamakan kecepatan eksekusi.
 
 *   **Zero-Latency Settlement:** Mengeliminasi sistem antrean *Peer-to-Peer* lambat. Setiap pesanan (*Market*, *Limit*, *Stop*) langsung dibenturkan ke dalam *Liquidity Vault* untuk penyelesaian instan (1-langkah).
 *   **Guaranteed Liquidity:** *Trader* tidak perlu menunggu lawan transaksi. Kapasitas Vault menjamin bahwa pesanan sebesar apa pun akan tereksekusi secara absolut selama utilitas Vault mencukupi.
@@ -30,7 +30,7 @@ Diperuntukkan bagi institusi atau *whale* yang mengutamakan keamanan dan apresia
 *   **Kapasitas Maksimal (Porsi):** **$35.000.000** (70% dari Total TVL)
 *   **Insentif Keuntungan:** Mendapatkan sisa 1x porsi profit reguler. Kenaikan nilai *shares* berjalan perlahan namun memiliki resistensi tinggi terhadap kejatuhan tajam.
 *   **Proteksi Ekstrem:** Dilindungi secara matematis dari risiko kebangkrutan (Lihat detail *Capital Protection* di Bab 3).
-*   **Lockup Period:** 5 Hari (432.000 detik). Uang yang disetor dikunci lebih lama demi menjaga stabilitas cadangan kas bursa.
+*   **Lockup Period:** 5 Hari (432.000 detik). Uang yang disetor dikunci lebih lama demi menjaga stabilitas cadangan kas bursa. Deposit baru menggunakan sistem **Weighted Average Deposit Time**, sehingga tambahan modal kecil tidak akan me-reset seluruh waktu tunggu dari saldo lama yang jauh lebih besar.
 
 ---
 
@@ -43,13 +43,17 @@ Untuk menjaga roda ekonomi *smart contract* tetap berputar stabil, ekosistem dib
 *   Sistem tidak akan mengizinkan pembukaan posisi baru jika uang tunai yang sedang terpakai untuk menahan posisi berjalan (*Open Interest*) menyentuh **80%** dari saldo Vault. Sisa **20%** adalah dana kas (*Cash Reserve*) suci yang dijamin tersedia agar para LP selalu bisa menarik (*Withdraw*) aset mereka kapanpun tanpa kegagalan transaksi (*Revert*).
 
 ### B. Prime Capital Protection (Sabuk Pengaman Modal) : `70%`
-*   Berlaku saat *trader* paus **MENUTUP** posisi (Membawa kemenangan raksasa).
+*   Berlaku saat *trader* paus **MENUTUP** posisi (Membawa kemenangan raksasa), maupun saat distribusi untung/rugi *Funding Rate*.
 *   Jika seorang *trader* mencetak profit tak terhingga hingga menguras $15 Juta dari Degen Vault menjadi $0, kerugian tersebut akan mulai bocor/merembes ke Prime Vault.
-*   Namun, *Smart Contract* akan langsung menurunkan pemutus daya (*circuit breaker*): **Maksimal kerugian yang boleh ditanggung Prime Vault hanyalah 30%**. Sisa **70% dari Total Aset Prime Vault dikunci absolut** dan tidak dapat diklaim sebagai kemenangan *trader* (*Profit Capping*).
+*   Namun, *Smart Contract* akan langsung menurunkan pemutus daya (*circuit breaker*): **Maksimal kerugian absolut yang boleh ditanggung Prime Vault hanyalah 30% dari Total Deposit Historis**. Sisa **70% dari Total Deposit Prime Vault dikunci absolut** dan tidak dapat diklaim sebagai kemenangan *trader* (*Profit Capping*). Batas ini dilacak seumur hidup (historical absolute) dan tidak akan me-reset harian.
 
 ### C. Emergency Auto-Deleveraging (ADL) : `95%`
 *   Garis pertahanan krisis likuiditas paling ekstrem. 
 *   Jika karena satu dan lain hal pergerakan pasar menyebabkan utilitas kas Vault melonjak melebihi **95%**, *Keeper Bot* diberikan wewenang membunuh posisi-posisi menguntungkan (*profitable*) milik *trader* secara paksa untuk mengembalikan likuiditas ke zona aman.
+
+### D. Auto-Scaling Withdrawals (Pencairan Likuiditas Dinamis)
+*   Jika seorang *Liquidity Provider* (LP) mencoba menarik dana lebih besar dari *Available Liquidity* (kas kasual yang sedang tidak dipakai oleh *trader*), sistem tidak akan menggagalkan transaksi (*Revert*).
+*   *Smart Contract* V1 secara otomatis akan mencairkan jumlah dana maksimal yang tersedia di brankas pada detik tersebut, lalu membiarkan sisa porsi saham (*shares*) LP tetap utuh berada di dalam Vault untuk ditarik nanti.
 
 ---
 
@@ -77,9 +81,11 @@ Sistem keuangan bot dirancang secara adil agar operator bot tidak pernah mengala
 *   **Dynamic Skew-Based P2P Funding Rate:** Membuang beban sewa (Borrow Fee) menjadi 0% agar lebih ringan. Platform menerapkan *Continuous P2P Funding Rate* yang sangat dinamis berdasarkan rasio ketidakseimbangan *(skew)* antara Long dan Short (bukan berdasarkan rasio pemakaian Vault). Mayoritas akan langsung membayar Minoritas. Jika pasar 100% Long, mereka akan dikenakan fee maksimal (misal 0.0125% per jam) yang bisa langsung memberikan peluang profit *(arbitrase)* bagi siapapun yang berani masuk membuka posisi Short untuk menyeimbangkan pasar.
 *   **Limit Order Discipline (0% Buffer):** Limit Order menggunakan ketepatan 100% tanpa buffer eksekusi prematur. Pesanan hanya terbuka jika harga pasar tepat menyentuh atau melewati target.
 *   **Execution Buffer (Anti-Jarum) 0.3%:** Khusus untuk Stop Order, Take Profit (TP), dan Stop Loss (SL), terdapat buffer eksekusi 0.3% *(30 bps)* untuk melindungi trader dari gagal eksekusi *(revert)* saat volatilitas atau *market crash* mendadak.
-*   **Harmonic Averaging Price:** Perhitungan *entry* baru saat *trader* menambah posisi menggunakan rata-rata harmonik, memblokir manipulasi taktik penambahan posisi buatan.
+*   **Harmonic Averaging & Strict Leverage Validation:** Perhitungan *entry* baru saat *trader* menambah posisi menggunakan rata-rata harmonik. Selain itu, sistem secara ketat mengkalkulasi dan memvalidasi *leverage gabungan* dari aset sebelum dan sesudah digabungkan, menepis segala manipulasi taktik penambahan posisi paksa dengan leverage di atas batas maksimal (maks `100x`).
 *   **On-Chain Max Leverage Tiers:** Batas leverage diatur langsung di smart contract sesuai kelas volatilitas aset: **100x** untuk aset kripto utama (BTC, ETH, SOL) dan Forex; **50x** untuk Altcoins dan Komoditas (Emas/Perak); serta **20x** untuk Indeks Saham (S&P500, NASDAQ).
 *   **TWAP (Time-Weighted Average Price):** Pemecah irisan order besar ke dalam rentang waktu terkalibrasi untuk meminimalkan dampak harga kuadratik.
+*   **Dynamic Quadratic Price Impact (Senjata Anti-Whale):** *Price Impact* dihitung secara eksponensial (Pangkat Dua) berdasarkan besaran posisi relatif terhadap Max OI. Pesanan kecil hampir tidak terasa, namun pesanan raksasa *(whale)* akan langsung dicekik penalti yang mematikan. Sistem ini juga **Skew-Aware**: Jika paus membuka arah yang makin memiringkan pasar, ia mendapat penalti penuh. Jika *trader* membuka posisi untuk menyeimbangkan pasar, ia mendapat **Diskon Price Impact 50%**.
+*   **Partial Close (Penutupan Sebagian):** Fleksibilitas tingkat lanjut di mana *trader* dapat menutup sekian persen dari posisi aktif mereka. *Smart contract* akan secara presisi menghitung ulang sisa *collateral*, mengamankan untung/rugi pada porsi yang ditutup, dan memperbarui harga likuidasi secara instan tanpa mengganggu sisa posisi.
 
 ---
 
@@ -90,3 +96,4 @@ Sistem keuangan bot dirancang secara adil agar operator bot tidak pernah mengala
 3.  **Strict CEI (Checks-Effects-Interactions):** Semua perpindahan uang (USDC) dieksekusi murni di akhir baris setelah penurunan OI dan pencatatan PnL, menutup lubang maut *Reentrancy Attack*.
 4.  **Anti-Donation Attack (ERC-4626):** Setoran deposit $1.000 pertama dalam Vault dikorbankan (*burnt*) permanen untuk mencegah eksploitasi inflasi rasio harga *shares*.
 5.  **Automated Epoch Bankruptcy:** LP tidak mewarisi "utang" dari keruntuhan harga. Jika sebuah Vault tergerus hingga saldo $0 akibat kemenangan beruntun *trader*, *shares* akan direset bersih menjadi rasio 1:1 di Epoch baru.
+6.  **2-Step Ownership Transfer (Keamanan Admin):** Sistem pergantian *Owner* (hak admin *smart contract*) menggunakan perlindungan 2-Langkah. `transferOwnership` harus dilanjutkan dengan verifikasi `acceptOwnership` oleh dompet tujuan. Menutup total risiko *"fat-finger"* (salah ketik alamat) yang bisa menyebabkan DEX terkunci selamanya.

@@ -70,7 +70,7 @@ async function main() {
   console.log(`🔑 Keeper Wallet: ${wallet.address}`);
 
   // Load contract addresses
-  let TRADING_ADDRESS = "0x478C7A63557C6ca00FE5A78Ee9893A677B0548ad"; // Dynamic P2P V2 address
+  let TRADING_ADDRESS = "0x4B7291445eE8eD0d3f12c511843078f8B8c4d9Bd"; // Dynamic P2P V1 address
   try {
     const deployPath1 = path.join(__dirname, "latest_deploy.json");
     const deployPath2 = path.join(__dirname, "scripts/latest_deploy.json");

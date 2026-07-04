@@ -8,12 +8,16 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
-const USER = "0x3190e3B097fAC3579fB8817C4E8E094Aa58B354a";
-const VAULT = "0x620AB088ffC0bFa8b44A7E84D51a786f2CFD30bA";
+const VAULT = "0xF048A41f9e764C679F10610079478c5feECCD1B4";
 
 async function main() {
   const rpc = process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network";
   const provider = new ethers.JsonRpcProvider(rpc);
+  
+  let pk = process.env.PRIVATE_KEY || process.env.BOT_KEEPER_PRIVATE_KEY;
+  if (!pk.startsWith("0x")) pk = "0x" + pk;
+  const wallet = new ethers.Wallet(pk, provider);
+  const USER = "0x3190e3B097fAC3579fB8817C4E8E094Aa58B354a";
 
   const abi = [
     "function sharesOf(address user, bool isDegen) view returns (uint256)",

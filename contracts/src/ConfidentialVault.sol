@@ -139,9 +139,20 @@ contract ConfidentialVault is ReentrancyGuard {
         }
 
         if (isDegen) {
-            degenDepositTimestamp[msg.sender] = block.timestamp;
+            uint256 oldTs = degenDepositTimestamp[msg.sender];
+            if (oldTs == 0 || userCurrentValue == 0) {
+                degenDepositTimestamp[msg.sender] = block.timestamp;
+            } else {
+                degenDepositTimestamp[msg.sender] = ((oldTs * userCurrentValue) + (block.timestamp * amount)) / (userCurrentValue + amount);
+            }
         } else {
-            primeDepositTimestamp[msg.sender] = block.timestamp;
+            uint256 oldTs = primeDepositTimestamp[msg.sender];
+            if (oldTs == 0 || userCurrentValue == 0) {
+                primeDepositTimestamp[msg.sender] = block.timestamp;
+            } else {
+                primeDepositTimestamp[msg.sender] = ((oldTs * userCurrentValue) + (block.timestamp * amount)) / (userCurrentValue + amount);
+            }
+            core.recordPrimeDeposit(amount);
         }
         emit Deposit(msg.sender, amount, sharesToMint, isDegen);
     }
@@ -161,7 +172,16 @@ contract ConfidentialVault is ReentrancyGuard {
         uint256 _totalAssets = isDegen ? totalDegenAssets : totalPrimeAssets;
 
         uint256 usdcAmount = (shareAmount * _totalAssets) / _totalShares;
-        if (usdcAmount > availableLiquidity() || usdcAmount > usdc.balanceOf(address(this))) revert InsufficientLiquidity();
+        
+        uint256 availLiq = availableLiquidity();
+        uint256 balance = usdc.balanceOf(address(this));
+        uint256 maxAvail = availLiq < balance ? availLiq : balance;
+
+        if (usdcAmount > maxAvail) {
+            usdcAmount = maxAvail;
+            if (usdcAmount == 0) revert InsufficientLiquidity();
+            shareAmount = (usdcAmount * _totalShares) / _totalAssets;
+        }
 
         if (isDegen) {
             totalDegenShares -= shareAmount;
@@ -171,6 +191,7 @@ contract ConfidentialVault is ReentrancyGuard {
             totalPrimeShares -= shareAmount;
             primeShares[primeEpoch][msg.sender] -= shareAmount;
             totalPrimeAssets -= usdcAmount;
+            core.recordPrimeWithdrawal(usdcAmount);
         }
 
         require(usdc.transfer(msg.sender, usdcAmount), "Transfer failed");
@@ -308,24 +329,35 @@ contract ConfidentialVault is ReentrancyGuard {
     }
 
     /// @notice CRIT-1 FIX: Closing fee is already deducted from netPnl in settlePosition.
-    /// This function only handles the vault/treasury split WITHOUT double-deducting totalAssets.
-    /// The vault portion stays in the vault (already there from trader's collateral).
-    /// Only the treasury portion is transferred out.
+    /// This function only handles the treasury split WITHOUT double-deducting totalAssets.
+    /// The vault portion is already implicitly absorbed. We must deduct the treasury portion
+    /// from totalAssets because we are transferring it out.
     function distributeClosingFee(uint256 totalFee) external onlyTrading {
         (, uint256 toTreasury) = core.getFeeSplit(totalFee);
-        uint256 toVault = totalFee - toTreasury;
 
-        // Vault portion: fee stays in vault as LP profit (already present as USDC)
-        if (toVault > 0) {
-            _distributeProfit(toVault);
-        }
-
-        // Treasury portion: transfer out from vault's USDC balance
+        // Treasury portion: deduct from accounting and transfer out
         if (toTreasury > 0) {
+            _deductProfit(toTreasury);
             require(usdc.transfer(core.treasury(), toTreasury), "Transfer failed");
         }
 
         emit FeeReceived(totalFee);
+    }
+
+    function _deductProfit(uint256 amount) internal {
+        if (amount == 0) return;
+        uint256 degenWeight = totalDegenAssets * 3;
+        uint256 primeWeight = totalPrimeAssets * 1;
+        uint256 totalWeight = degenWeight + primeWeight;
+
+        if (totalWeight > 0) {
+            uint256 degenDeduct = (amount * degenWeight) / totalWeight;
+            uint256 primeDeduct = amount - degenDeduct;
+            totalDegenAssets = totalDegenAssets > degenDeduct ? totalDegenAssets - degenDeduct : 0;
+            totalPrimeAssets = totalPrimeAssets > primeDeduct ? totalPrimeAssets - primeDeduct : 0;
+        } else {
+            totalDegenAssets = totalDegenAssets > amount ? totalDegenAssets - amount : 0;
+        }
     }
 
     function receiveFees(uint256 amount) external onlyTrading {
@@ -336,9 +368,17 @@ contract ConfidentialVault is ReentrancyGuard {
     /// @notice CRIT-2 FIX: Pay funding reward to a position by increasing vault backing.
     /// @dev Called by Trading contract when a trader earns negative funding.
     ///      Vault pays the reward from LP assets (loss to LPs, gain to trader).
-    function payFundingReward(uint256 amount) external onlyTrading {
-        if (amount == 0) return;
+    function payFundingReward(uint256 amount) external onlyTrading returns (uint256) {
+        if (amount == 0) return 0;
         
+        uint256 maxPrimeLiability = (totalPrimeAssets * (10000 - primeProtectionBps)) / 10000;
+        uint256 totalAvailable = totalDegenAssets + maxPrimeLiability;
+        
+        if (amount > totalAvailable) {
+            emit ProfitCapped(msg.sender, amount, totalAvailable);
+            amount = totalAvailable;
+        }
+
         // Deduct from LP assets using first-loss waterfall (same as trader profit)
         if (amount <= totalDegenAssets) {
             totalDegenAssets -= amount;
@@ -350,6 +390,8 @@ contract ConfidentialVault is ReentrancyGuard {
             emit EpochReset(true, degenEpoch);
             
             totalPrimeAssets = totalPrimeAssets > remainingLoss ? totalPrimeAssets - remainingLoss : 0;
+            core.trackVaultLoss(remainingLoss);
+
             if (totalPrimeAssets == 0) {
                 primeEpoch++;
                 totalPrimeShares = 0;
@@ -359,6 +401,7 @@ contract ConfidentialVault is ReentrancyGuard {
         
         // Increase backing to account for the reward now owed to the position
         totalBacking += amount;
+        return amount;
     }
 
     // ══════════════════════════════════════════════════════════

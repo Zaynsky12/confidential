@@ -424,6 +424,7 @@ contract ConfidentialTrading is ReentrancyGuard {
             }
             order.isActive = false;
         } else if (order.orderType == 3) { // Market Close
+            require(!core.paused(), "Paused"); // BUG-5 FIX: Ensure system is not paused
             _executeClose(order.positionId, currentPrice);
             hasActiveCloseRequest[order.positionId] = false;
             order.isActive = false;
@@ -779,8 +780,8 @@ contract ConfidentialTrading is ReentrancyGuard {
             // CRIT-2 FIX: Clean funding reward path
             // Vault deducts LP assets and increases backing atomically
             uint256 reward = uint256(-netFee);
-            vault.payFundingReward(reward);
-            pos.collateral += reward;
+            uint256 actualReward = vault.payFundingReward(reward);
+            pos.collateral += actualReward;
         }
 
         // Reset tracking
@@ -890,9 +891,6 @@ contract ConfidentialTrading is ReentrancyGuard {
             }
         }
 
-        // Validate additional size against OI limits
-        core.validateOpenPosition(pos.pairId, msg.sender, pos.isLong, additionalSizeUsd, additionalLeverage);
-
         uint256 addCollateralAmt = additionalSizeUsd / additionalLeverage;
         uint256 fee = core.calculateFee(additionalSizeUsd, false);
 
@@ -901,6 +899,11 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         // CRITICAL: Settle accrued fees BEFORE merging to prevent exploitation
         _settleAccruedFees(pos);
+
+        uint256 newLeverage = (pos.sizeUsd + additionalSizeUsd) / (pos.collateral + addCollateralAmt);
+
+        // Validate additional size against OI limits using the NEW combined leverage
+        core.validateOpenPosition(pos.pairId, msg.sender, pos.isLong, additionalSizeUsd, newLeverage);
 
         // Calculate price impact on additional size only
         int256 impactBps = core.calcPriceImpact(pos.pairId, pos.isLong, additionalSizeUsd);

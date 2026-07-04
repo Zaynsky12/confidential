@@ -64,9 +64,9 @@ contract ConfidentialCore {
     uint256 public minPositionDuration = 5; // 5 seconds — prevents flash loan attacks
 
     // ── Circuit Breaker ──
-    uint256 public maxDailyDrawdownBps = 3000; // 30% max daily vault loss triggers pause
-    uint256 public dailyLossTracker;
-    uint256 public dailyLossResetTime;
+    uint256 public maxDrawdownBps = 3000; // 30% max absolute prime loss triggers pause
+    uint256 public totalHistoricalPrimeDeposits;
+    uint256 public absolutePrimeLoss;
 
     // USDC token (Arc native USDC)
     address public immutable usdc;
@@ -79,7 +79,7 @@ contract ConfidentialCore {
     event FundingUpdated(bytes32 indexed pairId, int256 newCumulativeIndex, int256 delta);
     event Paused();
     event Unpaused();
-    event CircuitBreakerTriggered(uint256 dailyLoss, uint256 threshold);
+    event CircuitBreakerTriggered(uint256 totalLoss, uint256 threshold);
     event OwnershipTransferStarted(address indexed current, address indexed pending);
     event OwnershipTransferred(address indexed prev, address indexed next);
 
@@ -115,7 +115,6 @@ contract ConfidentialCore {
         owner = msg.sender;
         usdc = _usdc;
         oracle = PythPriceOracle(_oracle);
-        dailyLossResetTime = block.timestamp;
     }
 
     // ══════════════════════════════════════════════════════════
@@ -424,29 +423,35 @@ contract ConfidentialCore {
     function trackVaultLoss(uint256 lossAmount) external {
         require(msg.sender == vault, "Only Vault");
         
-        // Reset daily tracker every 24 hours
-        if (block.timestamp >= dailyLossResetTime + 1 days) {
-            dailyLossTracker = 0;
-            dailyLossResetTime = block.timestamp;
-        }
+        absolutePrimeLoss += lossAmount;
 
-        dailyLossTracker += lossAmount;
-
-        // Check if daily loss exceeds threshold (relative to prime vault TVL)
-        if (vault != address(0)) {
-            (bool success, bytes memory data) = vault.staticcall(
-                abi.encodeWithSignature("totalPrimeAssets()")
-            );
-            if (success && data.length >= 32) {
-                uint256 primeAssets = abi.decode(data, (uint256));
-                if (primeAssets > 0) {
-                    uint256 lossBps = (dailyLossTracker * 10000) / primeAssets;
-                    if (lossBps > maxDailyDrawdownBps) {
-                        paused = true;
-                        emit CircuitBreakerTriggered(dailyLossTracker, maxDailyDrawdownBps);
-                    }
-                }
+        // Check if absolute loss exceeds threshold (relative to total historical deposits)
+        if (totalHistoricalPrimeDeposits > 0) {
+            uint256 lossBps = (absolutePrimeLoss * 10000) / totalHistoricalPrimeDeposits;
+            if (lossBps > maxDrawdownBps) {
+                paused = true;
+                emit CircuitBreakerTriggered(absolutePrimeLoss, maxDrawdownBps);
             }
+        }
+    }
+
+    /// @notice Tracks net deposits to Prime Vault for absolute loss limit
+    function recordPrimeDeposit(uint256 amount) external {
+        require(msg.sender == vault, "Only Vault");
+        totalHistoricalPrimeDeposits += amount;
+    }
+
+    /// @notice Tracks net withdrawals from Prime Vault
+    function recordPrimeWithdrawal(uint256 amount) external {
+        require(msg.sender == vault, "Only Vault");
+        uint256 newTotal = totalHistoricalPrimeDeposits >= amount ? totalHistoricalPrimeDeposits - amount : 0;
+        
+        // BUG-4 FIX: Never let historical deposits drop below absolute loss, 
+        // to prevent mathematical deflation of the circuit breaker threshold.
+        if (newTotal < absolutePrimeLoss) {
+            totalHistoricalPrimeDeposits = absolutePrimeLoss;
+        } else {
+            totalHistoricalPrimeDeposits = newTotal;
         }
     }
 
@@ -469,9 +474,9 @@ contract ConfidentialCore {
         minPositionDuration = _seconds;
     }
 
-    function setMaxDailyDrawdown(uint256 _bps) external onlyOwner {
+    function setMaxDrawdown(uint256 _bps) external onlyOwner {
         require(_bps >= 1000 && _bps <= 5000, "10-50%");
-        maxDailyDrawdownBps = _bps;
+        maxDrawdownBps = _bps;
     }
 
     // ══════════════════════════════════════════════════════════
