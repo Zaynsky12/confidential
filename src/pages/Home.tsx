@@ -305,7 +305,7 @@ export default function Home() {
           <div className="home-nav-desktop" style={{ display: 'none', alignItems: 'center', gap: 32 }}>
             <Link to="/trade" className="home-nav-link" style={{ color: '#bacbbb', fontWeight: 500, fontFamily: "'Geist', sans-serif", fontSize: 16, letterSpacing: '0.02em', textDecoration: 'none', transition: 'color 0.3s' }}>Trade</Link>
             <Link to="/vaults" className="home-nav-link" style={{ color: '#bacbbb', fontFamily: "'Geist', sans-serif", fontSize: 16, letterSpacing: '0.02em', fontWeight: 500, textDecoration: 'none', transition: 'color 0.3s' }}>Stake</Link>
-            <a href="/docs/" className="home-nav-link" style={{ color: '#bacbbb', fontFamily: "'Geist', sans-serif", fontSize: 16, letterSpacing: '0.02em', fontWeight: 500, textDecoration: 'none', transition: 'color 0.3s' }}>Docs</a>
+            <a href="/docs/overview/introduction.html" className="home-nav-link" style={{ color: '#bacbbb', fontFamily: "'Geist', sans-serif", fontSize: 16, letterSpacing: '0.02em', fontWeight: 500, textDecoration: 'none', transition: 'color 0.3s' }}>Docs</a>
           </div>
           <Link to="/trade" className="glow-mint" style={{ backgroundColor: '#4BFF99', color: '#131313', padding: '8px 24px', borderRadius: 9999, fontFamily: "'Geist', sans-serif", fontSize: 14, fontWeight: 600, letterSpacing: '0.02em', textDecoration: 'none', display: 'inline-block', transition: 'all 0.3s' }}>
             Launch App
@@ -536,7 +536,7 @@ export default function Home() {
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/legal/privacy-policy.html">Privacy Policy</a>
               <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/legal/terms-of-service.html">Terms of Service</a>
-              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/">Docs</a>
+              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/overview/introduction.html">Docs</a>
             </div>
           </div>
         </div>

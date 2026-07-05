@@ -8,7 +8,6 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.png',
     nav: [
-      { text: 'Home', link: '/' },
       { text: 'Overview', link: '/overview/introduction' },
       { text: 'Trading', link: '/trading/mechanics' },
       { text: 'Liquidity', link: '/liquidity/dual-vaults' }
