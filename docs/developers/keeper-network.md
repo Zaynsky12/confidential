@@ -60,19 +60,10 @@ To ensure high execution speed and avoid losing the race to other Keepers, we re
 
 ### 2. Setup the Bot Script
 
-Untuk men-setup bot di VPS, Anda bisa mengunduhnya secara otomatis, atau membuat filenya secara manual.
-
-**Opsi A: Menggunakan Wget (Otomatis & Direkomendasikan)**
-Buka terminal VPS Anda dan jalankan perintah ini untuk mengunduh script:
-```bash
-wget https://raw.githubusercontent.com/Zaynsky12/arctrade/main/contracts/feederBot.cjs
-```
-
-**Opsi B: Membuat File Manual (Copy-Paste)**
-Jika Anda lebih suka membuat filenya secara manual, buat file bernama `feederBot.cjs` di server Anda lalu *copy-paste* seluruh script di bawah ini ke dalamnya.
+Create a new file named `feederBot.cjs` on your server and copy the entire script below into it.
 
 <details>
-<summary>Klik di sini untuk melihat dan meng-copy full <b>feederBot.cjs</b> script</summary>
+<summary>Click here to view and copy the full <b>feederBot.cjs</b> script</summary>
 
 ```javascript
 const { ethers } = require("ethers");
