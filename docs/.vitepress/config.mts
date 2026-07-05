@@ -7,6 +7,7 @@ export default defineConfig({
   appearance: 'dark',
   themeConfig: {
     logo: '/logo.png',
+    logoLink: 'javascript:window.location.href="/"',
     nav: [
       { text: 'Overview', link: '/overview/introduction' },
       { text: 'Trading', link: '/trading/mechanics' },
