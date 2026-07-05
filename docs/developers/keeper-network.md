@@ -14,19 +14,19 @@ Unlike exchanges that monopolize profits for internal parties, our Keeper networ
 
 ---
 
-## 💰 Zero-Sum-Game Economy Scheme
+## 💰 Keeper Economy Scheme
 
-The financial incentive system is structured so that *Bot Operators* running servers will never bleed capital (run out of gas), while *traders* are guaranteed their orders will always be settled.
+The financial incentive system is structured to provide strong profit opportunities for *Bot Operators* through Order Sweeping and Liquidations. *(Note: Currently, executing TP/SL is uncompensated and requires the bot to cover gas & oracle fees. Keepers may choose to skip TP/SL execution, leaving it to official protocol fallback bots).*
 
 | Operation Cycle | Fee Scheme / Compensation | Borne By |
 | :--- | :--- | :--- |
 | **Market Scanning (Every 4 Sec)** | **0 Gas** (Purely read-only data) | None / Free |
-| **Initial Order Placement** | **Execution Fee (ARC Coin)** | Deposited by **Trader** upon opening an order |
-| **Execution Trigger** | Transaction Execution Cost (*Gas Fee* + Oracle) | Fronted by the **Keeper Bot** |
-| **Success Reward Claim** | Contract transfers 100% of Trader's *Execution Fee* | Earned by the **Keeper Bot** instantly! |
+| **Pending Order Execution** | **100% Execution Fee (ARC Coin)** | Deposited by **Trader** upon opening an order |
+| **Liquidation Execution** | **1% of Trader's Effective Collateral** | Deducted from the liquidated trader's collateral |
+| **TP/SL Execution** | **Uncompensated (0 ARC)** | Gas & Oracle fees fronted by the **Keeper Bot** |
 
-::: info Win-Win Execution
-When your bot successfully becomes the first to execute a trader's order into the contract, the smart contract instantly disburses the `Execution Fee` (held since the order creation) back into your bot's wallet (`msg.sender`). This generates a self-sustaining cash flow for anyone keeping this network alive!
+::: info Profitable Executions
+When your bot successfully becomes the first to execute a pending order or a liquidation, the smart contract instantly disburses the `Execution Fee` or the `1% Liquidation Reward` back into your bot's wallet (`msg.sender`). This generates a self-sustaining cash flow for anyone keeping this network alive!
 :::
 
 ---
@@ -35,8 +35,8 @@ When your bot successfully becomes the first to execute a trader's order into th
 
 The bot cycle processes these 3 heavy workloads asynchronously:
 1. **Pending Order Sweep:** Executes a queue of *Limit*, *Stop Market*, *TWAP*, and *delayed Market Orders* when the actual price crosses the trigger price.
-2. **Take Profit (TP) / Stop Loss (SL):** Executes protective closures, locking in profits or limiting losses when an asset crosses a trader's predefined thresholds.
-3. **Liquidation Sweep:** Tracks margins and ruthlessly liquidates underwater traders who can no longer maintain their Maintenance Margin collateral requirements.
+2. **Take Profit (TP) / Stop Loss (SL):** Executes protective closures, locking in profits or limiting losses when an asset crosses a trader's predefined thresholds. *(Note: As per current smart contract logic, TP/SL execution does not distribute execution fees to Keepers).*
+3. **Liquidation Sweep:** Tracks margins and ruthlessly liquidates underwater traders who can no longer maintain their Maintenance Margin collateral requirements. The bot receives a **1% Liquidation Reward** from the trader's effective collateral for successfully triggering this.
 
 ---
 
@@ -314,4 +314,4 @@ pm2 logs KeeperBot
 ```
 
 ### 4. Monitor Your Earnings
-Once running, the bot will output logs every 4 seconds. Whenever it successfully executes an order or a liquidation, you will see a success message in the console, and the **Execution Fee** will be automatically deposited directly into your Keeper Wallet address!
+Once running, the bot will output logs every 4 seconds. Whenever it successfully executes an order or a liquidation, you will see a success message in the console, and the **Execution Fee** or **Liquidation Reward** will be automatically deposited directly into your Keeper Wallet address!
