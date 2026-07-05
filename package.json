@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run docs:build && node scripts/copy-docs.js",
+    "docs:build": "vitepress build docs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -44,6 +45,8 @@
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.39"
   }
 }
