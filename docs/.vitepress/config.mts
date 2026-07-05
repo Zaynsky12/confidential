@@ -2,7 +2,6 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   base: '/docs/',
-  cleanUrls: true,
   title: "Confidential DEX",
   description: "Advanced Agentic Trading Platform",
   appearance: 'dark',

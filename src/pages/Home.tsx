@@ -534,8 +534,8 @@ export default function Home() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/legal/privacy-policy">Privacy Policy</a>
-              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/legal/terms-of-service">Terms of Service</a>
+              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/legal/privacy-policy.html">Privacy Policy</a>
+              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/legal/terms-of-service.html">Terms of Service</a>
               <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/">Docs</a>
             </div>
           </div>
