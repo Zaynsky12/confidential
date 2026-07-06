@@ -7,9 +7,15 @@ import Vault from './pages/Vault'
 import Portfolio from './pages/Portfolio'
 import Home from './pages/Home'
 import { usePythPrices } from './hooks/usePythPrices'
+import { useMarketVolumes } from './hooks/useGoldsky'
 
 function PythPriceLoader() {
   usePythPrices()
+  return null
+}
+
+function MarketVolumeLoader() {
+  useMarketVolumes()
   return null
 }
 
@@ -33,6 +39,7 @@ export default function App() {
           border: '1px solid #333',
         }
       }} />
+      <MarketVolumeLoader />
       {/* Only load Pyth prices on non-home pages to prevent trade state interference */}
       {!isHome && <PythPriceLoader />}
       {!isHome && <Topbar />}

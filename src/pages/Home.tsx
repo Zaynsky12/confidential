@@ -379,15 +379,15 @@ export default function Home() {
       <section style={{ position: 'relative', zIndex: 30, padding: '0 16px', marginTop: 80, marginBottom: 80 }}>
         <div className="glass-surface" style={{ maxWidth: 1024, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', alignItems: 'center', padding: '24px 32px', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', background: 'linear-gradient(135deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.9) 100%)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
-            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Global Volume</span>
-            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>{formattedVolume}</span>
+            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total Trades</span>
+            <span className="t-headline-lg" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontSize: 36 }}>{displayTraders}</span>
           </div>
           
           <div className="md-block" style={{ width: 1, height: 64, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', minWidth: 200, padding: '16px 0' }}>
-            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Traders</span>
-            <span className="t-headline-lg" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontSize: 36 }}>{displayTraders}</span>
+            <span className="t-label-mono" style={{ color: '#88919e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Global Volume</span>
+            <span className="t-headline-lg" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontSize: 36 }}>{formattedVolume}</span>
           </div>
           
           <div className="md-block" style={{ width: 1, height: 64, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)' }}></div>

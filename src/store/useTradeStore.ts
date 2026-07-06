@@ -71,6 +71,7 @@ interface TradeStore {
   toggleWatchlist: (id: string) => void
   updateMarketPrice: (id: string, price: number, conf?: number) => void
   setMarketHistoricalPrices: (prices: Record<string, number>) => void
+  updateMarketVolume: (pairHash: string, volume24h: number) => void
 
   // Order Book
   orderBook: { bids: OrderBookEntry[]; asks: OrderBookEntry[] }
@@ -158,6 +159,13 @@ export const useTradeStore = create<TradeStore>()(
             }
             return m
           })
+        }))
+      },
+      updateMarketVolume: (pairHash, volume24h) => {
+        set((state) => ({
+          markets: state.markets.map((m) =>
+            m.pairHash.toLowerCase() === pairHash.toLowerCase() ? { ...m, volume24h } : m
+          ),
         }))
       },
 

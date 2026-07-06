@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { gql } from 'graphql-request'
 import { gqlClient } from '../config/graphql'
 import { formatUnits } from 'viem'
+import { useTradeStore } from '../store/useTradeStore'
 
 export interface IndexerDeposit {
   id: string
@@ -236,6 +237,45 @@ export function useClosedPositions(userAddress?: string) {
   }, [userAddress])
 
   return { closedPositions, isLoading }
+}
+
+export function useMarketVolumes() {
+  const updateMarketVolume = useTradeStore(state => state.updateMarketVolume)
+
+  useEffect(() => {
+    async function fetchVolumes() {
+      try {
+        const query = gql`
+          query GetPairVolumes {
+            pairDayDatas(first: 100, orderBy: date, orderDirection: desc) {
+              pairId
+              date
+              volumeUsd
+            }
+          }
+        `
+        const data: any = await gqlClient.request(query)
+        
+        // Take the latest day's volume for each pair
+        const latestVolumeByPair = new Map<string, number>()
+        
+        for (const dayData of data.pairDayDatas) {
+          const pairId = dayData.pairId.toLowerCase()
+          if (!latestVolumeByPair.has(pairId)) {
+            const vol = Number(formatUnits(BigInt(dayData.volumeUsd), 6))
+            latestVolumeByPair.set(pairId, vol)
+            updateMarketVolume(pairId, vol)
+          }
+        }
+      } catch (e) {
+        console.error("Goldsky Fetch Volumes Error:", e)
+      }
+    }
+
+    fetchVolumes()
+    const interval = setInterval(fetchVolumes, 30000)
+    return () => clearInterval(interval)
+  }, [updateMarketVolume])
 }
 
 export interface IndexerOrder {
