@@ -258,6 +258,9 @@ export default function Home() {
           .home-features-grid {
             grid-template-columns: repeat(3, 1fr) !important;
           }
+          .home-institutional-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
           .home-footer-grid {
             grid-template-columns: 1fr 1fr !important;
           }
@@ -292,6 +295,26 @@ export default function Home() {
         }
         .md-block {
           display: none;
+        }
+
+        /* ═══ Mockup Float Animation ═══ */
+        @keyframes mockup-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .home-mockup-float {
+          animation: mockup-float 6s ease-in-out infinite;
+        }
+        .home-mockup-float:hover {
+          transform: translateY(-6px) scale(1.01) !important;
+          box-shadow: 0 48px 120px rgba(0, 0, 0, 0.8), 0 0 100px rgba(75, 255, 153, 0.12) !important;
+        }
+
+        /* ═══ Feature Item Hover ═══ */
+        .home-feature-item:hover {
+          background: rgba(75, 255, 153, 0.04) !important;
+          border-color: rgba(75, 255, 153, 0.15) !important;
+          transform: translateX(4px);
         }
       `}</style>
 
@@ -402,53 +425,64 @@ export default function Home() {
       {/* ═══ Features Section ═══ */}
       <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <h2 className="t-headline-lg home-features-heading" style={{ color: '#fbfff8', marginBottom: 48, textAlign: 'center', letterSpacing: '-0.02em', fontWeight: 700 }}>Engineered for Institutional Scale</h2>
-          <div className="home-features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
-            {/* Feature 1 */}
-            <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
-                <span className="t-label-mono" style={{ color: '#4BFF99' }}>01</span>
-                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Deterministic Settlement</h3>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <span className="t-label-mono" style={{ color: '#4BFF99', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 16 }}>Institutional Grade</span>
+            <h2 className="t-headline-lg home-features-heading" style={{ color: '#fbfff8', letterSpacing: '-0.02em', fontWeight: 700, margin: 0 }}>Engineered for Institutional Scale</h2>
+          </div>
+
+          {/* Institutional Laptop Mockup */}
+          <div style={{ position: 'relative', width: '100%', maxWidth: 960, margin: '-32px auto 0 auto', zIndex: 20 }}>
+            <img 
+              src="/app-preview.png" 
+              alt="Confidential Trading Platform" 
+              className="home-mockup-float"
+              style={{ 
+                position: 'relative',
+                zIndex: 1,
+                width: '100%', 
+                borderRadius: 16,
+                mixBlendMode: 'screen', // This will make the black background disappear completely
+                filter: 'drop-shadow(0 20px 40px rgba(75, 255, 153, 0.1))',
+              }} 
+            />
+          </div>
+          
+          <div className="home-features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
+            {[
+              {
+                num: '01',
+                title: 'Deterministic Settlement',
+                desc: 'Eliminate orderbook front-running and MEV. Our direct-to-vault architecture guarantees sub-second execution powered by high-fidelity Pyth Oracle data.',
+                badges: ['Anti-MEV', 'Sub-second', 'Pyth Network']
+              },
+              {
+                num: '02',
+                title: 'Quadratic Slippage Engine',
+                desc: 'Retail trades execute with absolute 0% slippage. Massive institutional position sizing triggers an asymmetric penalty function to protect underlying protocol liquidity.',
+                badges: ['Zero Slippage', 'Whale Protection']
+              },
+              {
+                num: '03',
+                title: 'Tranche-Based Yield Matrix',
+                desc: 'Hedge against market volatility. Deploy capital into our Dual-Vault system to earn passive, auto-compounding yields derived directly from protocol revenue.',
+                badges: ['Real Yield', 'Auto-Compound']
+              }
+            ].map(item => (
+              <div key={item.num} className="glass-surface home-feature-item" style={{ padding: 32, borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 24, border: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.01)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 16 }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, color: 'rgba(75, 255, 153, 0.4)' }}>{item.num}</span>
+                  <h3 style={{ fontFamily: "'Geist', sans-serif", fontSize: 18, fontWeight: 600, color: '#fbfff8', margin: 0, letterSpacing: '-0.01em' }}>{item.title}</h3>
+                </div>
+                <p style={{ fontFamily: "'Geist', sans-serif", fontSize: 14, lineHeight: '24px', color: '#bacbbb', margin: 0 }}>
+                  {item.desc}
+                </p>
+                <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {item.badges.map(tag => (
+                    <span key={tag} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', color: '#4BFF99', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 10px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.15)' }}>{tag}</span>
+                  ))}
+                </div>
               </div>
-              <p className="t-body-md" style={{ color: '#bacbbb' }}>
-                Eliminate orderbook front-running and MEV. Our direct-to-vault architecture guarantees sub-second execution powered by high-fidelity Pyth Oracle data.
-              </p>
-              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {['Anti-MEV', 'Sub-second', 'Pyth Network'].map(tag => (
-                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.2)' }}>{tag}</span>
-                ))}
-              </div>
-            </div>
-            {/* Feature 2 */}
-            <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
-                <span className="t-label-mono" style={{ color: '#4BFF99' }}>02</span>
-                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Quadratic Slippage Engine</h3>
-              </div>
-              <p className="t-body-md" style={{ color: '#bacbbb' }}>
-                Retail trades execute with absolute 0% slippage. Massive institutional position sizing triggers an asymmetric penalty function to protect underlying protocol liquidity.
-              </p>
-              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {['Zero Slippage', 'Whale Protection'].map(tag => (
-                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.2)' }}>{tag}</span>
-                ))}
-              </div>
-            </div>
-            {/* Feature 3 */}
-            <div className="glass-surface home-feature-card" style={{ padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 20, transition: 'transform 0.3s' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
-                <span className="t-label-mono" style={{ color: '#4BFF99' }}>03</span>
-                <h3 className="t-headline-lg-mobile" style={{ color: '#fbfff8' }}>Tranche-Based Yield Matrix</h3>
-              </div>
-              <p className="t-body-md" style={{ color: '#bacbbb' }}>
-                Hedge against market volatility. Deploy capital into our Dual-Vault system to earn passive, auto-compounding yields derived directly from protocol revenue.
-              </p>
-              <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {['Real Yield', 'Auto-Compound'].map(tag => (
-                  <span key={tag} className="t-label-mono" style={{ color: '#fbfff8', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 12px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.2)' }}>{tag}</span>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
