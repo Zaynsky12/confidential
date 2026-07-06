@@ -292,9 +292,40 @@ export default function Home() {
           .md-block {
             display: block !important;
           }
+          .feature-title {
+            font-size: 18px !important;
+          }
+          .feature-desc {
+            font-size: 14px !important;
+            line-height: 24px !important;
+          }
+          .feature-num {
+            font-size: 20px !important;
+          }
         }
         .md-block {
           display: none;
+        }
+        .feature-title {
+          font-family: 'Geist', sans-serif;
+          font-size: 15px;
+          font-weight: 600;
+          color: #fbfff8;
+          margin: 0;
+          letter-spacing: -0.01em;
+        }
+        .feature-desc {
+          font-family: 'Geist', sans-serif;
+          font-size: 12px;
+          line-height: 20px;
+          color: #bacbbb;
+          margin: 0;
+        }
+        .feature-num {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 15px;
+          font-weight: 700;
+          color: rgba(75, 255, 153, 0.4);
         }
 
         /* ═══ Mockup Float Animation ═══ */
@@ -314,7 +345,28 @@ export default function Home() {
         .home-feature-item:hover {
           background: rgba(75, 255, 153, 0.04) !important;
           border-color: rgba(75, 255, 153, 0.15) !important;
-          transform: translateX(4px);
+          transform: translateY(-4px);
+        }
+
+        /* ═══ Feature Connector Line ═══ */
+        .feature-connector {
+          position: absolute;
+          background: linear-gradient(to bottom, transparent, rgba(75, 255, 153, 0.3) 20%, rgba(75, 255, 153, 0.3) 80%, transparent);
+          width: 2px;
+          height: calc(100% - 64px);
+          left: calc(50% - 1px);
+          top: 32px;
+          z-index: 0;
+          box-shadow: 0 0 16px rgba(75, 255, 153, 0.4);
+        }
+        @media (min-width: 768px) {
+          .feature-connector {
+            background: linear-gradient(to right, transparent, rgba(75, 255, 153, 0.3) 20%, rgba(75, 255, 153, 0.3) 80%, transparent);
+            width: calc(100% - 64px);
+            height: 2px;
+            left: 32px;
+            top: calc(50% - 1px);
+          }
         }
       `}</style>
 
@@ -366,9 +418,6 @@ export default function Home() {
                   onError={(e) => e.currentTarget.style.display = 'none'} 
                 />
                 <span>{m.pair}</span>
-                <span className="font-mono" style={{ color: m.change24h >= 0 ? '#4BFF99' : '#ff4b4b', marginLeft: 4, fontWeight: 500, fontSize: 13 }}>
-                  {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
-                </span>
               </Link>
             ))}
           </div>
@@ -389,9 +438,6 @@ export default function Home() {
                   onError={(e) => e.currentTarget.style.display = 'none'} 
                 />
                 <span>{m.pair}</span>
-                <span className="font-mono" style={{ color: m.change24h >= 0 ? '#4BFF99' : '#ff4b4b', marginLeft: 4, fontWeight: 500, fontSize: 13 }}>
-                  {m.change24h >= 0 ? '+' : ''}{m.change24h.toFixed(2)}%
-                </span>
               </Link>
             ))}
           </div>
@@ -443,11 +489,14 @@ export default function Home() {
                 borderRadius: 16,
                 mixBlendMode: 'screen', // This will make the black background disappear completely
                 filter: 'drop-shadow(0 20px 40px rgba(75, 255, 153, 0.1))',
+                pointerEvents: 'none',
+                userSelect: 'none',
               }} 
             />
           </div>
           
-          <div className="home-features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
+          <div className="home-features-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
+            <div className="feature-connector" />
             {[
               {
                 num: '01',
@@ -468,12 +517,12 @@ export default function Home() {
                 badges: ['Real Yield', 'Auto-Compound']
               }
             ].map(item => (
-              <div key={item.num} className="glass-surface home-feature-item" style={{ padding: 32, borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 24, border: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.01)' }}>
+              <div key={item.num} className="glass-surface home-feature-item" style={{ position: 'relative', zIndex: 1, padding: 32, borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 24, border: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.01)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 16 }}>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, color: 'rgba(75, 255, 153, 0.4)' }}>{item.num}</span>
-                  <h3 style={{ fontFamily: "'Geist', sans-serif", fontSize: 18, fontWeight: 600, color: '#fbfff8', margin: 0, letterSpacing: '-0.01em' }}>{item.title}</h3>
+                  <span className="feature-num">{item.num}</span>
+                  <h3 className="feature-title">{item.title}</h3>
                 </div>
-                <p style={{ fontFamily: "'Geist', sans-serif", fontSize: 14, lineHeight: '24px', color: '#bacbbb', margin: 0 }}>
+                <p className="feature-desc">
                   {item.desc}
                 </p>
                 <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
