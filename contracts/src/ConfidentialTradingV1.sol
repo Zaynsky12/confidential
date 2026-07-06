@@ -6,7 +6,7 @@ import "./ConfidentialVaultV1.sol";
 import "./PythPriceOracle.sol";
 import "./ReentrancyGuard.sol";
 
-/// @title ConfidentialTrading V2 — Main trading engine
+/// @title ConfidentialTrading V1 — Main trading engine
 /// @notice Handles order placement, execution (via keepers), and liquidation.
 /// @dev Security: CEI pattern used throughout, TWAP support, TP/SL, Continuous Funding, safe ERC20 transfers.
 contract ConfidentialTradingV1 is ReentrancyGuard {

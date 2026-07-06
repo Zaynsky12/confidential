@@ -6,14 +6,6 @@ import toast from 'react-hot-toast'
 import { useUSDCApproval } from './useUSDCApproval'
 import { useTradeStore } from '../store/useTradeStore'
 
-const fetchPythVaa = async (pythPriceId: string) => {
-  const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${pythPriceId}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error("Failed to fetch Pyth VAA")
-  const data = await res.json()
-  return data.binary.data.map((hex: string) => `0x${hex}`)
-}
-
 export function useConfidentialTrading() {
   const { writeContractAsync, data: hash, isPending } = useWriteContract()
   
@@ -56,7 +48,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Creating Market Order...', { id: 'trade' })
+      toast.loading('Submitting Market Order...', { id: 'trade' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
@@ -67,29 +59,26 @@ export function useConfidentialTrading() {
 
       const market = useTradeStore.getState().markets.find(m => m.pair === pairName)
       if (!market) throw new Error("Market not found")
-      
-      const updateData = await fetchPythVaa(market.pythPriceId)
-      const pythFee = parseUnits('0.001', 18) // 0.001 ARC for Pyth update fee
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'placeMarketOrder',
+        functionName: 'placeOrder',
         args: [
           pairId,
           isLong,
           sizeUnits,
           BigInt(leverage),
-          tpUnits,
-          slUnits,
           acceptablePriceUnits,
-          updateData
+          2, // 2 = market_open
+          tpUnits,
+          slUnits
         ],
-        value: pythFee,
+        value: EXECUTION_FEE,
       } as any)
 
       toast.dismiss('trade')
-      toast.success('Market Order executed successfully!')
+      toast.success('Market Order request submitted!')
       return tx
     } catch (error: any) {
       toast.dismiss('trade')
@@ -99,24 +88,20 @@ export function useConfidentialTrading() {
   }
 
   // Close Position
-  const closePosition = async (positionId: bigint, pythPriceId: string) => {
+  const closePosition = async (positionId: bigint) => {
     try {
-      if (!pythPriceId) throw new Error("Pyth Price ID is required for instant close")
-      toast.loading('Closing Position Instantly...', { id: 'close' })
+      toast.loading('Submitting Close Request...', { id: 'close' })
       
-      const updateData = await fetchPythVaa(pythPriceId)
-      const pythFee = parseUnits('0.001', 18)
-
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'closePositionInstantly',
-        args: [positionId, updateData],
-        value: pythFee,
+        functionName: 'createCloseRequest',
+        args: [positionId],
+        value: EXECUTION_FEE,
       } as any)
       
       toast.dismiss('close')
-      toast.success('Position closed successfully!')
+      toast.success('Close request submitted!')
       return tx
     } catch (error: any) {
       toast.dismiss('close')
@@ -138,7 +123,6 @@ export function useConfidentialTrading() {
   ) => {
     try {
       const collateralUsd = sizeUsd / leverage
-      // fee calculation logic depends on orderType (0 = maker, 1 = taker)
       const feeRate = orderType === 0 ? 0.0002 : 0.0004
       const totalRequired = collateralUsd + (sizeUsd * feeRate)
       
@@ -147,7 +131,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Placing Pending Order...', { id: 'order' })
+      toast.loading('Submitting Pending Order...', { id: 'order' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
@@ -175,7 +159,7 @@ export function useConfidentialTrading() {
       } as any)
 
       toast.dismiss('order')
-      toast.success('Order placed successfully!')
+      toast.success('Order request submitted!')
       return tx
     } catch (error: any) {
       toast.dismiss('order')
@@ -204,7 +188,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Creating TWAP Order...', { id: 'twap' })
+      toast.loading('Submitting TWAP Order...', { id: 'twap' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
@@ -231,7 +215,7 @@ export function useConfidentialTrading() {
       } as any)
 
       toast.dismiss('twap')
-      toast.success('TWAP Order created successfully!')
+      toast.success('TWAP Order request submitted!')
       return tx
     } catch (error: any) {
       toast.dismiss('twap')
@@ -316,25 +300,22 @@ export function useConfidentialTrading() {
   }
 
   // Remove Collateral
-  const removeCollateral = async (positionId: bigint, amountUsd: number, pythPriceId: string) => {
+  const removeCollateral = async (positionId: bigint, amountUsd: number) => {
     try {
-      if (!pythPriceId) throw new Error("Pyth Price ID is required for removing collateral")
-      toast.loading('Removing Collateral...', { id: 'rmCol' })
+      toast.loading('Submitting Remove Collateral Request...', { id: 'rmCol' })
       const { parseUnits } = await import('viem')
       const amountUnits = parseUnits(amountUsd.toFixed(6), 6)
-      const updateData = await fetchPythVaa(pythPriceId)
-      const pythFee = parseUnits('0.001', 18)
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'removeCollateral',
-        args: [positionId, amountUnits, updateData],
-        value: pythFee,
+        functionName: 'createRemoveCollateralRequest',
+        args: [positionId, amountUnits],
+        value: EXECUTION_FEE,
       } as any)
       
       toast.dismiss('rmCol')
-      toast.success('Collateral removed successfully!')
+      toast.success('Remove Collateral request submitted!')
       return tx
     } catch (error: any) {
       toast.dismiss('rmCol')
@@ -344,25 +325,20 @@ export function useConfidentialTrading() {
   }
 
   // Close Position Partial
-  const closePositionPartial = async (positionId: bigint, closePercentBps: number, pythPriceId: string) => {
+  const closePositionPartial = async (positionId: bigint, closePercentBps: number) => {
     try {
-      if (!pythPriceId) throw new Error("Pyth Price ID is required for partial close")
-      toast.loading('Closing Partial Position...', { id: 'closePartial' })
+      toast.loading('Submitting Partial Close Request...', { id: 'closePartial' })
       
-      const { parseUnits } = await import('viem')
-      const updateData = await fetchPythVaa(pythPriceId)
-      const pythFee = parseUnits('0.001', 18)
-
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'closePositionPartial',
-        args: [positionId, BigInt(closePercentBps), updateData],
-        value: pythFee,
+        functionName: 'createPartialCloseRequest',
+        args: [positionId, BigInt(closePercentBps)],
+        value: EXECUTION_FEE,
       } as any)
       
       toast.dismiss('closePartial')
-      toast.success('Partial position closed successfully!')
+      toast.success('Partial close request submitted!')
       return tx
     } catch (error: any) {
       toast.dismiss('closePartial')
@@ -376,12 +352,9 @@ export function useConfidentialTrading() {
     positionId: bigint, 
     additionalSizeUsd: number, 
     additionalLeverage: number,
-    acceptablePriceUsd: number,
-    pythPriceId: string
+    acceptablePriceUsd: number
   ) => {
     try {
-      if (!pythPriceId) throw new Error("Pyth Price ID is required for increasing position")
-      
       const fee = additionalSizeUsd * 0.0004
       const collateral = additionalSizeUsd / additionalLeverage
       const totalRequired = collateral + fee
@@ -391,24 +364,22 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Increasing Position...', { id: 'increase' })
+      toast.loading('Submitting Increase Request...', { id: 'increase' })
       
       const { parseUnits } = await import('viem')
       const sizeUnits = parseUnits(additionalSizeUsd.toFixed(6), 6)
       const acceptablePriceUnits = acceptablePriceUsd > 0 ? parseUnits(acceptablePriceUsd.toFixed(18), 18) : 0n
-      const updateData = await fetchPythVaa(pythPriceId)
-      const pythFee = parseUnits('0.001', 18)
 
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
-        functionName: 'increasePosition',
-        args: [positionId, sizeUnits, BigInt(additionalLeverage), acceptablePriceUnits, updateData],
-        value: pythFee,
+        functionName: 'createIncreaseRequest',
+        args: [positionId, sizeUnits, BigInt(additionalLeverage), acceptablePriceUnits],
+        value: EXECUTION_FEE,
       } as any)
       
       toast.dismiss('increase')
-      toast.success('Position increased successfully!')
+      toast.success('Increase request submitted!')
       return tx
     } catch (error: any) {
       toast.dismiss('increase')

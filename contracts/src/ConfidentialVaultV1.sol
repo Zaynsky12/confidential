@@ -14,7 +14,7 @@ interface IERC20 {
     function decimals() external view returns (uint8);
 }
 
-/// @title ConfidentialVault V5 — Dual Tranche with Epoch Bankruptcy Protection
+/// @title ConfidentialVault V1 — Dual Tranche with Epoch Bankruptcy Protection
 /// @notice LPs deposit USDC into either Degen (Junior) or Prime (Senior) vault.
 contract ConfidentialVaultV1 is ReentrancyGuard {
     // ──────────── State ────────────

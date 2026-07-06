@@ -10,9 +10,9 @@ As a mathematical safety net for both trader asset sizing and liquidity reserves
 
 | Asset Class | Category / Examples | Max Leverage | Description |
 | :--- | :--- | :---: | :--- |
-| **Tier 1 (Major)** | Major Crypto (BTC, ETH, SOL) & Forex | **100x** | Supported by the deepest liquidity. Ideal for aggressive scalping. |
-| **Tier 2 (Mid)**| Altcoins, Gold, Silver | **50x** | High volatility. Leverage is capped to prevent instant liquidations. |
-| **Tier 3 (Indices)** | Stock Indices (S&P500, NASDAQ) | **20x** | Slower-moving assets, but highly vulnerable to price gaps during market opens. |
+| **Tier 1 (Major)** | Major Crypto (BTC, ETH) & Forex | **100x** | Supported by the deepest liquidity. Ideal for aggressive scalping. |
+| **Tier 2 (Mid)**| Altcoins (SOL), Stock Indices (S&P500), Gold, Silver | **50x** | High volatility or gaps. Leverage is capped to prevent instant liquidations. |
+| **Tier 3 (Minors)** | Others | **20x** | Slower-moving or highly volatile assets. |
 
 ---
 

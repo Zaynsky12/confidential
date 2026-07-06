@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "./PythPriceOracle.sol";
 
-/// @title ConfidentialCore V2 — Central parameter store, fee router & risk engine
+/// @title ConfidentialCore V1 — Central parameter store, fee router & risk engine
 /// @notice Manages trading pairs, fee distribution, funding rates, price impact, and emergency controls
 /// @dev Security: Timelock on critical params, circuit breaker, utilization cap enforcement
 contract ConfidentialCoreV1 {

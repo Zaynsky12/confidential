@@ -260,8 +260,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
             BigInt(currentPosition.positionId),
             usdSize,
             leverage,
-            acceptablePriceUsd,
-            activeMarket.pythPriceId
+            acceptablePriceUsd
           )
         } else {
           await openPosition(

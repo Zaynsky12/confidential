@@ -37,7 +37,7 @@ export default function EditMarginModal({ isOpen, onClose, data }: EditMarginMod
       if (mode === 'add') {
         await addCollateral(BigInt(data.positionId), amt)
       } else {
-        await removeCollateral(BigInt(data.positionId), amt, data.pythPriceId)
+        await removeCollateral(BigInt(data.positionId), amt)
       }
       onClose()
     } catch (e) {

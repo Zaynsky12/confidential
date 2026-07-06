@@ -50,7 +50,7 @@ export default function PartialCloseModal({ isOpen, onClose, data }: PartialClos
       
       const closePercentBps = Math.floor((amt / data.maxSize) * 10000)
       
-      await closePositionPartial(BigInt(data.positionId), closePercentBps, data.pythPriceId)
+      await closePositionPartial(BigInt(data.positionId), closePercentBps)
       onClose()
     } catch (e) {
       console.error(e)
