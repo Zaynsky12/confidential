@@ -501,31 +501,31 @@ export default function Home() {
               {
                 num: '01',
                 title: 'Deterministic Settlement',
-                desc: 'Eliminate orderbook front-running and MEV. Our direct-to-vault architecture guarantees sub-second execution powered by high-fidelity Pyth Oracle data.',
+                desc: 'Eliminate orderbook front-running and MEV attacks. Our Tripartite direct-to-vault architecture enforces a strict 5-second execution lock, guaranteeing sub-second settlement powered by high-fidelity Pyth Oracle data.',
                 badges: ['Anti-MEV', 'Sub-second', 'Pyth Network']
               },
               {
                 num: '02',
                 title: 'Quadratic Slippage Engine',
-                desc: 'Retail trades execute with absolute 0% slippage. Massive institutional position sizing triggers an asymmetric penalty function to protect underlying protocol liquidity.',
+                desc: 'Retail trades execute with absolute 0% slippage. Massive institutional position sizing triggers an exponential penalty based on Open Interest ratios, shielding vault liquidity while rewarding skew-balancing trades.',
                 badges: ['Zero Slippage', 'Whale Protection']
               },
               {
                 num: '03',
                 title: 'Tranche-Based Yield Matrix',
-                desc: 'Hedge against market volatility. Deploy capital into our Dual-Vault system to earn passive, auto-compounding yields derived directly from protocol revenue.',
+                desc: 'Act as the house and hedge against market volatility. Deploy capital into our Dual-Vault system to earn real, auto-compounding yields from protocol revenue—fortified by strict 80% utilization caps and dynamic auto-scaling withdrawals.',
                 badges: ['Real Yield', 'Auto-Compound']
               }
             ].map(item => (
-              <div key={item.num} className="glass-surface home-feature-item" style={{ position: 'relative', zIndex: 1, padding: 32, borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 24, border: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.01)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 16 }}>
+              <div key={item.num} className="glass-surface home-feature-item" style={{ position: 'relative', zIndex: 1, padding: 32, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 24, border: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.01)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 16, width: '100%' }}>
                   <span className="feature-num">{item.num}</span>
                   <h3 className="feature-title">{item.title}</h3>
                 </div>
                 <p className="feature-desc">
                   {item.desc}
                 </p>
-                <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {item.badges.map(tag => (
                     <span key={tag} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', color: '#4BFF99', backgroundColor: 'rgba(75, 255, 153, 0.05)', padding: '4px 10px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.15)' }}>{tag}</span>
                   ))}
