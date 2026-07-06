@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./ConfidentialCore.sol";
-import "./ConfidentialVault.sol";
+import "./ConfidentialCoreV1.sol";
+import "./ConfidentialVaultV1.sol";
 import "./PythPriceOracle.sol";
 import "./ReentrancyGuard.sol";
 
 /// @title ConfidentialTrading V2 — Main trading engine
 /// @notice Handles order placement, execution (via keepers), and liquidation.
 /// @dev Security: CEI pattern used throughout, TWAP support, TP/SL, Continuous Funding, safe ERC20 transfers.
-contract ConfidentialTrading is ReentrancyGuard {
+contract ConfidentialTradingV1 is ReentrancyGuard {
     // ──────────── Types ────────────
     struct Position {
         bytes32 pairId;
@@ -51,8 +51,8 @@ contract ConfidentialTrading is ReentrancyGuard {
     }
 
     // ──────────── State ────────────
-    ConfidentialCore public core;
-    ConfidentialVault public vault;
+    ConfidentialCoreV1 public core;
+    ConfidentialVaultV1 public vault;
     PythPriceOracle public oracle;
     IERC20 public usdc;
     uint256 public nextPositionId = 1;
@@ -95,8 +95,8 @@ contract ConfidentialTrading is ReentrancyGuard {
 
     constructor(address _usdc, address _core, address _vault, address _oracle) {
         usdc = IERC20(_usdc);
-        core = ConfidentialCore(_core);
-        vault = ConfidentialVault(_vault);
+        core = ConfidentialCoreV1(_core);
+        vault = ConfidentialVaultV1(_vault);
         oracle = PythPriceOracle(_oracle);
     }
 
@@ -167,87 +167,6 @@ contract ConfidentialTrading is ReentrancyGuard {
         userOrders[msg.sender].push(orderId);
 
         emit OrderPlaced(orderId, msg.sender, pairId, orderType, triggerPrice);
-    }
-
-    /// @notice Place a Market Order with instant execution using frontend-injected Pyth data
-    function placeMarketOrder(
-        bytes32 pairId,
-        bool isLong,
-        uint256 sizeUsd,
-        uint256 leverage,
-        uint256 tpPrice,
-        uint256 slPrice,
-        uint256 acceptablePrice,
-        bytes[] calldata updateData
-    ) external payable nonReentrant returns (uint256 posId) {
-        require(sizeUsd >= MIN_POSITION_SIZE, "Size too small");
-
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
-
-        // Validate TP/SL prices if set (using current Pyth price instead of trigger)
-        (uint256 currentPrice, ) = oracle.getPrice(pairId);
-        
-        // Slippage Check
-        if (acceptablePrice > 0) {
-            if (isLong) {
-                require(currentPrice <= acceptablePrice, "Slippage exceeded");
-            } else {
-                require(currentPrice >= acceptablePrice, "Slippage exceeded");
-            }
-        }
-
-        if (tpPrice > 0) {
-            require(isLong ? tpPrice > currentPrice : tpPrice < currentPrice, "Invalid TP price");
-        }
-        if (slPrice > 0) {
-            require(isLong ? slPrice < currentPrice : slPrice > currentPrice, "Invalid SL price");
-        }
-
-        core.validateOpenPosition(pairId, msg.sender, isLong, sizeUsd, leverage);
-
-        uint256 fee = core.calculateFee(sizeUsd, false);
-        uint256 collateral = sizeUsd / leverage;
-
-        _safeTransferFrom(msg.sender, address(this), collateral + fee);
-
-        // Dummy order struct for _executeOpen
-        PendingOrder memory o;
-        o.pairId = pairId;
-        o.trader = msg.sender;
-        o.isLong = isLong;
-        o.sizeUsd = sizeUsd;
-        o.collateral = collateral;
-        o.leverage = leverage;
-        o.orderType = 2; // market
-        o.isActive = true;
-        o.feePaid = fee;
-        o.tpPrice = tpPrice;
-        o.slPrice = slPrice;
-
-        _executeOpen(o, currentPrice);
-        return nextPositionId - 1;
-    }
-
-    /// @notice Close a position instantly using frontend-injected Pyth data
-    function closePositionInstantly(uint256 positionId, bytes[] calldata updateData) external payable nonReentrant {
-        Position storage pos = positions[positionId];
-        require(pos.isOpen, "Not open");
-        require(pos.trader == msg.sender, "Not owner");
-        
-        // Cooldown check to prevent flash loan manipulation
-        require(block.timestamp >= pos.openedAt + core.minPositionDuration(), "Cooldown active");
-        // HIGH-3: Check pause state
-        require(!core.paused(), "Protocol paused");
-
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
-
-        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
-        
-        _executeClose(positionId, currentPrice);
     }
 
     /// @notice Create a TWAP Order
@@ -411,7 +330,7 @@ contract ConfidentialTrading is ReentrancyGuard {
                 
             require(order.isLong ? currentPrice >= bufferPrice : currentPrice <= bufferPrice, "Stop not reached");
             
-            _executeOpen(order, order.triggerPrice);
+            _executeOpen(order, currentPrice);
             order.isActive = false;
         } else if (order.orderType == 2) { // Market Open
             bool slippageOk = order.isLong ? currentPrice <= order.triggerPrice : currentPrice >= order.triggerPrice;
@@ -427,6 +346,24 @@ contract ConfidentialTrading is ReentrancyGuard {
             require(!core.paused(), "Paused"); // BUG-5 FIX: Ensure system is not paused
             _executeClose(order.positionId, currentPrice);
             hasActiveCloseRequest[order.positionId] = false;
+            order.isActive = false;
+        } else if (order.orderType == 5) { // Market Increase
+            require(!core.paused(), "Paused");
+            bool slippageOk = order.isLong ? currentPrice <= order.triggerPrice : currentPrice >= order.triggerPrice;
+            if (slippageOk || order.triggerPrice == 0) {
+                _executeIncrease(order, currentPrice);
+            } else {
+                _safeTransfer(order.trader, order.collateral + order.feePaid);
+                emit OrderCancelled(orderId);
+            }
+            order.isActive = false;
+        } else if (order.orderType == 6) { // Partial Close
+            require(!core.paused(), "Paused");
+            _executePartialClose(order, currentPrice);
+            order.isActive = false;
+        } else if (order.orderType == 7) { // Remove Collateral
+            require(!core.paused(), "Paused");
+            _executeRemoveCollateral(order, currentPrice);
             order.isActive = false;
         } else if (order.orderType == 4) { // TWAP
             require(
@@ -611,14 +548,14 @@ contract ConfidentialTrading is ReentrancyGuard {
             
             isTp = pos.isLong ? currentPrice >= tpBufferLong : currentPrice <= tpBufferShort;
             shouldClose = isTp;
-            if (shouldClose) executionPrice = pos.tpPrice;
+            if (shouldClose) executionPrice = currentPrice;
         }
         if (!shouldClose && pos.slPrice > 0) {
             uint256 slBufferLong = pos.slPrice + (pos.slPrice * executionBufferBps / 10000);
             uint256 slBufferShort = pos.slPrice - (pos.slPrice * executionBufferBps / 10000);
             
             shouldClose = pos.isLong ? currentPrice <= slBufferLong : currentPrice >= slBufferShort;
-            if (shouldClose) executionPrice = pos.slPrice;
+            if (shouldClose) executionPrice = currentPrice;
         }
         
         require(shouldClose, "TP/SL not triggered");
@@ -812,32 +749,48 @@ contract ConfidentialTrading is ReentrancyGuard {
         emit CollateralAdded(positionId, msg.sender, amount, pos.liquidationPrice);
     }
 
-    /// @notice Remove collateral from an existing position (raise leverage, move liq price closer)
-    function removeCollateral(uint256 positionId, uint256 amount, bytes[] calldata updateData) external payable nonReentrant {
+    /// @notice Create a request to remove collateral
+    function createRemoveCollateralRequest(
+        uint256 positionId, 
+        uint256 amount
+    ) external payable nonReentrant returns (uint256 orderId) {
+        require(!core.paused(), "Protocol paused");
         require(amount > 0, "Zero amount");
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Not open");
         require(pos.trader == msg.sender, "Not owner");
 
-        // Update oracle
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
+        orderId = nextOrderId++;
+        PendingOrder storage o = pendingOrders[orderId];
+        o.pairId = pos.pairId;
+        o.trader = msg.sender;
+        o.isLong = pos.isLong;
+        o.sizeUsd = amount; // FIX CRITICAL EXPLOIT: store amount here instead of collateral
+        o.orderType = 7; // remove collateral
+        o.isActive = true;
+        o.createdAt = block.timestamp;
+        o.positionId = positionId;
+        o.executionFee = msg.value;
 
-        // CRITICAL: Settle accrued fees BEFORE reducing collateral to prevent fee evasion
+        userOrders[msg.sender].push(orderId);
+        emit OrderPlaced(orderId, msg.sender, pos.pairId, 7, 0);
+    }
+
+    function _executeRemoveCollateral(PendingOrder memory order, uint256 currentPrice) internal {
+        Position storage pos = positions[order.positionId];
+        require(pos.isOpen, "Not open");
+        uint256 amount = order.sizeUsd; // Read from sizeUsd
+
         _settleAccruedFees(pos);
 
         uint256 newCollateral = pos.collateral - amount;
         require(newCollateral >= MIN_COLLATERAL, "Below min collateral");
 
-        // Check new leverage doesn't exceed max
         uint256 newLeverage = pos.sizeUsd / newCollateral;
-        ConfidentialCore.PairConfig memory pair = core.getPairConfig(pos.pairId);
+        ConfidentialCoreV1.PairConfig memory pair = core.getPairConfig(pos.pairId);
         require(newLeverage <= pair.maxLeverage, "Exceeds max leverage");
 
-        // Calculate new liq price and verify it hasn't been breached
         uint256 newLiqPrice = _calcLiqPrice(pos.entryPrice, pos.sizeUsd, newCollateral, pos.isLong);
-        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
         
         if (pos.isLong) {
             require(currentPrice > newLiqPrice, "Would be liquidatable");
@@ -845,67 +798,69 @@ contract ConfidentialTrading is ReentrancyGuard {
             require(currentPrice < newLiqPrice, "Would be liquidatable");
         }
 
-        // Update position (Effects before Interactions)
         pos.collateral = newCollateral;
         pos.leverage = newLeverage;
         pos.liquidationPrice = newLiqPrice;
 
-        // Release backing and return collateral
         vault.releaseBacking(amount);
-        vault.returnCollateral(msg.sender, amount);
+        vault.returnCollateral(pos.trader, amount);
 
-        emit CollateralRemoved(positionId, msg.sender, amount, newLiqPrice);
+        emit CollateralRemoved(order.positionId, pos.trader, amount, newLiqPrice);
     }
 
     // ══════════════════════════════════════════════════════════
     //              INCREASE POSITION (AVERAGING)
     // ══════════════════════════════════════════════════════════
 
-    /// @notice Add size to an existing position with weighted-average entry price
-    /// @dev CRITICAL: Settles accrued fees before merging to prevent fee exploitation
-    function increasePosition(
+    /// @notice Create a request to increase an existing position
+    function createIncreaseRequest(
         uint256 positionId,
         uint256 additionalSizeUsd,
         uint256 additionalLeverage,
-        uint256 acceptablePrice,
-        bytes[] calldata updateData
-    ) external payable nonReentrant {
+        uint256 acceptablePrice
+    ) external payable nonReentrant returns (uint256 orderId) {
+        require(!core.paused(), "Protocol paused");
         require(additionalSizeUsd >= MIN_POSITION_SIZE, "Size too small");
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Not open");
         require(pos.trader == msg.sender, "Not owner");
-
-        // Update oracle
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
-
-        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
-
-        // Slippage Check
-        if (acceptablePrice > 0) {
-            if (pos.isLong) {
-                require(currentPrice <= acceptablePrice, "Slippage exceeded");
-            } else {
-                require(currentPrice >= acceptablePrice, "Slippage exceeded");
-            }
-        }
-
+        
         uint256 addCollateralAmt = additionalSizeUsd / additionalLeverage;
         uint256 fee = core.calculateFee(additionalSizeUsd, false);
-
-        // Transfer USDC from trader
         _safeTransferFrom(msg.sender, address(this), addCollateralAmt + fee);
 
-        // CRITICAL: Settle accrued fees BEFORE merging to prevent exploitation
+        orderId = nextOrderId++;
+        PendingOrder storage o = pendingOrders[orderId];
+        o.pairId = pos.pairId;
+        o.trader = msg.sender;
+        o.isLong = pos.isLong;
+        o.sizeUsd = additionalSizeUsd;
+        o.collateral = addCollateralAmt;
+        o.leverage = additionalLeverage;
+        o.triggerPrice = acceptablePrice;
+        o.orderType = 5; // market increase
+        o.isActive = true;
+        o.createdAt = block.timestamp;
+        o.positionId = positionId;
+        o.feePaid = fee;
+        o.executionFee = msg.value;
+
+        userOrders[msg.sender].push(orderId);
+        emit OrderPlaced(orderId, msg.sender, pos.pairId, 5, acceptablePrice);
+    }
+
+    function _executeIncrease(PendingOrder memory order, uint256 currentPrice) internal {
+        Position storage pos = positions[order.positionId];
+        require(pos.isOpen, "Not open");
+        uint256 additionalSizeUsd = order.sizeUsd;
+        uint256 addCollateralAmt = order.collateral;
+        uint256 fee = order.feePaid;
+
         _settleAccruedFees(pos);
 
         uint256 newLeverage = (pos.sizeUsd + additionalSizeUsd) / (pos.collateral + addCollateralAmt);
+        core.validateOpenPosition(pos.pairId, pos.trader, pos.isLong, additionalSizeUsd, newLeverage);
 
-        // Validate additional size against OI limits using the NEW combined leverage
-        core.validateOpenPosition(pos.pairId, msg.sender, pos.isLong, additionalSizeUsd, newLeverage);
-
-        // Calculate price impact on additional size only
         int256 impactBps = core.calcPriceImpact(pos.pairId, pos.isLong, additionalSizeUsd);
         uint256 addEntryPrice = currentPrice;
         if (impactBps > 0) {
@@ -916,75 +871,73 @@ contract ConfidentialTrading is ReentrancyGuard {
             addEntryPrice = pos.isLong ? addEntryPrice - impactVal : addEntryPrice + impactVal;
         }
 
-        // Harmonic average entry price (size-weighted to prevent PnL manipulation)
         uint256 posBase = (pos.sizeUsd * 1e18) / pos.entryPrice;
         uint256 addBase = (additionalSizeUsd * 1e18) / addEntryPrice;
         uint256 newEntryPrice = ((pos.sizeUsd + additionalSizeUsd) * 1e18) / (posBase + addBase);
 
-        // Update position
         pos.sizeUsd += additionalSizeUsd;
         pos.collateral += addCollateralAmt;
         pos.entryPrice = newEntryPrice;
         pos.leverage = pos.sizeUsd / pos.collateral;
         pos.liquidationPrice = _calcLiqPrice(newEntryPrice, pos.sizeUsd, pos.collateral, pos.isLong);
 
-        // Update OI
-        core.increaseOI(pos.pairId, msg.sender, pos.isLong, additionalSizeUsd);
+        core.increaseOI(pos.pairId, pos.trader, pos.isLong, additionalSizeUsd);
 
-        // Move new collateral to Vault
         _safeTransfer(address(vault), addCollateralAmt);
         vault.reserveBacking(addCollateralAmt);
 
-        // Distribute fee
         _distributeFee(fee);
 
-        emit PositionIncreased(positionId, msg.sender, additionalSizeUsd, newEntryPrice, pos.liquidationPrice);
+        emit PositionIncreased(order.positionId, pos.trader, additionalSizeUsd, newEntryPrice, pos.liquidationPrice);
     }
 
     // ══════════════════════════════════════════════════════════
     //              PARTIAL CLOSE
     // ══════════════════════════════════════════════════════════
 
-    /// @notice Close a portion of an open position
-    /// @param closePercent Percentage to close in basis points (1-10000)
-    function closePositionPartial(
+    /// @notice Create a request to partially close an existing position
+    function createPartialCloseRequest(
         uint256 positionId, 
-        uint256 closePercent, 
-        bytes[] calldata updateData
-    ) external payable nonReentrant {
-        require(closePercent > 0 && closePercent <= 10000, "Invalid percent");
+        uint256 closePercent
+    ) external payable nonReentrant returns (uint256 orderId) {
+        require(!core.paused(), "Protocol paused");
+        require(closePercent > 0 && closePercent < 10000, "Invalid percent");
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Not open");
         require(pos.trader == msg.sender, "Not owner");
         require(block.timestamp >= pos.openedAt + core.minPositionDuration(), "Cooldown active");
 
-        // Update oracle
-        if (updateData.length > 0) {
-            oracle.updatePriceFeeds{value: msg.value}(updateData);
-        }
+        orderId = nextOrderId++;
+        PendingOrder storage o = pendingOrders[orderId];
+        o.pairId = pos.pairId;
+        o.trader = msg.sender;
+        o.isLong = pos.isLong;
+        o.sizeUsd = closePercent; // store percent here
+        o.orderType = 6; // partial close
+        o.isActive = true;
+        o.createdAt = block.timestamp;
+        o.positionId = positionId;
+        o.executionFee = msg.value;
 
-        (uint256 currentPrice, ) = oracle.getPrice(pos.pairId);
+        userOrders[msg.sender].push(orderId);
+        emit OrderPlaced(orderId, msg.sender, pos.pairId, 6, 0);
+    }
 
-        // Full close shortcut
-        if (closePercent == 10000) {
-            _executeClose(positionId, currentPrice);
-            return;
-        }
+    function _executePartialClose(PendingOrder memory order, uint256 currentPrice) internal {
+        Position storage pos = positions[order.positionId];
+        require(pos.isOpen, "Not open");
+        uint256 closePercent = order.sizeUsd;
 
-        // CRITICAL FIX: Settle all elapsed fees globally FIRST
         _settleAccruedFees(pos);
 
-        // Now pos.collateral is up-to-date. Calculate proportional amounts
         uint256 closeSizeUsd = (pos.sizeUsd * closePercent) / 10000;
         uint256 closeCollateral = (pos.collateral * closePercent) / 10000;
 
-        // Validate remainder
         uint256 remainSize = pos.sizeUsd - closeSizeUsd;
         uint256 remainCollateral = pos.collateral - closeCollateral;
         require(remainSize >= MIN_POSITION_SIZE, "Remainder too small");
         require(remainCollateral >= MIN_COLLATERAL, "Remainder collateral too small");
 
-        // Calculate PnL for closed portion
         int256 pnl;
         if (pos.isLong) {
             pnl = (int256(currentPrice) - int256(pos.entryPrice)) * int256(closeSizeUsd) / int256(pos.entryPrice);
@@ -992,11 +945,9 @@ contract ConfidentialTrading is ReentrancyGuard {
             pnl = (int256(pos.entryPrice) - int256(currentPrice)) * int256(closeSizeUsd) / int256(pos.entryPrice);
         }
 
-        // Only deduction left is the closing fee!
         uint256 closingFee = core.calculateFee(closeSizeUsd, false);
         int256 netPnl = pnl - int256(closingFee);
 
-        // Update state BEFORE transfers (CEI)
         pos.sizeUsd = remainSize;
         pos.collateral = remainCollateral;
         pos.leverage = remainSize / remainCollateral;
@@ -1004,17 +955,13 @@ contract ConfidentialTrading is ReentrancyGuard {
 
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, closeSizeUsd);
 
-        // NOTE: trackVaultLoss is handled internally by vault.settlePosition()
-        // when loss spills over from Degen into Prime Vault
-
-        // Settle closed portion with Vault
         vault.settlePosition(pos.trader, closeCollateral, netPnl);
 
         if (closingFee > 0 && netPnl > -int256(closeCollateral)) {
             vault.distributeClosingFee(closingFee);
         }
 
-        emit PositionPartialClose(positionId, msg.sender, closeSizeUsd, currentPrice, netPnl);
+        emit PositionPartialClose(order.positionId, pos.trader, closeSizeUsd, currentPrice, netPnl);
     }
 
     // ══════════════════════════════════════════════════════════

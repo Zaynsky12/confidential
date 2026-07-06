@@ -43,7 +43,7 @@ async function main() {
     "function setTieredLockups(uint256 _degenSeconds, uint256 _primeSeconds) external",
     "function sharesOf(address user, bool isDegen) external view returns (uint256)",
     "function balanceOfUnderlying(address user, bool isDegen) external view returns (uint256)",
-    "function withdraw(uint256 shareAmount, bool isDegen) external",
+    "function withdraw(uint256 shareAmount, bool isDegen, uint256 minUsdcOut) external",
     "function usdc() external view returns (address)",
     "function totalAssets() external view returns (uint256)"
   ];
@@ -80,7 +80,7 @@ async function main() {
   if (degenShares > 0n) {
     console.log("   📤 Withdrawing Degen Shares...");
     try {
-      const txW1 = await vaultContract.withdraw(degenShares, true);
+      const txW1 = await vaultContract.withdraw(degenShares, true, 0);
       console.log(`   ⏳ Transaction submitted: ${txW1.hash}`);
       await txW1.wait();
       console.log("   ✅ Degen withdrawal successful!");
@@ -99,7 +99,7 @@ async function main() {
   if (primeShares > 0n) {
     console.log("   📤 Withdrawing Prime Shares...");
     try {
-      const txW2 = await vaultContract.withdraw(primeShares, false);
+      const txW2 = await vaultContract.withdraw(primeShares, false, 0);
       console.log(`   ⏳ Transaction submitted: ${txW2.hash}`);
       await txW2.wait();
       console.log("   ✅ Prime withdrawal successful!");

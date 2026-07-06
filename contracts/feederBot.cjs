@@ -96,8 +96,8 @@ async function main() {
   ];
 
   try {
-    const artPath1 = path.join(__dirname, "artifacts/src/ConfidentialTrading.sol/ConfidentialTrading.json");
-    const artPath2 = path.join(__dirname, "../artifacts/src/ConfidentialTrading.sol/ConfidentialTrading.json");
+    const artPath1 = path.join(__dirname, "artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
+    const artPath2 = path.join(__dirname, "../artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
     const artPath = fs.existsSync(artPath1) ? artPath1 : artPath2;
     if (fs.existsSync(artPath)) {
       const tradingArtifact = JSON.parse(fs.readFileSync(artPath, "utf8"));
@@ -131,7 +131,7 @@ async function main() {
 
           const orderId = i;
           const pairId = order[0];
-          const orderType = Number(order[7]); // 0=Limit, 1=Stop, 2=MarketOpen, 3=MarketClose, 4=TWAP
+          const orderType = Number(order[7]); // 0=Limit, 1=Stop, 2=MarketOpen, 3=MarketClose, 4=TWAP, 5=MarketIncrease, 6=PartialClose, 7=RemoveCollateral
           const pythId = PAIR_ID_TO_PYTH[pairId];
 
           if (!pythId) {

@@ -500,9 +500,9 @@ export default function Home() {
             {[
               {
                 num: '01',
-                title: 'Deterministic Settlement',
-                desc: 'Eliminate orderbook front-running and MEV attacks. Our Tripartite direct-to-vault architecture enforces a strict 5-second execution lock, guaranteeing sub-second settlement powered by high-fidelity Pyth Oracle data.',
-                badges: ['Anti-MEV', 'Sub-second', 'Pyth Network']
+                title: '2-Step Keeper Architecture',
+                desc: 'Eliminate toxic flow and MEV attacks. Our advanced 2-step execution model separates order requests from final settlement, utilizing off-chain Keeper Bots to guarantee zero-latency execution against Pyth Oracle prices.',
+                badges: ['Anti-MEV', 'Keeper Network', 'Pyth Oracle']
               },
               {
                 num: '02',

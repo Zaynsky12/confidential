@@ -47,7 +47,7 @@ async function main() {
     // Step 1: Deploy ConfidentialCore (NEW)
     // ═══════════════════════════════════════════
     console.log("\n1️⃣  Deploying ConfidentialCore V2...");
-    const CoreFactory = getFactory("ConfidentialCore");
+    const CoreFactory = getFactory("ConfidentialCoreV1");
     const core = await CoreFactory.deploy(usdcAddress, oracleAddress);
     await core.waitForDeployment();
     const coreAddress = await core.getAddress();
@@ -57,7 +57,7 @@ async function main() {
     // Step 2: Deploy ConfidentialVault (NEW)
     // ═══════════════════════════════════════════
     console.log("\n2️⃣  Deploying ConfidentialVault V2...");
-    const VaultFactory = getFactory("ConfidentialVault");
+    const VaultFactory = getFactory("ConfidentialVaultV1");
     const vault = await VaultFactory.deploy(usdcAddress, coreAddress);
     await vault.waitForDeployment();
     const vaultAddress = await vault.getAddress();
@@ -67,7 +67,7 @@ async function main() {
     // Step 3: Deploy ConfidentialTrading (NEW)
     // ═══════════════════════════════════════════
     console.log("\n3️⃣  Deploying ConfidentialTrading V2...");
-    const TradingFactory = getFactory("ConfidentialTrading");
+    const TradingFactory = getFactory("ConfidentialTradingV1");
     const trading = await TradingFactory.deploy(usdcAddress, coreAddress, vaultAddress, oracleAddress);
     await trading.waitForDeployment();
     const tradingAddress = await trading.getAddress();

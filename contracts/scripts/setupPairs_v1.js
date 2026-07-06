@@ -20,7 +20,7 @@ async function main() {
   const CORE_ADDRESS = deployInfo.coreAddress;
   console.log(`Using Core: ${CORE_ADDRESS}`);
 
-  const coreArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, '../artifacts/src/ConfidentialCore.sol/ConfidentialCore.json')));
+  const coreArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, '../artifacts/src/ConfidentialCoreV1.sol/ConfidentialCoreV1.json')));
   const coreContract = new ethers.Contract(CORE_ADDRESS, coreArtifact.abi, wallet);
 
   const PAIRS = [

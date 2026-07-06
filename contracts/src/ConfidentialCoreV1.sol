@@ -6,7 +6,7 @@ import "./PythPriceOracle.sol";
 /// @title ConfidentialCore V2 — Central parameter store, fee router & risk engine
 /// @notice Manages trading pairs, fee distribution, funding rates, price impact, and emergency controls
 /// @dev Security: Timelock on critical params, circuit breaker, utilization cap enforcement
-contract ConfidentialCore {
+contract ConfidentialCoreV1 {
     // ──────────── Types ────────────
     struct PairConfig {
         bytes32 pairId;
@@ -48,7 +48,7 @@ contract ConfidentialCore {
     mapping(bytes32 => uint256) public lastFundingUpdate;     // timestamp per pair
 
     // ── Dynamic Price Impact ──
-    uint256 public maxPriceImpactBps = 100; // 1% max impact
+    uint256 public maxPriceImpactBps = 300; // 3% max impact
 
     // ── Pair Registry ──
     mapping(bytes32 => PairConfig) public pairs;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./ConfidentialCore.sol";
+import "./ConfidentialCoreV1.sol";
 import "./ReentrancyGuard.sol";
 
 interface IERC20 {
@@ -16,14 +16,14 @@ interface IERC20 {
 
 /// @title ConfidentialVault V5 — Dual Tranche with Epoch Bankruptcy Protection
 /// @notice LPs deposit USDC into either Degen (Junior) or Prime (Senior) vault.
-contract ConfidentialVault is ReentrancyGuard {
+contract ConfidentialVaultV1 is ReentrancyGuard {
     // ──────────── State ────────────
     string public constant name = "Confidential Vault Share";
     string public constant symbol = "cVAULT";
     uint8 public constant decimals = 6;
 
     IERC20 public immutable usdc;
-    ConfidentialCore public core;
+    ConfidentialCoreV1 public core;
 
     uint256 public constant MINIMUM_LIQUIDITY = 1000;
 
@@ -87,7 +87,7 @@ contract ConfidentialVault is ReentrancyGuard {
 
     constructor(address _usdc, address _core) {
         usdc = IERC20(_usdc);
-        core = ConfidentialCore(_core);
+        core = ConfidentialCoreV1(_core);
     }
 
     // ══════════════════════════════════════════════════════════
@@ -95,6 +95,7 @@ contract ConfidentialVault is ReentrancyGuard {
     // ══════════════════════════════════════════════════════════
 
     function deposit(uint256 amount, bool isDegen) external nonReentrant {
+        require(!core.paused(), "Protocol paused");
         if (amount == 0) revert ZeroAmount();
         if (!depositsEnabled) revert DepositsDisabled();
         if (isDegen) {
@@ -157,7 +158,8 @@ contract ConfidentialVault is ReentrancyGuard {
         emit Deposit(msg.sender, amount, sharesToMint, isDegen);
     }
 
-    function withdraw(uint256 shareAmount, bool isDegen) external nonReentrant {
+    function withdraw(uint256 shareAmount, bool isDegen, uint256 minUsdcOut) external nonReentrant {
+        require(!core.paused(), "Protocol paused");
         if (shareAmount == 0) revert ZeroAmount();
         
         uint256 currentEpoch = isDegen ? degenEpoch : primeEpoch;
@@ -180,7 +182,7 @@ contract ConfidentialVault is ReentrancyGuard {
         if (usdcAmount > maxAvail) {
             usdcAmount = maxAvail;
             if (usdcAmount == 0) revert InsufficientLiquidity();
-            shareAmount = (usdcAmount * _totalShares) / _totalAssets;
+            shareAmount = (usdcAmount * _totalShares + _totalAssets - 1) / _totalAssets;
         }
 
         if (isDegen) {
@@ -194,6 +196,7 @@ contract ConfidentialVault is ReentrancyGuard {
             core.recordPrimeWithdrawal(usdcAmount);
         }
 
+        require(usdcAmount >= minUsdcOut, "Slippage exceeded");
         require(usdc.transfer(msg.sender, usdcAmount), "Transfer failed");
         emit Withdraw(msg.sender, usdcAmount, shareAmount, isDegen);
     }
@@ -353,10 +356,33 @@ contract ConfidentialVault is ReentrancyGuard {
         if (totalWeight > 0) {
             uint256 degenDeduct = (amount * degenWeight) / totalWeight;
             uint256 primeDeduct = amount - degenDeduct;
-            totalDegenAssets = totalDegenAssets > degenDeduct ? totalDegenAssets - degenDeduct : 0;
-            totalPrimeAssets = totalPrimeAssets > primeDeduct ? totalPrimeAssets - primeDeduct : 0;
+            
+            if (totalDegenAssets > degenDeduct) {
+                totalDegenAssets -= degenDeduct;
+            } else {
+                totalDegenAssets = 0;
+                degenEpoch++;
+                totalDegenShares = 0;
+                emit EpochReset(true, degenEpoch);
+            }
+            
+            if (totalPrimeAssets > primeDeduct) {
+                totalPrimeAssets -= primeDeduct;
+            } else {
+                totalPrimeAssets = 0;
+                primeEpoch++;
+                totalPrimeShares = 0;
+                emit EpochReset(false, primeEpoch);
+            }
         } else {
-            totalDegenAssets = totalDegenAssets > amount ? totalDegenAssets - amount : 0;
+            if (totalDegenAssets > amount) {
+                totalDegenAssets -= amount;
+            } else {
+                totalDegenAssets = 0;
+                degenEpoch++;
+                totalDegenShares = 0;
+                emit EpochReset(true, degenEpoch);
+            }
         }
     }
 

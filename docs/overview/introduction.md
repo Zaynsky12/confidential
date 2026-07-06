@@ -7,10 +7,10 @@ We combine the efficiency, speed, and convenience of a Centralized Exchange (CEX
 ## Problems We Solve
 
 ### 1. High Execution Latency
-Many traditional DEXs rely on slow P2P orderbooks or wait for counterparties. At *Confidential DEX*, we discard that concept. Every order is instantly executed against our *Dual-Tranche Vault*, resulting in **instant 1-step settlement** with no waiting time.
+Many traditional DEXs rely on slow P2P orderbooks or wait for counterparties. At *Confidential DEX*, we discard that concept. Every order request is instantly routed to our *Dual-Tranche Vault* and executed within the same block via our decentralized Keeper Network, resulting in **lightning-fast 2-step deterministic settlement**.
 
 ### 2. Punishing Slippage Costs
-Slippage often eats up a large portion of a trader's profit on traditional AMM platforms. We guarantee **Zero Slippage** for highly liquid pairs thanks to our precise Oracle pricing architecture powered by the Pyth Network. The price you see is the price you get.
+Slippage often eats up a large portion of a trader's profit on traditional AMM platforms. We guarantee **Zero Slippage** for highly liquid pairs thanks to our precise Oracle pricing architecture powered by the Pyth Network and our **2-Step Keeper Architecture**. Your execution requests are instantly and deterministically settled against off-chain Oracle prices, eliminating stale-price arbitrage and MEV. The price you see is the price you get.
 
 ### 3. Whale Exploitation & Manipulation
 Whales often manipulate orderbooks or drain liquidity. We implement a **Dynamic Quadratic Price Impact** algorithm. Retail orders will barely feel its impact, but if a *Whale* attempts to open a massive position that disrupts the market ratio, they will be choked with an exponential price penalty.

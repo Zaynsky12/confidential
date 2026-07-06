@@ -8,7 +8,7 @@ import { useVaultHistory } from '../hooks/useGoldsky'
 export default function Vault() {
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
   const { 
-    deposit, withdraw, canWithdrawDegen, canWithdrawPrime, isPending, availableLiquidity,
+    deposit, withdraw, isPending, availableLiquidity,
     degenTvlUsd, primeTvlUsd,
     degenSharePrice, primeSharePrice,
     userDegenShares, userPrimeShares
@@ -202,7 +202,7 @@ export default function Vault() {
                 </div>
               </div>
               <div className="tc-desc">
-                Takes on the highest risk by acting as the first line of defense against trader winnings. In exchange for absorbing initial losses, liquidity providers receive a massive 3x multiplier on all protocol fees and liquidation revenues.
+                The high-yield engine. Acts as the first line of defense against trader winnings. In exchange for absorbing initial market risks, Degen LPs receive a massive 3x multiplier on all protocol fees and liquidations.
               </div>
               <div className="tc-user-balance">
                 <span>Your Balance:</span>
@@ -237,7 +237,7 @@ export default function Vault() {
                 </div>
               </div>
               <div className="tc-desc">
-                Designed for capital preservation with significantly lower risk. This vault is fully protected from trader winnings as long as the Degen Vault remains funded, while still earning a steady stream of protocol revenues.
+                The capital preservation tier. Fully shielded from trader winnings as long as the Degen Vault is solvent. Even in black swan events, Prime LPs are protected by an absolute 30% hard-stop circuit breaker, ensuring conservative, steady yields.
               </div>
               <div className="tc-user-balance">
                 <span>Your Balance:</span>
@@ -320,8 +320,7 @@ export default function Vault() {
                     isPending || 
                     (!amt && !isWrongNetwork && isConnected) || 
                     (Number(amt) <= 0 && !isWrongNetwork && isConnected) || 
-                    (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0)) ||
-                    (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw')
+                    (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0))
                   } 
                   onClick={handleAction}
                 >
@@ -333,8 +332,6 @@ export default function Vault() {
                     ? 'Switch to Arc Testnet' 
                     : (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0))
                     ? 'No Shares to Withdraw'
-                    : (!(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && activeAction === 'Withdraw') 
-                    ? `${activeTab === 'Degen' ? '2' : '5'}-Day Lockup Active` 
                     : activeAction
                   }
                 </button>
