@@ -40,3 +40,13 @@ During extreme market volatility (such as wars or economic crises), Oracle data 
 
 ### 4. Admin Fat-Finger Protection
 The system does not allow direct, unilateral transfer of administrative rights (Ownership). This process uses a **2-Step Ownership Transfer** mechanism (`transferOwnership` followed by `acceptOwnership` from the new wallet), preventing the permanent loss of contract control due to a typo in the wallet address (Fat-Finger Error).
+
+### 5. Keeper Bot Manual VPS Integration
+
+To operate the decentralized execution layer manually, Node Operators can run the `feederBot.cjs` script on a VPS using PM2. Ensure that you have manually uploaded the latest V1 `feederBot.cjs` and ABIs to your VPS.
+
+```bash
+# Restart your bot to fetch the new Trading Contract addresses
+pm2 restart feederBot
+pm2 logs feederBot
+```
