@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 
 const vaultAbi = parseAbi([
   'function deposit(uint256 amount, bool isDegen) external',
-  'function withdraw(uint256 shareAmount, bool isDegen) external',
+  'function withdraw(uint256 shareAmount, bool isDegen, uint256 minUsdcOut) external',
   'function totalDegenAssets() external view returns (uint256)',
   'function totalPrimeAssets() external view returns (uint256)',
   'function degenSharePrice() external view returns (uint256)',
@@ -116,7 +116,7 @@ export function useConfidentialVault() {
 
       const tx = await writeContractAsync({
         address: CONTRACTS.VAULT as any, abi: vaultAbi as any, functionName: 'withdraw',
-        args: [shareAmount, isDegen],
+        args: [shareAmount, isDegen, 0n],
       } as any)
       
       toast.dismiss('withdraw')

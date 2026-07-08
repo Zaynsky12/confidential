@@ -16,7 +16,7 @@ interface PartialCloseModalProps {
 }
 
 export default function PartialCloseModal({ isOpen, onClose, data }: PartialCloseModalProps) {
-  const { closePositionPartial, isTxPending } = useConfidentialTrading()
+  const { closePosition, closePositionPartial, isTxPending } = useConfidentialTrading()
   const [amount, setAmount] = useState('')
   const [percentage, setPercentage] = useState<number | null>(null)
 
@@ -50,7 +50,11 @@ export default function PartialCloseModal({ isOpen, onClose, data }: PartialClos
       
       const closePercentBps = Math.floor((amt / data.maxSize) * 10000)
       
-      await closePositionPartial(BigInt(data.positionId), closePercentBps)
+      if (amt === data.maxSize || closePercentBps >= 10000) {
+        await closePosition(BigInt(data.positionId))
+      } else {
+        await closePositionPartial(BigInt(data.positionId), closePercentBps)
+      }
       onClose()
     } catch (e) {
       console.error(e)
