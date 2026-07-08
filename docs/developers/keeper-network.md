@@ -2,7 +2,7 @@
 
 Execution, liquidations, and price precision at *Confidential DEX* do not rely on a centralized matching engine, but are fully supported by a decentralized army of **Unified Keeper Bots**.
 
-These bots continuously monitor the network (sweeping) every **4 seconds** (24/7) to capture user orders and match them with prices from the Oracle (Pyth).
+These bots continuously monitor the network (sweeping) every **2.5 seconds** (24/7) to capture user orders and match them with prices from the Oracle (Pyth).
 
 ---
 
@@ -20,7 +20,7 @@ The financial incentive system is structured to provide strong profit opportunit
 
 | Operation Cycle | Fee Scheme / Compensation | Borne By |
 | :--- | :--- | :--- |
-| **Market Scanning (Every 4 Sec)** | **0 Gas** (Purely read-only data) | None / Free |
+| **Market Scanning (Every 2.5 Sec)** | **0 Gas** (Purely read-only data) | None / Free |
 | **Pending Order Execution** | **100% Execution Fee (ARC Coin)** | Deposited by **Trader** upon opening an order |
 | **Liquidation Execution** | **1% of Trader's Effective Collateral** | Deducted from the liquidated trader's collateral |
 | **TP/SL Execution** | **Uncompensated (0 ARC)** | Gas & Oracle fees fronted by the **Keeper Bot** |
@@ -355,4 +355,4 @@ pm2 logs KeeperBot
 ```
 
 ### 4. Monitor Your Earnings
-Once running, the bot will output logs every 4 seconds. Whenever it successfully executes an order or a liquidation, you will see a success message in the console, and the **Execution Fee** or **Liquidation Reward** will be automatically deposited directly into your Keeper Wallet address!
+Once running, the bot will output logs every 2.5 seconds. Whenever it successfully executes an order or a liquidation, you will see a success message in the console, and the **Execution Fee** or **Liquidation Reward** will be automatically deposited directly into your Keeper Wallet address!

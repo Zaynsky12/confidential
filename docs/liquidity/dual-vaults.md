@@ -10,7 +10,7 @@ We utilize the cutting-edge **ERC-4626 Tokenized Vault** architecture with built
 
 ## 📊 Detailed Comparison (Degen vs Prime)
 
-| Contract Specification | 🔴 Degen Vault (Junior) | 🔵 Prime Vault (Senior) |
+| Contract Specification | 🔴 Degen Vault | 🔵 Prime Vault |
 | :--- | :--- | :--- |
 | **Investor Risk Profile** | *High-Risk*, Yield Seekers | *Risk-Averse*, Institutions, *Whales* |
 | **Max Capacity (TVL Cap)** | **$15,000,000** (30% Quota) | **$35,000,000** (70% Quota) |
@@ -21,7 +21,7 @@ We utilize the cutting-edge **ERC-4626 Tokenized Vault** architecture with built
 
 ---
 
-## 🔴 Degen Vault (Junior / High-Yield Tranche)
+## 🔴 Degen Vault (High-Yield Vault)
 
 The Degen Vault is the frontline infantry of this ecosystem's economy. This layer is highly coveted by aggressive investors.
 *   **Risk (First-Loss):** Degen LPs act as the outermost shield. If the masses of traders win simultaneously, the traders' winnings (USDC) will be fully drained from the Degen Vault first.
@@ -30,7 +30,7 @@ The Degen Vault is the frontline infantry of this ecosystem's economy. This laye
 
 ---
 
-## 🔵 Prime Vault (Senior / Institutional Tranche)
+## 🔵 Prime Vault (Capital Protected Vault)
 
 The Prime Vault is a robust, stable DeFi bond instrument that serves as the backbone of the exchange's cash reserves.
 *   **Stable Value Growth:** Built specifically for corporate entities (DAOs) or Whales who prefer slow, certain, and constant asset appreciation over hunting for wild monthly yields.

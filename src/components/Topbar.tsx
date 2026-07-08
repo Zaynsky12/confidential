@@ -22,7 +22,7 @@ const getAssetLogo = (pair: string) => {
     aapl: 'https://ui-avatars.com/api/?name=Apple&background=000000&color=fff&rounded=true&bold=true',
     tsla: 'https://ui-avatars.com/api/?name=Tesla&background=cc0000&color=fff&rounded=true&bold=true',
     spy: 'https://ui-avatars.com/api/?name=SPY&background=003366&color=fff&rounded=true&bold=true',
-    gold: 'https://cryptologos.cc/logos/pax-gold-paxg-logo.png',
+    gold: 'https://s2.coinmarketcap.com/static/img/coins/64x64/4705.png',
     silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
     nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
     pepe: 'https://cryptologos.cc/logos/pepe-pepe-logo.png',

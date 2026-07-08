@@ -18,14 +18,14 @@ Setelah melalui proses pembersihan dan peremajaan kode, Confidential DEX kini be
 
 Likuiditas di DEX ini disegmentasi menjadi dua lapisan brankas (*tranche*) independen dengan batas kapasitas maksimal absolut (Total TVL Cap) sebesar **$50.000.000 USDC**. Brankas beroperasi menggunakan standar ERC-4626 Tokenized Vault dengan sistem *Auto-Compounding* (cUSDC).
 
-### 🔴 Degen Vault (Junior Tranche)
+### 🔴 Degen Vault (High-Yield Vault)
 Diperuntukkan bagi penyedia likuiditas (LP) dengan profil risiko tinggi yang mendambakan pertumbuhan modal agresif.
 *   **Kapasitas Maksimal (Porsi):** **$15.000.000** (30% dari Total TVL)
 *   **Insentif Keuntungan:** Mendapatkan persentase laba **3x lipat lebih besar** dari seluruh pendapatan protokol (Biaya *Trading*, Likuidasi, *Funding Rate*, dan Kerugian *Trader*).
 *   **Risiko (First-Loss):** Bertindak sebagai bantalan perisai pertama. Jika *trader* menang, uang kemenangan akan ditarik sepenuhnya dari Degen Vault terlebih dahulu. Degen Vault dapat tergerus hingga $0 (memicu *Epoch Reset*).
 *   **Lockup Period:** 2 Hari (172.800 detik). Uang yang disetor akan dikunci selama 2 hari kalender absolut tanpa celah pintas.
 
-### 🔵 Prime Vault (Senior Tranche)
+### 🔵 Prime Vault (Capital Protected Vault)
 Diperuntukkan bagi institusi atau *whale* yang mengutamakan keamanan dan apresiasi nilai konstan.
 *   **Kapasitas Maksimal (Porsi):** **$35.000.000** (70% dari Total TVL)
 *   **Insentif Keuntungan:** Mendapatkan sisa 1x porsi profit reguler. Kenaikan nilai *shares* berjalan perlahan namun memiliki resistensi tinggi terhadap kejatuhan tajam.
