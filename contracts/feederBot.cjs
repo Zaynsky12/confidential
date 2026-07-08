@@ -241,9 +241,9 @@ async function main() {
     }
   }
 
-  // Run loop every 1.5 seconds for fast execution
-  console.log("🟢 Bot running. Monitoring orders and positions every 1.5 seconds...\n");
-  setInterval(scanAndExecute, 1500);
+  // Run loop every 2.5 seconds (industry standard for L2/EVM Keepers)
+  console.log("🟢 Bot running. Monitoring orders and positions every 2.5 seconds...\n");
+  setInterval(scanAndExecute, 2500);
   scanAndExecute(); // Run immediately
 }
 
