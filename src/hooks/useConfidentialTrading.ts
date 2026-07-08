@@ -48,7 +48,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Submitting Market Order...', { id: 'trade' })
+      toast.loading('Opening Market Position...', { id: 'trade' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
@@ -78,7 +78,7 @@ export function useConfidentialTrading() {
       } as any)
 
       toast.dismiss('trade')
-      toast.success('Market Order request submitted!')
+      toast.success('Market Position requested! Executing in ~2s...')
       return tx
     } catch (error: any) {
       toast.dismiss('trade')
