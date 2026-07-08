@@ -25,6 +25,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   const [durationHours, setDurationHours] = useState('1')
   const [durationMins, setDurationMins] = useState('0')
   const [slippage, setSlippage] = useState('0.30')
+  const [showSlippageSlider, setShowSlippageSlider] = useState(false)
   const [side, setSide] = useState<OrderSide>(initialSide)
 
   const activeMarket = markets.find((m) => m.id === activeMarketId)
@@ -343,7 +344,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           style={{ background: 'none', border: 'none', color: orderType === 'market' ? '#fff' : '#8e8e93', fontSize: '15px', fontWeight: orderType === 'market' ? 600 : 500, cursor: 'pointer', padding: 0, position: 'relative' }}
         >
           Market
-          {orderType === 'market' && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#60a5fa' }} />}
+          {orderType === 'market' && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#fbbf24' }} />}
         </button>
 
         <button 
@@ -351,7 +352,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           style={{ background: 'none', border: 'none', color: orderType === 'limit' ? '#fff' : '#8e8e93', fontSize: '15px', fontWeight: orderType === 'limit' ? 600 : 500, cursor: 'pointer', padding: 0, position: 'relative' }}
         >
           Limit
-          {orderType === 'limit' && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#60a5fa' }} />}
+          {orderType === 'limit' && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#fbbf24' }} />}
         </button>
 
         <div style={{ position: 'relative' }}>
@@ -363,7 +364,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
               {(orderType !== 'market' && orderType !== 'limit') ? orderType : 'Pro'}
             </span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isProDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
-            {(orderType !== 'market' && orderType !== 'limit') && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#60a5fa' }} />}
+            {(orderType !== 'market' && orderType !== 'limit') && <div style={{ position: 'absolute', bottom: '-9px', left: 0, right: 0, height: '2px', background: '#fbbf24' }} />}
           </button>
 
           {isProDropdownOpen && (
@@ -576,8 +577,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       </button>
       {/* Summary Stats */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 11 }}>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Leverage</span><span style={{ color:'#60a5fa' }}>{leverage}x</span></div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Position Size</span><span style={{ color:'#60a5fa' }}>{baseSize ? baseSize.toFixed(4) : '0.00'} {activeMarket.baseAsset} / ${orderSummary?.notional || '0.00'}</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Leverage</span><span style={{ color:'#fbbf24' }}>{leverage}x</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Position Size</span><span style={{ color:'#fbbf24' }}>{baseSize ? baseSize.toFixed(4) : '0.00'} {activeMarket.baseAsset} / ${orderSummary?.notional || '0.00'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Liq. Price</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>{orderSummary?.liqPrice ? `$${orderSummary.liqPrice}` : 'N/A'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Margin Required</span><span>${orderSummary?.collateral || '0.00'}</span></div>
         <div style={{ display:'flex', justifyContent:'space-between' }}><span style={{ color:'#8e8e93' }}>Est. Fee ({orderType === 'limit' ? '0.02%' : '0.04%'})</span><span style={{ borderBottom:'1px dashed var(--color-border)' }}>${orderSummary?.fees || '0.00'}</span></div>
@@ -588,12 +589,44 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
           </span>
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <span style={{ color:'#8e8e93' }}>Allowed Slippage</span>
-          <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg2)', padding:'2px 6px', borderRadius:'4px', border:'1px solid var(--color-border)' }}>
-            <input type="number" step="0.1" min="0.1" max="5.0" value={slippage} onChange={e=>setSlippage(e.target.value)} onBlur={()=>setSlippage(Math.min(5, Math.max(0.1, Number(slippage) || 0.3)).toFixed(2))} style={{ background:'transparent', border:'none', color:'#fff', width:'40px', textAlign:'right', fontSize:'11px', outline:'none', fontFamily:'var(--font-mono)' }} />
-            <span style={{ color:'#8e8e93', marginLeft:'2px' }}>%</span>
+          <span style={{ color:'#8e8e93', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            Allowed Slippage
+            {Number(slippage) > 1 && (
+              <span style={{ color: '#e55f48', fontSize: '9px', padding: '1px 4px', background: 'rgba(229,95,72,0.1)', borderRadius: '4px', border: '1px solid rgba(229,95,72,0.3)' }}>High</span>
+            )}
+          </span>
+          <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+            <button 
+              type="button" 
+              onClick={() => setShowSlippageSlider(!showSlippageSlider)} 
+              style={{ background:'transparent', border:'none', color: showSlippageSlider ? 'var(--color-primary)' : '#8e8e93', cursor:'pointer', fontSize:'11px', textDecoration:'underline', transition: 'color 0.2s' }}
+            >
+              Custom
+            </button>
+            <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg2)', padding:'4px 8px', borderRadius:'4px', border:'1px solid var(--color-border)' }}>
+              <span style={{ color:'#fff', width:'36px', textAlign:'right', fontSize:'11px', fontFamily:'var(--font-mono)' }}>{Number(slippage).toFixed(2)}</span>
+              <span style={{ color:'#8e8e93', marginLeft:'2px', fontSize:'11px' }}>%</span>
+            </div>
           </div>
         </div>
+        {showSlippageSlider && (
+          <div style={{ marginTop: '4px', padding: '12px', background: 'var(--color-bg2)', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8e8e93', marginBottom: '8px' }}>
+              <span>0.1% (Min)</span>
+              <span style={{ color: Number(slippage) > 1 ? '#e55f48' : 'var(--color-primary)', fontWeight: 600, fontSize: '12px' }}>{slippage}%</span>
+              <span>5.0% (Max)</span>
+            </div>
+            <input 
+              type="range" 
+              min="0.1" 
+              max="5.0" 
+              step="0.1" 
+              value={slippage} 
+              onChange={(e) => setSlippage(e.target.value)}
+              style={{ width: '100%', cursor: 'pointer', accentColor: '#fbbf24', height: '4px' }}
+            />
+          </div>
+        )}
       </div>
       </div>
 
