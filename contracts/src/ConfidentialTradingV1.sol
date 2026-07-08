@@ -227,6 +227,7 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
 
         orderId = nextOrderId++;
         PendingOrder storage o = pendingOrders[orderId];
+        o.pairId = pos.pairId;
         o.trader = msg.sender;
         o.orderType = 3; // market_close
         o.isActive = true;
