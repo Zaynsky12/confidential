@@ -165,8 +165,8 @@ export default function Home() {
         /* ═══ Typography ═══ */
         .t-headline-xl {
           font-family: 'Geist', sans-serif;
-          font-size: 36px;
-          line-height: 42px;
+          font-size: 31px;
+          line-height: 36px;
           letter-spacing: -0.04em;
           font-weight: 700;
         }
@@ -230,8 +230,8 @@ export default function Home() {
         /* ═══ Desktop overrides ═══ */
         @media (min-width: 768px) {
           .t-headline-xl {
-            font-size: 80px;
-            line-height: 88px;
+            font-size: 66px;
+            line-height: 74px;
           }
           .t-hero-p {
             font-size: 23px;
@@ -674,7 +674,7 @@ export default function Home() {
         <div className="hero-overlay" style={{ position: 'absolute', inset: 0 }}></div>
         <div className="home-section-pad" style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', padding: '0 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 940, letterSpacing: '-0.04em', marginBottom: 20 }}>
-            The Universal <br />
+            The Universal Decentralized <br />
             <span style={{ background: 'linear-gradient(135deg, #4BFF99 0%, #20d472 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 0 32px rgba(75, 255, 153, 0.25))' }}>
               Leverage Protocol.
             </span>
