@@ -146,17 +146,17 @@ export default function Home() {
         .market-item {
           display: flex;
           align-items: center;
-          gap: 6px;
-          margin: 0 20px;
+          gap: 8px;
+          margin: 0 24px;
           color: #e5e2e1;
           font-family: 'Geist', sans-serif;
           font-weight: 600;
-          font-size: 13px;
+          font-size: 16px;
           text-decoration: none;
           transition: opacity 0.2s;
         }
         @media (min-width: 768px) {
-          .market-item { gap: 10px; margin: 0 48px; font-size: 15px; }
+          .market-item { gap: 12px; margin: 0 48px; font-size: 18px; }
         }
         .market-item:hover {
           opacity: 0.8;
@@ -699,7 +699,7 @@ export default function Home() {
                 <img 
                   src={getAssetLogo(m.pair)} 
                   alt={m.pair} 
-                  style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
+                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
                   onError={(e) => e.currentTarget.style.display = 'none'} 
                 />
                 <span>{m.pair}</span>
@@ -719,7 +719,7 @@ export default function Home() {
                 <img 
                   src={getAssetLogo(m.pair)} 
                   alt={m.pair} 
-                  style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
+                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
                   onError={(e) => e.currentTarget.style.display = 'none'} 
                 />
                 <span>{m.pair}</span>
