@@ -309,9 +309,9 @@ async function main() {
     }
   }
 
-  // Run loop every 4 seconds
-  console.log("🟢 Bot running. Monitoring orders and positions every 4 seconds...\n");
-  setInterval(scanAndExecute, 4000);
+  // Run loop every 2.5 seconds (industry standard for L2/EVM Keepers)
+  console.log("🟢 Bot running. Monitoring orders and positions every 2.5 seconds...\n");
+  setInterval(scanAndExecute, 2500);
   scanAndExecute(); // Run immediately
 }
 

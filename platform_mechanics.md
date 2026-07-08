@@ -59,7 +59,7 @@ Untuk menjaga roda ekonomi *smart contract* tetap berputar stabil, ekosistem dib
 
 ## 4. 🤖 Peran & Ekonomi Keeper Bot (`feederBot.cjs`)
 
-Eksekusi otomatisasi platform dijalankan secara mandiri oleh satu **Unified Keeper Bot** yang menyala 24/7 di *server* VPS. Bot ini melakukan 3 siklus penyapu sekaligus setiap **4 detik**:
+Eksekusi otomatisasi platform dijalankan secara mandiri oleh satu **Unified Keeper Bot** yang menyala 24/7 di *server* VPS. Bot ini melakukan 3 siklus penyapu sekaligus setiap **2.5 detik**:
 
 1.  **Eksekusi Pending Order:** Mengawal order *Limit*, *Stop Market*, *TWAP*, hingga *delayed Market Order*. Begitu harga pasar dari Pyth Oracle menyentuh angka target (`triggerPrice`), bot langsung memanggil fungsi `executeOrder` ke blockchain.
 2.  **Take Profit & Stop Loss (TP/SL):** Memantau batas atas dan batas bawah posisi aktif para trader. Ketika target untung/rugi tercapai, bot memicu `executeTPSL` untuk menutup posisi secara otomatis.
@@ -67,7 +67,7 @@ Eksekusi otomatisasi platform dijalankan secara mandiri oleh satu **Unified Keep
 
 ### 💰 Mekanisme Biaya, Gas, & Imbalan (Fee Economics)
 Sistem keuangan bot dirancang secara adil agar operator bot tidak pernah mengalami kerugian atau tekor saldo:
-*   **Pemantauan 100% Gratis:** Aktivitas bot menyapu dan membaca harga setiap 4 detik adalah operasi *Read-Only* ke jaringan RPC, sehingga **tidak memakan gas fee sepeser pun (Rp 0 / 0 ARC)**.
+*   **Pemantauan 100% Gratis:** Aktivitas bot menyapu dan membaca harga setiap 2.5 detik adalah operasi *Read-Only* ke jaringan RPC, sehingga **tidak memakan gas fee sepeser pun (Rp 0 / 0 ARC)**.
 *   **Biaya Eksekusi Dibayar User:** Saat *User* (Trader) memasang order, mereka diwajibkan menyertakan **Execution Fee (dalam koin ARC)** dan **Trading Fee (dalam USDC)** dari dompet mereka sendiri.
 *   **Keeper Reward (Imbalan Bot):** Ketika bot mengeksekusi order nyata ke blockchain, bot mengeluarkan sedikit gas fee + `0.001 ARC` untuk biaya verifikasi Pyth Oracle. Saat transaksi berhasil, *smart contract* otomatis **mentransfer seluruh Execution Fee milik User tadi ke dompet Bot (`msg.sender`)** sebagai imbalan kerja keras bot!
 *   **Distribusi Fee Trading (USDC):** Dari total fee USDC yang dibayar trader, smart contract membaginya menjadi **70% ke Vault** (menaikkan dividen/harga token LP) dan **30% ke Treasury** (kas developer platform).
