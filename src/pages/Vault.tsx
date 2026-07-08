@@ -11,7 +11,8 @@ export default function Vault() {
     deposit, withdraw, isPending, availableLiquidity,
     degenTvlUsd, primeTvlUsd,
     degenSharePrice, primeSharePrice,
-    userDegenShares, userPrimeShares
+    userDegenShares, userPrimeShares,
+    canWithdrawDegen, canWithdrawPrime
   } = useConfidentialVault()
   const { deposits: globalDeposits } = useVaultHistory()
   const { deposits: vaultDeposits, isLoading: isHistoryLoading } = useVaultHistory(address || undefined)
@@ -295,7 +296,17 @@ export default function Vault() {
                 <div className="input-header">
                   <span>{activeAction === 'Deposit' ? 'Amount to deposit' : 'Shares to withdraw'}</span>
                   <span className="font-mono">
-                    {activeAction === 'Deposit' ? 'Wallet: ' + balance.toFixed(2) + ' USDC' : 'Available: ' + (activeTab === 'Degen' ? userDegenShares : userPrimeShares).toFixed(2) + ' cUSDC'}
+                    {activeAction === 'Deposit' 
+                      ? 'Wallet: ' + balance.toFixed(2) + ' USDC' 
+                      : (
+                          <>
+                            {'Available: ' + (activeTab === 'Degen' ? userDegenShares : userPrimeShares).toFixed(2) + ' cUSDC'}
+                            {activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0 && (
+                              <span style={{ color: 'var(--color-red)', marginLeft: 8, fontWeight: 'bold' }}>(Locked)</span>
+                            )}
+                          </>
+                        )
+                    }
                   </span>
                 </div>
                 <div className="input-box panel-inner">
@@ -315,14 +326,25 @@ export default function Vault() {
                   </span>
                 </div>
 
+                {activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0 && (
+                  <div className="panel-inner" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--color-red)', padding: '10px 12px', fontSize: 12, borderRadius: 8, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    ⚠️ Withdrawal Lock Active. Lockup period not expired.
+                  </div>
+                )}
+
                 <button className="submit-btn btn btn-green" 
                   disabled={
                     isPending || 
                     (!amt && !isWrongNetwork && isConnected) || 
                     (Number(amt) <= 0 && !isWrongNetwork && isConnected) || 
-                    (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0))
+                    (activeAction === 'Withdraw' && (activeTab === 'Degen' ? (userDegenShares <= 0 || !canWithdrawDegen) : (userPrimeShares <= 0 || !canWithdrawPrime)))
                   } 
                   onClick={handleAction}
+                  style={{
+                    background: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? '#3b1c1c' : undefined,
+                    color: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? 'var(--color-red)' : undefined,
+                    borderColor: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? 'rgba(239, 68, 68, 0.3)' : undefined
+                  }}
                 >
                   {isPending 
                     ? 'Processing...' 
@@ -332,6 +354,8 @@ export default function Vault() {
                     ? 'Switch to Arc Testnet' 
                     : (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0))
                     ? 'No Shares to Withdraw'
+                    : (activeAction === 'Withdraw' && (activeTab === 'Degen' ? !canWithdrawDegen : !canWithdrawPrime))
+                    ? 'Withdrawal Locked'
                     : activeAction
                   }
                 </button>
