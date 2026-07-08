@@ -165,8 +165,8 @@ export default function Home() {
         /* ═══ Typography ═══ */
         .t-headline-xl {
           font-family: 'Geist', sans-serif;
-          font-size: 36px;
-          line-height: 42px;
+          font-size: 46px;
+          line-height: 52px;
           letter-spacing: -0.04em;
           font-weight: 700;
         }
