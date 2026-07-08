@@ -112,6 +112,28 @@ async function main() {
   const PYTH_FEE = ethers.parseUnits("0.001", 18); // 0.001 ARC for oracle update
 
   let isRunning = false;
+  let activeOrders = new Set();
+  let activePositions = new Set();
+  let lastScannedOrderId = 1;
+  let lastScannedPosId = 1;
+
+  async function syncState() {
+    try {
+      const nextOrderId = Number(await tradingContract.nextOrderId());
+      for (let i = lastScannedOrderId; i < nextOrderId; i++) {
+        activeOrders.add(i);
+      }
+      lastScannedOrderId = nextOrderId;
+
+      const nextPosId = Number(await tradingContract.nextPositionId());
+      for (let i = lastScannedPosId; i < nextPosId; i++) {
+        activePositions.add(i);
+      }
+      lastScannedPosId = nextPosId;
+    } catch (e) {
+      console.error("[Bot Sync Error]", e.message);
+    }
+  }
 
   async function scanAndExecute() {
     if (isRunning) return;
@@ -121,13 +143,17 @@ async function main() {
       // ═══════════════════════════════════════════════════
       // 1. SCAN PENDING ORDERS
       // ═══════════════════════════════════════════════════
-      const nextOrderId = Number(await tradingContract.nextOrderId());
-      for (let i = 1; i < nextOrderId; i++) {
+      await syncState();
+
+      for (let i of activeOrders) {
         try {
           const order = await tradingContract.pendingOrders(i);
           // order: [orderId, trader, isLong, sizeUsd, collateral, leverage, triggerPrice, orderType, isActive, ...]
           const isActive = order[8];
-          if (!isActive) continue;
+          if (!isActive) {
+            activeOrders.delete(i);
+            continue;
+          }
 
           const orderId = i;
           const pairId = order[0];
@@ -160,13 +186,15 @@ async function main() {
       // ═══════════════════════════════════════════════════
       // 2. SCAN OPEN POSITIONS (FOR TP/SL & LIQUIDATION)
       // ═══════════════════════════════════════════════════
-      const nextPosId = Number(await tradingContract.nextPositionId());
-      for (let i = 1; i < nextPosId; i++) {
+      for (let i of activePositions) {
         try {
           const pos = await tradingContract.positions(i);
           // pos: [positionId, trader, isLong, sizeUsd, collateral, entryPrice, leverage, liquidationPrice, ..., isOpen, ...]
           const isOpen = pos[9];
-          if (!isOpen) continue;
+          if (!isOpen) {
+            activePositions.delete(i);
+            continue;
+          }
 
           const posId = i;
           const pairId = pos[0]; // pairId is index 0 in Position struct
