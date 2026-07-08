@@ -350,19 +350,19 @@ export default function Home() {
           color: rgba(75, 255, 153, 0.4);
         }
         .stats-label-responsive {
-          font-size: 9.5px;
+          font-size: 11px;
           letter-spacing: 0.08em;
         }
         .stats-num-responsive {
-          font-size: 16px;
+          font-size: 19px;
         }
         @media (min-width: 640px) {
           .stats-label-responsive {
-            font-size: 11px;
+            font-size: 12px;
             letter-spacing: 0.1em;
           }
           .stats-num-responsive {
-            font-size: 22px;
+            font-size: 24px;
           }
         }
 
