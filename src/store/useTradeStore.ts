@@ -107,6 +107,8 @@ interface TradeStore {
   setSelectedTimeframe: (tf: string) => void
   mobileNav: 'markets' | 'trade' | 'vaults' | 'account'
   setMobileNav: (nav: 'markets' | 'trade' | 'vaults' | 'account') => void
+  marketCategoryFilter: 'all' | 'crypto' | 'rwa' | 'forex' | 'watchlist'
+  setMarketCategoryFilter: (filter: 'all' | 'crypto' | 'rwa' | 'forex' | 'watchlist') => void
 
   // Mock wallet balance
   mockBalance: number
@@ -306,6 +308,8 @@ export const useTradeStore = create<TradeStore>()(
       setSelectedTimeframe: (tf) => set({ selectedTimeframe: tf }),
       mobileNav: 'markets',
       setMobileNav: (nav) => set({ mobileNav: nav }),
+      marketCategoryFilter: 'all',
+      setMarketCategoryFilter: (filter) => set({ marketCategoryFilter: filter }),
 
       // Mock wallet balance
       mockBalance: 1200,

@@ -28,6 +28,8 @@ dist-ssr
 .env.*
 !.env.example
 contracts/.env
+mcp.json
+
 
 # Foundry & Hardhat
 contracts/broadcast/

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTradeStore } from '../store/useTradeStore';
 import { useReadContract } from 'wagmi';
@@ -37,7 +37,15 @@ const getAssetLogo = (pair: string) => {
 export default function Home() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [activeStrategyTab, setActiveStrategyTab] = useState<'metals' | 'forex' | 'equities'>('metals');
+  const [activeVaultSlide, setActiveVaultSlide] = useState<'prime' | 'degen'>('prime');
   const markets = useTradeStore(state => state.markets);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveVaultSlide((prev) => (prev === 'prime' ? 'degen' : 'prime'));
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
   
   // Fetch live stats from the smart contract
   const { data: nextPositionId } = useReadContract({
@@ -165,8 +173,8 @@ export default function Home() {
         /* ═══ Typography ═══ */
         .t-headline-xl {
           font-family: 'Geist', sans-serif;
-          font-size: 31px;
-          line-height: 36px;
+          font-size: 36px;
+          line-height: 42px;
           letter-spacing: -0.04em;
           font-weight: 700;
         }
@@ -227,8 +235,14 @@ export default function Home() {
           line-height: 18px;
         }
 
+        .hero-section-container {
+          padding-top: 100px;
+        }
         /* ═══ Desktop overrides ═══ */
         @media (min-width: 768px) {
+          .hero-section-container {
+            padding-top: 140px !important;
+          }
           .t-headline-xl {
             font-size: 66px;
             line-height: 74px;
@@ -403,9 +417,30 @@ export default function Home() {
             width: calc(100% - 64px);
             height: 2px;
             left: 32px;
+          }
         }
 
         /* ═══ Avantis-Inspired Strategy & Edge Cards ═══ */
+        .edge-section-wrapper {
+          padding: 36px 16px !important;
+        }
+        .edge-header-container {
+          margin-bottom: 24px;
+        }
+        .edge-label {
+          margin-bottom: 6px;
+        }
+        @media (min-width: 768px) {
+          .edge-section-wrapper {
+            padding: 64px 16px !important;
+          }
+          .edge-header-container {
+            margin-bottom: 56px;
+          }
+          .edge-label {
+            margin-bottom: 16px;
+          }
+        }
         .edge-grid-2x2 {
           display: grid;
           grid-template-columns: 1fr;
@@ -428,10 +463,22 @@ export default function Home() {
           flex-direction: column;
           justify-content: space-between;
         }
+        .edge-card-desc {
+          font-family: 'Geist', sans-serif;
+          font-size: 12.5px;
+          line-height: 20px;
+          color: #bacbbb;
+          margin-bottom: 18px;
+        }
         @media (min-width: 768px) {
           .edge-card {
             padding: 36px;
             border-radius: 24px;
+          }
+          .edge-card-desc {
+            font-size: 14.5px;
+            line-height: 26px;
+            margin-bottom: 28px;
           }
         }
         .edge-card:hover {
@@ -462,6 +509,78 @@ export default function Home() {
             font-size: 32px;
             line-height: 38px;
             margin-bottom: 16px;
+          }
+        }
+        @media (max-width: 767px) {
+          .edge-card {
+            padding: 16px !important;
+            overflow: visible !important;
+          }
+          .edge-card-tag {
+            justify-content: center !important;
+          }
+          .edge-grid-2x2 {
+            position: relative;
+            gap: 28px;
+          }
+          .edge-card:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 28px;
+            background: linear-gradient(180deg, #4BFF99 0%, #00E5FF 50%, #4BFF99 100%);
+            border-radius: 4px;
+            box-shadow: 0 0 12px rgba(75, 255, 153, 0.8), 0 0 20px rgba(0, 229, 255, 0.4);
+            z-index: 20;
+          }
+          .edge-card:not(:last-child)::before {
+            content: '●';
+            position: absolute;
+            bottom: -19px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 8px;
+            color: #070707;
+            background: #4BFF99;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 14px;
+            text-align: center;
+            box-shadow: 0 0 10px #4BFF99;
+            z-index: 21;
+          }
+          .responsive-card-h3 {
+            font-size: 15.5px !important;
+            line-height: 22px !important;
+            margin-bottom: 8px !important;
+            text-align: center !important;
+          }
+          .edge-card-desc {
+            font-size: 11px !important;
+            line-height: 17px !important;
+            margin-bottom: 14px !important;
+            text-align: center !important;
+          }
+          .edge-card span {
+            font-size: 10px !important;
+          }
+          .edge-widget-box {
+            padding: 10px 12px !important;
+            border-radius: 12px !important;
+          }
+          .edge-widget-box span {
+            font-size: 9px !important;
+          }
+          .strategy-info-col {
+            text-align: center !important;
+            align-items: center !important;
           }
         }
         .responsive-headline-xl {
@@ -496,10 +615,64 @@ export default function Home() {
           padding: 22px;
           border-radius: 18px;
         }
+        @media (max-width: 767px) {
+          .vault-header-row {
+            justify-content: center !important;
+          }
+          .vault-desc-p {
+            text-align: center !important;
+          }
+          .hide-on-mobile {
+            display: none !important;
+          }
+          .vault-slide-animated {
+            animation: fadeInVault 0.45s ease-out;
+          }
+        }
+        @keyframes fadeInVault {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .vault-dots-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 24px;
+        }
+        @media (min-width: 768px) {
+          .vault-dots-container {
+            display: none !important;
+          }
+        }
+        .vault-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.2);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: none;
+          padding: 0;
+        }
+        .vault-dot.active {
+          width: 24px;
+          border-radius: 4px;
+          background: #4BFF99;
+          box-shadow: 0 0 10px #4BFF99;
+        }
         @media (min-width: 768px) {
           .vault-card-inner {
             padding: 32px;
             border-radius: 20px;
+          }
+        }
+        .strategy-showcase-container {
+          margin-top: -10px;
+        }
+        @media (min-width: 768px) {
+          .strategy-showcase-container {
+            margin-top: -30px;
           }
         }
         .strategy-card-responsive {
@@ -531,6 +704,25 @@ export default function Home() {
           color: #bacbbb;
           white-space: nowrap;
         }
+        .integrated-showcase-card {
+          border-radius: 20px;
+          padding: 18px;
+        }
+        @media (min-width: 768px) {
+          .integrated-showcase-card {
+            border-radius: 24px;
+            padding: 36px;
+          }
+        }
+        .universal-heading-wrapper {
+          text-align: center;
+          margin-bottom: 32px;
+        }
+        @media (min-width: 768px) {
+          .universal-heading-wrapper {
+            margin-bottom: 56px;
+          }
+        }
         @media (min-width: 768px) {
           .strategy-tab-btn {
             flex: 0 0 auto;
@@ -554,11 +746,16 @@ export default function Home() {
           gap: 8px;
           border-bottom: 1px solid rgba(255,255,255,0.06);
           padding-bottom: 16px;
+          margin-bottom: 24px;
         }
-        @media (min-width: 640px) {
+        @media (min-width: 768px) {
           .strategy-tabs-container {
             display: flex;
-            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            gap: 14px;
+            width: fit-content;
+            margin: 0 auto 28px auto;
             padding-bottom: 24px;
           }
         }
@@ -626,17 +823,11 @@ export default function Home() {
         }
         .widget-flex-row {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
           gap: 6px;
-          align-items: flex-start;
-          padding: 10px 0;
-        }
-        @media (min-width: 480px) {
-          .widget-flex-row {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-          }
+          padding: 8px 0;
         }
         .strategy-grid-responsive {
           display: grid;
@@ -670,11 +861,12 @@ export default function Home() {
       </nav>
 
       {/* ═══ Hero Section ═══ */}
-      <section style={{ position: 'relative', display: 'flex', flexDirection: 'column', paddingTop: 100, backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBb_cWYwrsqX2bYrkJrvDCF9_x4mcbMa7q2xqeZ4YWhYdWYO1fIOwlkjErTIsZRXTHg4b68_uvTBZh5jL_ZzDq6Oe-gw_IOAgAh3xIf6hrS_CvFz8Puaj018StL_B5cv_jIJVFLv1cN032wks7CGnL-2BX-a47Lgz-gCkGhYW3beEMnt3bP9d9ghftm5xt9Hq0nkjybX0L0sHcfumueeZvFDhRjhU76HjZIpKFRZEZNhy9mUMVY4fzrS1hcAgKCUUoc-ZQfjsINvIZ_")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <section className="hero-section-container" style={{ position: 'relative', display: 'flex', flexDirection: 'column', backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBb_cWYwrsqX2bYrkJrvDCF9_x4mcbMa7q2xqeZ4YWhYdWYO1fIOwlkjErTIsZRXTHg4b68_uvTBZh5jL_ZzDq6Oe-gw_IOAgAh3xIf6hrS_CvFz8Puaj018StL_B5cv_jIJVFLv1cN032wks7CGnL-2BX-a47Lgz-gCkGhYW3beEMnt3bP9d9ghftm5xt9Hq0nkjybX0L0sHcfumueeZvFDhRjhU76HjZIpKFRZEZNhy9mUMVY4fzrS1hcAgKCUUoc-ZQfjsINvIZ_")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="hero-overlay" style={{ position: 'absolute', inset: 0 }}></div>
         <div className="home-section-pad" style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', padding: '0 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 940, letterSpacing: '-0.04em', marginBottom: 20 }}>
-            The Universal Decentralized <br />
+          <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 940, letterSpacing: '-0.04em', marginBottom: 20, wordBreak: 'break-word' }}>
+            The Universal <br className="sm:hidden" />
+            Decentralized <br />
             <span style={{ background: 'linear-gradient(135deg, #4BFF99 0%, #20d472 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 0 32px rgba(75, 255, 153, 0.25))' }}>
               Leverage Protocol.
             </span>
@@ -753,40 +945,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ Features Section ═══ */}
-      <section className="home-section-pad" style={{ padding: '64px 16px 0px 16px', backgroundColor: '#070707' }}>
+      {/* ═══ UNIVERSAL ACCESS & INTEGRATED TRADING SHOWCASE DOCK ═══ */}
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', position: 'relative', zIndex: 25, overflow: 'hidden' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 16 }}>
-            <span className="t-label-mono" style={{ color: '#4BFF99', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 16 }}>UNIVERSAL ACCESS</span>
-            <h2 className="t-headline-lg home-features-heading" style={{ color: '#fbfff8', letterSpacing: '-0.02em', fontWeight: 700, margin: 0 }}>Scalable Leverage for Everyone</h2>
+          {/* Section Heading */}
+          <div className="universal-heading-wrapper">
+            <span className="t-label-mono" style={{ color: '#4BFF99', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
+              UNIVERSAL ACCESS
+            </span>
+            <h2 className="t-headline-lg home-features-heading" style={{ color: '#fbfff8', letterSpacing: '-0.02em', fontWeight: 700, margin: 0 }}>
+              Scalable Leverage for Everyone
+            </h2>
           </div>
 
-          {/* Institutional Laptop Mockup */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: 960, margin: '-32px auto 0 auto', zIndex: 20 }}>
-            <img 
-              src="/app-preview.png" 
-              alt="Confidential Trading Platform" 
-              className="home-mockup-float"
-              style={{ 
-                position: 'relative',
-                zIndex: 1,
-                width: '100%', 
-                borderRadius: 16,
-                mixBlendMode: 'screen', // This will make the black background disappear completely
-                filter: 'drop-shadow(0 20px 40px rgba(75, 255, 153, 0.1))',
-                pointerEvents: 'none',
-                userSelect: 'none',
-              }} 
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Avantis-Inspired Strategy Showcase ═══ */}
-      <section className="home-section-pad" style={{ padding: '0px 16px 64px 16px', backgroundColor: '#070707', marginTop: '-30px', position: 'relative', zIndex: 25, overflow: 'hidden' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          {/* Strategy Tabs & Comparison Card */}
-          <div className="glass-surface strategy-card-glow strategy-card-responsive" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Integrated Showcase Console Card */}
+          <div className="glass-surface strategy-card-glow integrated-showcase-card" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            {/* Top Strategy Asset Switcher Tabs */}
             <div className="strategy-tabs-container">
               <button
                 className={`strategy-tab-btn ${activeStrategyTab === 'metals' ? 'active' : ''}`}
@@ -811,20 +985,29 @@ export default function Home() {
               </button>
             </div>
 
+            {/* Docked Institutional Laptop Mockup */}
+            <div style={{ position: 'relative', width: '100%', maxWidth: 840, margin: '0 auto 12px auto', zIndex: 20 }}>
+              <img 
+                src="/app-preview.png" 
+                alt="Confidential Trading Platform" 
+                className="home-mockup-float"
+                style={{ 
+                  position: 'relative',
+                  zIndex: 1,
+                  width: '100%', 
+                  borderRadius: 16,
+                  mixBlendMode: 'screen',
+                  filter: 'drop-shadow(0 20px 40px rgba(75, 255, 153, 0.12))',
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                }} 
+              />
+            </div>
+
             <div className="strategy-grid-responsive">
               {/* Left Column: Description */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <span className="t-label-mono" style={{ color: '#4BFF99', letterSpacing: '0.1em' }}>
-                  {activeStrategyTab === 'metals' && 'PRECIOUS METALS DIVERSIFICATION'}
-                  {activeStrategyTab === 'forex' && 'GLOBAL MACRO FOREX HEDGING'}
-                  {activeStrategyTab === 'equities' && 'ON-CHAIN SYNTHETIC EQUITIES'}
-                </span>
-                <h3 style={{ fontFamily: "'Geist', sans-serif", fontSize: 22, fontWeight: 700, color: '#fbfff8', margin: 0 }}>
-                  {activeStrategyTab === 'metals' && 'Hedge Volatility with On-Chain Gold & Silver'}
-                  {activeStrategyTab === 'forex' && 'Trade Global Currencies 24/7 with Zero Front-Running'}
-                  {activeStrategyTab === 'equities' && 'Instant Blue-Chip Stock Exposure on the Arc Network'}
-                </h3>
-                <p className="t-body-md" style={{ color: '#bacbbb', margin: 0, lineHeight: '24px' }}>
+              <div className="strategy-info-col" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
+                <p className="t-body-md" style={{ color: '#bacbbb', margin: 0, lineHeight: '26px', fontSize: 16 }}>
                   {activeStrategyTab === 'metals' && 'Metals like Gold and Silver often retain or grow their value during economic uncertainty. Pair up to 50x leverage on GOLD/USDC and SILVER/USDC on one single collateral pool.'}
                   {activeStrategyTab === 'forex' && 'Capture macro rate shifts on EUR/USDC, GBP/USDC, and USDJPY/USDC. Benefit from institutional-grade liquidity and zero P2P matching delays.'}
                   {activeStrategyTab === 'equities' && 'Long or short NVDA/USDC, AAPL/USDC, and TSLA/USDC synthetics with up to 20x leverage (and 50x on SPY/USDC). No brokerage cut-off hours, no geographic restrictions.'}
@@ -948,6 +1131,20 @@ export default function Home() {
                 <div>
                   <Link
                     to="/trade"
+                    onClick={() => {
+                      const store = useTradeStore.getState()
+                      if (activeStrategyTab === 'metals') {
+                        store.setActiveMarket('gold-usdc')
+                        store.setMarketCategoryFilter('rwa')
+                      } else if (activeStrategyTab === 'forex') {
+                        store.setActiveMarket('eur-usdc')
+                        store.setMarketCategoryFilter('forex')
+                      } else if (activeStrategyTab === 'equities') {
+                        store.setActiveMarket('nvda-usdc')
+                        store.setMarketCategoryFilter('rwa')
+                      }
+                      store.setMarketSelectorOpen(true)
+                    }}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -976,15 +1173,15 @@ export default function Home() {
       </section>
 
       {/* ═══ THE CONFIDENTIAL EDGE ("Scalable Leverage for Everyone") ═══ */}
-      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', position: 'relative', overflow: 'hidden' }}>
+      <section className="home-section-pad edge-section-wrapper" style={{ backgroundColor: '#070707', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)', width: 400, height: 250, background: '#4BFF99', filter: 'blur(160px)', opacity: 0.08, pointerEvents: 'none' }} />
         
         <div style={{ maxWidth: 1280, margin: '0 auto', position: 'relative', zIndex: 10 }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <span className="t-label-mono" style={{ color: '#4BFF99', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 16 }}>
+          <div className="edge-header-container" style={{ textAlign: 'center' }}>
+            <span className="t-label-mono edge-label" style={{ color: '#4BFF99', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block' }}>
               THE CONFIDENTIAL EDGE
             </span>
-            <h2 className="responsive-headline-xl">
+            <h2 className="responsive-headline-xl" style={{ margin: 0 }}>
               Engineered for Institutional Scale
             </h2>
           </div>
@@ -993,7 +1190,7 @@ export default function Home() {
             {/* CARD 1: TRADER - Loss Protection & Rebates */}
             <div className="edge-card edge-card-trader">
               <div>
-                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 20 }}>
+                <div className="edge-card-tag" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 16 }}>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: '#4BFF99', backgroundColor: 'rgba(75, 255, 153, 0.1)', padding: '6px 14px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.25)' }}>
                     TRADER ADVANTAGE
                   </span>
@@ -1001,13 +1198,13 @@ export default function Home() {
                 <h3 className="responsive-card-h3">
                   Contrarian Skew Advantage
                 </h3>
-                <p className="t-body-md" style={{ color: '#bacbbb', lineHeight: '26px', marginBottom: 28 }}>
+                <p className="edge-card-desc">
                   Trade smarter against crowded sentiment: Get up to a <strong style={{ color: '#fbfff8' }}>50% discount on price impact</strong> and earn continuous P2P funding rewards when your trade balances Open Interest skew.
                 </p>
               </div>
 
               {/* Interactive Widget inside Card 1 */}
-              <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div className="edge-widget-box" style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" }}>
                   <span style={{ color: '#bacbbb' }}>MARKET SKEW RATIO</span>
                   <span style={{ color: '#4BFF99', fontWeight: 600 }}>LONG 76% / SHORT 24%</span>
@@ -1028,7 +1225,7 @@ export default function Home() {
             {/* CARD 2: TRADER - Positive Slippage */}
             <div className="edge-card edge-card-trader">
               <div>
-                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 20 }}>
+                <div className="edge-card-tag" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 16 }}>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: '#4BFF99', backgroundColor: 'rgba(75, 255, 153, 0.1)', padding: '6px 14px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.25)' }}>
                     TRADER ADVANTAGE
                   </span>
@@ -1036,13 +1233,13 @@ export default function Home() {
                 <h3 className="responsive-card-h3">
                   Positive Slippage Rewards
                 </h3>
-                <p className="t-body-md" style={{ color: '#bacbbb', lineHeight: '26px', marginBottom: 28 }}>
+                <p className="edge-card-desc">
                   Get rewarded when you balance Open Interest. Our Quadratic Slippage Engine gives skew-balancing orders <strong style={{ color: '#4BFF99' }}>positive slippage</strong>, executing your trade at a price better than spot market price.
                 </p>
               </div>
 
               {/* Interactive Widget inside Card 2 */}
-              <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div className="edge-widget-box" style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <span style={{ fontSize: 13, color: '#88919e', fontFamily: "'JetBrains Mono', monospace" }}>EXECUTION COMPARISON</span>
                   <span style={{ fontSize: 12, color: '#4BFF99', fontFamily: "'JetBrains Mono', monospace" }}>ZERO MEV FRONT-RUNNING</span>
@@ -1061,7 +1258,7 @@ export default function Home() {
             {/* CARD 3: LIQUIDITY PROVIDER - Optimized for LPs */}
             <div className="edge-card edge-card-lp">
               <div>
-                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 20 }}>
+                <div className="edge-card-tag" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 16 }}>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: '#4BFF99', backgroundColor: 'rgba(75, 255, 153, 0.1)', padding: '6px 14px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.25)' }}>
                     LIQUIDITY PROVIDER
                   </span>
@@ -1069,13 +1266,13 @@ export default function Home() {
                 <h3 className="responsive-card-h3">
                   Optimized LP Yield Matrix
                 </h3>
-                <p className="t-body-md" style={{ color: '#bacbbb', lineHeight: '26px', marginBottom: 28 }}>
+                <p className="edge-card-desc">
                   Act as the house. Our dynamic risk engine optimizes LP returns across all market regimes. Earn sustainable, auto-compounding yield from platform trading fees, liquidations, and borrow rates.
                 </p>
               </div>
 
               {/* Protocol Real Yield Revenue Streams Widget */}
-              <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="edge-widget-box" style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="widget-flex-row">
                   <span style={{ fontSize: 12, color: '#88919e', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>REAL YIELD REVENUE SOURCE</span>
                   <span style={{ fontSize: 12, color: '#4BFF99', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>100% REAL USDC</span>
@@ -1100,7 +1297,7 @@ export default function Home() {
             {/* CARD 4: LIQUIDITY PROVIDER - Whale & Toxic Flow Shield */}
             <div className="edge-card edge-card-lp">
               <div>
-                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 20 }}>
+                <div className="edge-card-tag" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 16 }}>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: '#4BFF99', backgroundColor: 'rgba(75, 255, 153, 0.1)', padding: '6px 14px', borderRadius: 9999, border: '1px solid rgba(75, 255, 153, 0.25)' }}>
                     LIQUIDITY PROVIDER
                   </span>
@@ -1108,13 +1305,13 @@ export default function Home() {
                 <h3 className="responsive-card-h3">
                   Whale & Toxic Flow Shield
                 </h3>
-                <p className="t-body-md" style={{ color: '#bacbbb', lineHeight: '26px', marginBottom: 28 }}>
+                <p className="edge-card-desc">
                   Your capital is protected against toxic arbitrage. Strict 80% utilization caps and quadratic slippage penalties on massive institutional order sizes shield vault LPs from flash dumps and toxic flow.
                 </p>
               </div>
 
               {/* Security Gauge Widget inside Card 4 */}
-              <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div className="edge-widget-box" style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div className="widget-flex-row" style={{ marginBottom: 12, fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>
                   <span style={{ color: '#88919e' }}>VAULT UTILIZATION CAP</span>
                   <span style={{ color: '#4BFF99', fontWeight: 700 }}>80% MAX PROTECTED</span>
@@ -1133,7 +1330,7 @@ export default function Home() {
       </section>
 
       {/* ═══ DUAL VAULT LIQUIDITY & YIELD CTA ═══ */}
-      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#0A0A0E', borderTop: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: '-10%', bottom: '-10%', width: 350, height: 350, background: '#4BFF99', borderRadius: '50%', filter: 'blur(160px)', opacity: 0.08, pointerEvents: 'none' }} />
         
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1150,11 +1347,11 @@ export default function Home() {
           </div>
 
           <div className="vaults-responsive-grid">
-            <div className="glass-surface vault-card-inner" style={{ border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+            <div className={`glass-surface vault-card-inner ${activeVaultSlide === 'degen' ? 'hide-on-mobile' : 'vault-slide-animated'}`} style={{ border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="vault-header-row" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
                 <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}>Prime Vault</span>
               </div>
-              <p style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
+              <p className="vault-desc-p" style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
                 Designed for capital preservation. Prime LPs enjoy 70% capital protection against severe drawdowns while earning steady yield with 5-day lockup.
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1163,11 +1360,11 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="glass-surface vault-card-inner" style={{ border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+            <div className={`glass-surface vault-card-inner ${activeVaultSlide === 'prime' ? 'hide-on-mobile' : 'vault-slide-animated'}`} style={{ border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="vault-header-row" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
                 <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}>Degen Vault</span>
               </div>
-              <p style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
+              <p className="vault-desc-p" style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
                 Designed for maximum yield hunters. Earn 3x higher profit share from all protocol trading fees and liquidation bonuses as the first-loss liquidity buffer (2-day lockup).
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1175,6 +1372,19 @@ export default function Home() {
                 <span style={{ color: '#4BFF99', fontWeight: 700, fontSize: 18, fontFamily: "'JetBrains Mono', monospace" }}>~ 45.0%</span>
               </div>
             </div>
+          </div>
+
+          <div className="vault-dots-container">
+            <button
+              className={`vault-dot ${activeVaultSlide === 'prime' ? 'active' : ''}`}
+              onClick={() => setActiveVaultSlide('prime')}
+              aria-label="Prime Vault"
+            />
+            <button
+              className={`vault-dot ${activeVaultSlide === 'degen' ? 'active' : ''}`}
+              onClick={() => setActiveVaultSlide('degen')}
+              aria-label="Degen Vault"
+            />
           </div>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>

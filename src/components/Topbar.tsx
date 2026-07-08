@@ -52,7 +52,7 @@ export default function Topbar() {
   const { isConnected, address, balance, disconnect } = useArcWallet()
   const location = useLocation()
   const truncatedAddress = address ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}` : ''
-  const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist } = useTradeStore()
+  const { markets, activeMarketId, setActiveMarket, mobileNav, isMarketSelectorOpen, setMarketSelectorOpen, watchlist, toggleWatchlist, marketCategoryFilter, setMarketCategoryFilter } = useTradeStore()
   const volumes = useAll24hVolumes()
 
   const pairStats = usePairStats()
@@ -60,7 +60,8 @@ export default function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [marketSearch, setMarketSearch] = useState('')
-  const [marketTab, setMarketTab] = useState<'all' | 'crypto' | 'rwa' | 'forex' | 'watchlist'>('all')
+  const marketTab = marketCategoryFilter || 'all'
+  const setMarketTab = setMarketCategoryFilter
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
 
