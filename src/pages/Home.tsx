@@ -165,8 +165,8 @@ export default function Home() {
         /* ═══ Typography ═══ */
         .t-headline-xl {
           font-family: 'Geist', sans-serif;
-          font-size: 46px;
-          line-height: 52px;
+          font-size: 36px;
+          line-height: 42px;
           letter-spacing: -0.04em;
           font-weight: 700;
         }
@@ -673,11 +673,15 @@ export default function Home() {
       <section style={{ position: 'relative', display: 'flex', flexDirection: 'column', paddingTop: 100, backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBb_cWYwrsqX2bYrkJrvDCF9_x4mcbMa7q2xqeZ4YWhYdWYO1fIOwlkjErTIsZRXTHg4b68_uvTBZh5jL_ZzDq6Oe-gw_IOAgAh3xIf6hrS_CvFz8Puaj018StL_B5cv_jIJVFLv1cN032wks7CGnL-2BX-a47Lgz-gCkGhYW3beEMnt3bP9d9ghftm5xt9Hq0nkjybX0L0sHcfumueeZvFDhRjhU76HjZIpKFRZEZNhy9mUMVY4fzrS1hcAgKCUUoc-ZQfjsINvIZ_")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="hero-overlay" style={{ position: 'absolute', inset: 0 }}></div>
         <div className="home-section-pad" style={{ position: 'relative', zIndex: 10, maxWidth: 1280, margin: '0 auto', padding: '0 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 896, letterSpacing: '-0.04em', marginBottom: 16 }}>
-            The Universal <br /><span style={{ color: '#4BFF99' }}>Leverage Protocol.</span>
+          <h1 className="t-headline-xl" style={{ color: '#fbfff8', maxWidth: 940, letterSpacing: '-0.04em', marginBottom: 20 }}>
+            The Universal <br />
+            <span style={{ background: 'linear-gradient(135deg, #4BFF99 0%, #20d472 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 0 32px rgba(75, 255, 153, 0.25))' }}>
+              Leverage Protocol.
+            </span>
           </h1>
-          <p className="t-hero-p" style={{ color: '#bacbbb', maxWidth: 672, marginBottom: 0 }}>
-            Trade crypto, forex, and commodities with up to 100x leverage. Institutional liquidity, zero front-running, and absolute on-chain transparency on the Arc Network.
+
+          <p className="t-hero-p" style={{ color: '#bacbbb', maxWidth: 740, margin: '0 auto', textAlign: 'center' }}>
+            Trade Crypto, Forex, Metals, and Equities with up to 100x leverage on a single unified collateral pool. Experience institutional-grade liquidity, zero front-running, and deterministic sub-millisecond execution on the Arc Network.
           </p>
         </div>
 
