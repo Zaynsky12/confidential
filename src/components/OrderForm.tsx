@@ -133,8 +133,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   if (sizeUsdValue > 0 && maxOISide > 0) {
     const isIncreasingSkew = side === 'long' ? longOIVal >= shortOIVal : shortOIVal >= longOIVal;
     const ratio = sizeUsdValue / maxOISide;
-    let rawImpactBps = (ratio * ratio) * 100; // maxPriceImpactBps = 100
-    if (rawImpactBps > 100) rawImpactBps = 100; // Cap at max
+    let rawImpactBps = (ratio * ratio) * 300; // maxPriceImpactBps = 300
+    if (rawImpactBps > 300) rawImpactBps = 300; // Cap at max
 
     const impactBps = isIncreasingSkew ? rawImpactBps : -(rawImpactBps / 2);
     
