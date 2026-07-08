@@ -6,7 +6,7 @@ dataSources:
     name: ConfidentialTrading
     network: arc-testnet
     source:
-      address: "0xF9e4Cd48F830fc06341Fe9d17B6650B6d6a3aF22"
+      address: "0x9Bd8339125dBCbd796DEe5eEaD5ba8A88EeF20Ff"
       abi: ConfidentialTrading
       startBlock: 50479400
     mapping:
@@ -52,7 +52,7 @@ dataSources:
     name: ConfidentialVault
     network: arc-testnet
     source:
-      address: "0x1bb2A085D327F9fd153eE2ed5c4bC065a394B8e1"
+      address: "0x21996fe6f66b62B86E01Dc925fb3b02d20c85e18"
       abi: ConfidentialVault
       startBlock: 50479400
     mapping:

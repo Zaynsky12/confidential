@@ -25,9 +25,9 @@ Use these addresses if you wish to build an *analytics dashboard*, quantitative 
 
 | Contract Module | Address | Details / Description |
 | :--- | :--- | :--- |
-| **Confidential Core V1** | *`0xA4F4e1C8032cC6529921Fc8193D8eE8836b72A5F`* | The brain of the protocol. Manages Open Interest, Limits, and global DEX parameters. |
-| **Confidential Trading V1** | *`0xF9e4Cd48F830fc06341Fe9d17B6650B6d6a3aF22`* | The execution gateway. Where orders are created, Pyth is validated, and leverage is calculated. |
-| **Confidential Vault V1** | *`0x1bb2A085D327F9fd153eE2ed5c4bC065a394B8e1`* | Dual-Tranche liquidity reserve (Degen & Prime) with epoch bankruptcy protection. |
+| **Confidential Core V1** | *`0x31fCE291cd6b8d73617822cdB49bF9859E2dff1E`* | The brain of the protocol. Manages Open Interest, Limits, and global DEX parameters. |
+| **Confidential Trading V1** | *`0x9Bd8339125dBCbd796DEe5eEaD5ba8A88EeF20Ff`* | The execution gateway. Where orders are created, Pyth is validated, and leverage is calculated. |
+| **Confidential Vault V1** | *`0x21996fe6f66b62B86E01Dc925fb3b02d20c85e18`* | Dual-Tranche liquidity reserve (Degen & Prime) with epoch bankruptcy protection. |
 | **USDC Token (Arc)** | *`0x3600000000000000000000000000000000000000`* | The base stablecoin (Decimals: 6) on the Arc network for margin and liquidity. |
 | **Pyth Price Oracle** | *`0x897b9947185079B42d94CbbF332192CEFd9ACCFA`* | High-resolution on-chain decentralized oracle validation. |
 

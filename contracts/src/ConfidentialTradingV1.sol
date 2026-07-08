@@ -245,12 +245,12 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         order.isActive = false;
 
         // FIX LOW-1: Reset close request flag so trader can create a new one
-        if (order.orderType == 3) {
+        if (order.orderType == 3 || order.orderType == 5 || order.orderType == 6 || order.orderType == 7) {
             hasActiveCloseRequest[order.positionId] = false;
         }
 
         // Refund collateral + fee + execution fee
-        if (order.orderType != 3) {
+        if (order.orderType != 3 && order.orderType != 6 && order.orderType != 7) {
             uint256 remainingCollateral = order.collateral;
             uint256 remainingFee = order.feePaid;
             
@@ -296,11 +296,11 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         // FIX LOW-2: Handle expired orders gracefully — refund and reset flags
         if (block.timestamp > order.createdAt + maxOrderAge) {
             order.isActive = false;
-            if (order.orderType == 3) {
+            if (order.orderType == 3 || order.orderType == 5 || order.orderType == 6 || order.orderType == 7) {
                 hasActiveCloseRequest[order.positionId] = false;
             }
             // Refund collateral + fee for non-close orders
-            if (order.orderType != 3 && order.collateral + order.feePaid > 0) {
+            if (order.orderType != 3 && order.orderType != 6 && order.orderType != 7 && order.collateral + order.feePaid > 0) {
                 _safeTransfer(order.trader, order.collateral + order.feePaid);
             }
             // Refund execution fee
@@ -356,14 +356,17 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
                 _safeTransfer(order.trader, order.collateral + order.feePaid);
                 emit OrderCancelled(orderId);
             }
+            hasActiveCloseRequest[order.positionId] = false;
             order.isActive = false;
         } else if (order.orderType == 6) { // Partial Close
             require(!core.paused(), "Paused");
             _executePartialClose(order, currentPrice);
+            hasActiveCloseRequest[order.positionId] = false;
             order.isActive = false;
         } else if (order.orderType == 7) { // Remove Collateral
             require(!core.paused(), "Paused");
             _executeRemoveCollateral(order, currentPrice);
+            hasActiveCloseRequest[order.positionId] = false;
             order.isActive = false;
         } else if (order.orderType == 4) { // TWAP
             require(
@@ -759,6 +762,10 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Not open");
         require(pos.trader == msg.sender, "Not owner");
+        require(!hasActiveCloseRequest[positionId], "Pending request exists");
+        require(pos.collateral > amount, "Amount exceeds collateral");
+        require(pos.collateral - amount >= MIN_COLLATERAL, "Remainder collateral too small");
+        hasActiveCloseRequest[positionId] = true;
 
         orderId = nextOrderId++;
         PendingOrder storage o = pendingOrders[orderId];
@@ -824,6 +831,8 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         Position storage pos = positions[positionId];
         require(pos.isOpen, "Not open");
         require(pos.trader == msg.sender, "Not owner");
+        require(!hasActiveCloseRequest[positionId], "Pending request exists");
+        hasActiveCloseRequest[positionId] = true;
         
         uint256 addCollateralAmt = additionalSizeUsd / additionalLeverage;
         uint256 fee = core.calculateFee(additionalSizeUsd, false);
@@ -906,6 +915,15 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         require(pos.isOpen, "Not open");
         require(pos.trader == msg.sender, "Not owner");
         require(block.timestamp >= pos.openedAt + core.minPositionDuration(), "Cooldown active");
+        require(!hasActiveCloseRequest[positionId], "Pending request exists");
+
+        uint256 closeSizeUsd = (pos.sizeUsd * closePercent) / 10000;
+        require(pos.sizeUsd - closeSizeUsd >= MIN_POSITION_SIZE, "Remainder size too small");
+        
+        uint256 closeCollateral = (pos.collateral * closePercent) / 10000;
+        require(pos.collateral - closeCollateral >= MIN_COLLATERAL, "Remainder collateral too small");
+        
+        hasActiveCloseRequest[positionId] = true;
 
         orderId = nextOrderId++;
         PendingOrder storage o = pendingOrders[orderId];
