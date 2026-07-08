@@ -241,9 +241,9 @@ async function main() {
     }
   }
 
-  // Run loop every 4 seconds
-  console.log("🟢 Bot running. Monitoring orders and positions every 4 seconds...\n");
-  setInterval(scanAndExecute, 4000);
+  // Run loop every 1.5 seconds for fast execution
+  console.log("🟢 Bot running. Monitoring orders and positions every 1.5 seconds...\n");
+  setInterval(scanAndExecute, 1500);
   scanAndExecute(); // Run immediately
 }
 
