@@ -9,12 +9,14 @@ Unlike other exchanges that apply price tolerances to *Limit Orders* for the sak
 
 A *Limit Order* will only be executed into an *Open Position* if the market price (from the Oracle) **exactly touches or crosses your absolute target**. There is no such thing as premature execution.
 
-## 🛡️ Execution Buffer (Anti-Wick Protection)
+## 🛡️ Dynamic Slippage Buffer (Anti-Wick Protection)
 
-For conditional orders like *Stop Loss (SL)* and *Take Profit (TP)*, account security is the top priority:
+For execution of *Market Orders*, *Stop Loss (SL)*, and *Take Profit (TP)*, account security is the top priority:
 
-::: info 0.3% Buffer (30 bps)
-We have embedded an execution buffer of **0.3%** specifically for SL and TP. If the market experiences an instant crash or extreme wicks, our execution bots still have a buffer range to save your order, ensuring it executes successfully rather than reverting due to wild slippage.
+::: info Custom Slippage Control (0.1% - 5%)
+Unlike traditional systems with hardcoded slippages, we allow traders to define their own custom **Slippage Tolerance** from the frontend UI. The default is set to **0.3% (30 bps)**, with a minimum of **0.1%** and a maximum of **5%**. 
+
+If the market experiences an instant crash or extreme wicks that push the price beyond your defined slippage limit, our execution bots will safely reject the execution and refund your collateral instantly, protecting you from buying or selling at a terribly distorted price.
 :::
 
 ---
