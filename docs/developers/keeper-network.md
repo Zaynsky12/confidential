@@ -164,8 +164,8 @@ async function main() {
   ];
 
   try {
-    const artPath1 = path.join(__dirname, "artifacts/src/ConfidentialTrading.sol/ConfidentialTrading.json");
-    const artPath2 = path.join(__dirname, "../artifacts/src/ConfidentialTrading.sol/ConfidentialTrading.json");
+    const artPath1 = path.join(__dirname, "artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
+    const artPath2 = path.join(__dirname, "../artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
     const artPath = fs.existsSync(artPath1) ? artPath1 : artPath2;
     if (fs.existsSync(artPath)) {
       const tradingArtifact = JSON.parse(fs.readFileSync(artPath, "utf8"));
@@ -180,6 +180,28 @@ async function main() {
   const PYTH_FEE = ethers.parseUnits("0.001", 18); // 0.001 ARC for oracle update
 
   let isRunning = false;
+  let activeOrders = new Set();
+  let activePositions = new Set();
+  let lastScannedOrderId = 1;
+  let lastScannedPosId = 1;
+
+  async function syncState() {
+    try {
+      const nextOrderId = Number(await tradingContract.nextOrderId());
+      for (let i = lastScannedOrderId; i < nextOrderId; i++) {
+        activeOrders.add(i);
+      }
+      lastScannedOrderId = nextOrderId;
+
+      const nextPosId = Number(await tradingContract.nextPositionId());
+      for (let i = lastScannedPosId; i < nextPosId; i++) {
+        activePositions.add(i);
+      }
+      lastScannedPosId = nextPosId;
+    } catch (e) {
+      console.error("[Bot Sync Error]", e.message);
+    }
+  }
 
   async function scanAndExecute() {
     if (isRunning) return;
@@ -189,19 +211,25 @@ async function main() {
       // ═══════════════════════════════════════════════════
       // 1. SCAN PENDING ORDERS
       // ═══════════════════════════════════════════════════
-      const nextOrderId = Number(await tradingContract.nextOrderId());
-      for (let i = 1; i < nextOrderId; i++) {
+      await syncState();
+
+      for (let i of activeOrders) {
         try {
           const order = await tradingContract.pendingOrders(i);
+          // order: [orderId, trader, isLong, sizeUsd, collateral, leverage, triggerPrice, orderType, isActive, ...]
           const isActive = order[8];
-          if (!isActive) continue;
+          if (!isActive) {
+            activeOrders.delete(i);
+            continue;
+          }
 
           const orderId = i;
           const pairId = order[0];
-          const orderType = Number(order[7]); 
+          const orderType = Number(order[7]); // 0=Limit, 1=Stop, 2=MarketOpen, 3=MarketClose, 4=TWAP, 5=MarketIncrease, 6=PartialClose, 7=RemoveCollateral
           const pythId = PAIR_ID_TO_PYTH[pairId];
 
           if (!pythId) {
+            console.warn(`[Order #${orderId}] Unknown pairId: ${pairId}`);
             continue;
           }
 
@@ -215,6 +243,7 @@ async function main() {
           await tx.wait();
           console.log(`  ✅ Order #${orderId} EXECUTED SUCCESSFULLY!`);
         } catch (err) {
+          // Many orders might revert if condition not met (e.g. Limit not reached), which is normal
           const msg = err.shortMessage || err.message || "";
           if (!msg.includes("Limit not reached") && !msg.includes("Stop not reached") && !msg.includes("TWAP: too early")) {
             console.error(`[Order #${i}] Execution error:`, msg.slice(0, 100));
@@ -225,21 +254,25 @@ async function main() {
       // ═══════════════════════════════════════════════════
       // 2. SCAN OPEN POSITIONS (FOR TP/SL & LIQUIDATION)
       // ═══════════════════════════════════════════════════
-      const nextPosId = Number(await tradingContract.nextPositionId());
-      for (let i = 1; i < nextPosId; i++) {
+      for (let i of activePositions) {
         try {
           const pos = await tradingContract.positions(i);
+          // pos: [positionId, trader, isLong, sizeUsd, collateral, entryPrice, leverage, liquidationPrice, ..., isOpen, ...]
           const isOpen = pos[9];
-          if (!isOpen) continue;
+          if (!isOpen) {
+            activePositions.delete(i);
+            continue;
+          }
 
           const posId = i;
-          const pairId = pos[0];
+          const pairId = pos[0]; // pairId is index 0 in Position struct
           const tpPrice = pos[10];
           const slPrice = pos[11];
           const pythId = PAIR_ID_TO_PYTH[pairId];
 
           if (!pythId) continue;
 
+          // Check Liquidation or TP/SL
           const updateData = await fetchPythVaa(pythId);
           if (updateData.length === 0) continue;
 
@@ -250,7 +283,9 @@ async function main() {
             await tx.wait();
             console.log(`[Position #${posId}] ✅ LIQUIDATED SUCCESSFULLY!`);
             continue;
-          } catch (liqErr) {}
+          } catch (liqErr) {
+            // Not liquidatable, check TP/SL
+          }
 
           // Try TP/SL if set
           if (tpPrice > 0n || slPrice > 0n) {
@@ -259,9 +294,13 @@ async function main() {
               console.log(`[Position #${posId}] 🎯 TP/SL tx sent: ${tx.hash}`);
               await tx.wait();
               console.log(`[Position #${posId}] ✅ TP/SL EXECUTED SUCCESSFULLY!`);
-            } catch (tpslErr) {}
+            } catch (tpslErr) {
+              // TP/SL not triggered
+            }
           }
-        } catch (err) {}
+        } catch (err) {
+          // Ignore
+        }
       }
     } catch (globalErr) {
       console.error("[Bot Loop Error]", globalErr.message);
@@ -270,12 +309,14 @@ async function main() {
     }
   }
 
+  // Run loop every 4 seconds
   console.log("🟢 Bot running. Monitoring orders and positions every 4 seconds...\n");
   setInterval(scanAndExecute, 4000);
-  scanAndExecute(); 
+  scanAndExecute(); // Run immediately
 }
 
 main().catch(console.error);
+
 ```
 </details>
 
