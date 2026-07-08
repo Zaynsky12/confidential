@@ -39,6 +39,7 @@ export default function Positions() {
 
   // Use on-chain positions for open positions tab
   const openPositions = activePositions
+  const displayOrders = openOrders.filter(o => o.orderType === 0 || o.orderType === 1 || o.orderType === 4)
 
   // Read live TP/SL from contract since subgraph might miss them (not emitted in event)
   const { data: contractPositions } = useReadContracts({
@@ -90,7 +91,7 @@ export default function Positions() {
           >
             {t.label} 
             {t.id === 'positions' && openPositions.length > 0 && <span className="tab-count">{openPositions.length}</span>}
-            {t.id === 'orders' && openOrders.length > 0 && <span className="tab-count">{openOrders.length}</span>}
+            {t.id === 'orders' && displayOrders.length > 0 && <span className="tab-count">{displayOrders.length}</span>}
           </button>
         ))}
       </div>
@@ -268,14 +269,15 @@ export default function Positions() {
                 </div>
                 {isOrdersLoading ? (
                   <div className="pos-empty">Loading orders from Goldsky...</div>
-                ) : openOrders.length === 0 ? (
+                ) : displayOrders.length === 0 ? (
                   <div className="pos-empty">No open orders</div>
                 ) : (
-                  openOrders.map((o, i) => {
-                    const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === o.pairId)
-                    const pairName = matchedMarket ? matchedMarket.pair : o.pairId.slice(0, 10) + '...'
-                    
-                    const co = contractOrders?.[i]?.result as any[] | undefined
+                  displayOrders.map((o) => {
+                      const origIndex = openOrders.findIndex(x => x.id === o.id)
+                      const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === o.pairId)
+                      const pairName = matchedMarket ? matchedMarket.pair : o.pairId.slice(0, 10) + '...'
+                      
+                      const co = contractOrders?.[origIndex]?.result as any[] | undefined
                     const tpPrice = co && co[13] ? Number(formatUnits(co[13], 18)) : 0
                     const slPrice = co && co[14] ? Number(formatUnits(co[14], 18)) : 0
                     
@@ -331,10 +333,14 @@ export default function Positions() {
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === t.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : t.pairId.slice(0, 10) + '...'
                     
-                    // Match with history to get PnL if it's a close action
+                    // Show PnL from TradeRecord directly if available, or fallback to history match
                     let pnlDisplay = '-'
                     let pnlColor = 'var(--color-text3)'
-                    if (t.action === 'Close' || t.action === 'Liquidate') {
+                    if (t.pnl !== undefined && (t.action === 'Close' || t.action === 'Liquidate' || t.action === 'PartialClose')) {
+                      const isProfit = t.pnl >= 0
+                      pnlDisplay = `${isProfit ? '+' : ''}$${t.pnl.toFixed(2)}`
+                      pnlColor = isProfit ? 'var(--color-green)' : 'var(--color-red)'
+                    } else if (t.action === 'Close' || t.action === 'Liquidate') {
                       const matchedPos = historyPositions.find(p => p.pairId === t.pairId && Math.abs((p.closedAt || 0) - t.timestamp) < 5000)
                       if (matchedPos && matchedPos.pnl !== undefined) {
                         const isProfit = matchedPos.pnl >= 0

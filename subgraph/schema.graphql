@@ -46,6 +46,7 @@ type TradeRecord @entity {
   action: String! # "Open", "Close", "Liquidate", "PartialClose", "Increase", "AddCollateral", "RemoveCollateral"
   sizeUsd: BigInt!
   price: BigInt!
+  pnl: BigInt
   timestamp: BigInt!
   txHash: Bytes!
 }

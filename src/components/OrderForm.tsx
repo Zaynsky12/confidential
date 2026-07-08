@@ -104,6 +104,13 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     if (activeMarket) {
       // Default to the max leverage of the new category when switching markets
       setLeverage(leveragePresets[leveragePresets.length - 1])
+      setSize('')
+      setSizePercent(0)
+      setPrice('')
+      setTriggerPrice('')
+      setTakeProfit('')
+      setStopLoss('')
+      setShowTpSl(false)
     }
   }, [activeMarket?.id]) // Only run when the market ID itself changes
   const [showTpSl, setShowTpSl] = useState(false)

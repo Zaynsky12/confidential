@@ -361,6 +361,7 @@ export interface IndexerTradeRecord {
   action: string
   sizeUsd: number
   price: number
+  pnl?: number
   timestamp: number
   txHash: string
 }
@@ -383,6 +384,7 @@ export function useTradeRecords(userAddress?: string) {
                 action
                 sizeUsd
                 price
+                pnl
                 timestamp
                 txHash
               }
@@ -393,6 +395,7 @@ export function useTradeRecords(userAddress?: string) {
             ...t,
             sizeUsd: Number(formatUnits(BigInt(t.sizeUsd), 6)),
             price: Number(formatUnits(BigInt(t.price), 18)),
+            pnl: t.pnl !== null && t.pnl !== undefined ? Number(formatUnits(BigInt(t.pnl), 6)) : undefined,
             timestamp: Number(t.timestamp) * 1000
           }))
           setTrades(formatted)
@@ -409,6 +412,7 @@ export function useTradeRecords(userAddress?: string) {
               action
               sizeUsd
               price
+              pnl
               timestamp
               txHash
             }
@@ -421,6 +425,7 @@ export function useTradeRecords(userAddress?: string) {
           ...t,
           sizeUsd: Number(formatUnits(BigInt(t.sizeUsd), 6)),
           price: Number(formatUnits(BigInt(t.price), 18)),
+          pnl: t.pnl !== null && t.pnl !== undefined ? Number(formatUnits(BigInt(t.pnl), 6)) : undefined,
           timestamp: Number(t.timestamp) * 1000
         }))
 

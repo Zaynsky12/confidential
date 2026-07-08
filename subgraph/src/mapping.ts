@@ -101,6 +101,7 @@ export function handlePositionOpened(event: PositionOpened): void {
   trade.action = "Open"
   trade.sizeUsd = event.params.sizeUsd
   trade.price = event.params.entryPrice
+  trade.pnl = BigInt.fromI32(0)
   trade.timestamp = event.block.timestamp
   trade.txHash = event.transaction.hash
   trade.save()
@@ -135,6 +136,7 @@ export function handlePositionClosed(event: PositionClosed): void {
     trade.action = "Close"
     trade.sizeUsd = position.sizeUsd
     trade.price = event.params.exitPrice
+    trade.pnl = event.params.pnl
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
@@ -170,6 +172,7 @@ export function handlePositionLiquidated(event: PositionLiquidated): void {
     trade.action = "Liquidate"
     trade.sizeUsd = position.sizeUsd
     trade.price = position.liquidationPrice
+    trade.pnl = position.collateral.times(BigInt.fromI32(-1))
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
@@ -209,6 +212,7 @@ export function handleCollateralAdded(event: CollateralAdded): void {
     trade.action = "AddCollateral"
     trade.sizeUsd = event.params.amount
     trade.price = BigInt.fromI32(0)
+    trade.pnl = BigInt.fromI32(0)
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
@@ -235,6 +239,7 @@ export function handleCollateralRemoved(event: CollateralRemoved): void {
     trade.action = "RemoveCollateral"
     trade.sizeUsd = event.params.amount
     trade.price = BigInt.fromI32(0)
+    trade.pnl = BigInt.fromI32(0)
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
@@ -264,6 +269,7 @@ export function handlePositionIncreased(event: PositionIncreased): void {
     trade.action = "Increase"
     trade.sizeUsd = event.params.additionalSizeUsd
     trade.price = event.params.newEntryPrice
+    trade.pnl = BigInt.fromI32(0)
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
@@ -304,6 +310,7 @@ export function handlePositionPartialClose(event: PositionPartialClose): void {
     trade.action = "PartialClose"
     trade.sizeUsd = event.params.closeSizeUsd
     trade.price = event.params.exitPrice
+    trade.pnl = event.params.pnl
     trade.timestamp = event.block.timestamp
     trade.txHash = event.transaction.hash
     trade.save()
@@ -323,6 +330,11 @@ export function handlePositionPartialClose(event: PositionPartialClose): void {
 }
 
 export function handleOrderPlaced(event: OrderPlaced): void {
+  // Only index Limit (0), Stop Market (1), and TWAP (4) as standing orders
+  if (event.params.orderType != 0 && event.params.orderType != 1 && event.params.orderType != 4) {
+    return
+  }
+
   let orderId = event.params.orderId.toString()
   let order = new Order(orderId)
 
