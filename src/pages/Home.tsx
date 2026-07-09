@@ -366,6 +366,13 @@ export default function Home() {
           font-weight: 700;
           color: rgba(75, 255, 153, 0.4);
         }
+        .stats-bar-section {
+          position: relative;
+          z-index: 30;
+          padding: 0 16px;
+          margin-top: 64px;
+          margin-bottom: 72px;
+        }
         .stats-bar-responsive {
           max-width: 1024px;
           margin: 0 auto;
@@ -392,8 +399,8 @@ export default function Home() {
         }
         .stats-divider-responsive {
           width: 1px;
-          height: 32px;
-          background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.15), transparent);
+          height: 40px;
+          background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.25) 15%, rgba(255,255,255,0.25) 85%, transparent);
           flex-shrink: 0;
         }
         .stats-label-responsive {
@@ -405,6 +412,10 @@ export default function Home() {
           font-size: clamp(18px, 5.2vw, 22px);
         }
         @media (min-width: 640px) {
+          .stats-bar-section {
+            margin-top: 48px;
+            margin-bottom: 48px;
+          }
           .stats-bar-responsive {
             padding: 18px 24px;
           }
@@ -412,8 +423,8 @@ export default function Home() {
             padding: 6px 0;
           }
           .stats-divider-responsive {
-            height: 36px;
-            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
+            height: 48px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.18) 15%, rgba(255,255,255,0.18) 85%, transparent);
           }
           .stats-label-responsive {
             font-size: 12px;
@@ -967,7 +978,7 @@ export default function Home() {
       </section>
 
       {/* ═══ Stats Bar ═══ */}
-      <section style={{ position: 'relative', zIndex: 30, padding: '0 16px', marginTop: 36, marginBottom: 36 }}>
+      <section className="stats-bar-section">
         <div className="glass-surface stats-bar-responsive">
           <div className="stats-item-responsive">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Total Trades</span>
