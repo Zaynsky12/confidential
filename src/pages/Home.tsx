@@ -173,8 +173,8 @@ export default function Home() {
         /* ═══ Typography ═══ */
         .t-headline-xl {
           font-family: 'Geist', sans-serif;
-          font-size: 42px;
-          line-height: 48px;
+          font-size: 36px;
+          line-height: 42px;
           letter-spacing: -0.04em;
           font-weight: 700;
         }
@@ -236,7 +236,7 @@ export default function Home() {
         }
 
         .hero-section-container {
-          padding-top: 100px;
+          padding-top: 78px;
         }
         /* ═══ Desktop overrides ═══ */
         @media (min-width: 768px) {
@@ -946,7 +946,7 @@ export default function Home() {
       </section>
 
       {/* ═══ UNIVERSAL ACCESS & INTEGRATED TRADING SHOWCASE DOCK ═══ */}
-      <section className="home-section-pad" style={{ padding: '64px 16px', background: '#070707', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', position: 'relative', zIndex: 25, overflow: 'hidden' }}>
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', position: 'relative', zIndex: 25, overflow: 'hidden' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           {/* Section Heading */}
           <div className="universal-heading-wrapper">
@@ -1173,7 +1173,7 @@ export default function Home() {
       </section>
 
       {/* ═══ THE CONFIDENTIAL EDGE ("Scalable Leverage for Everyone") ═══ */}
-      <section className="home-section-pad edge-section-wrapper" style={{ background: '#050505', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', position: 'relative', overflow: 'hidden' }}>
+      <section className="home-section-pad edge-section-wrapper" style={{ backgroundColor: '#070707', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)', width: 400, height: 250, background: '#4BFF99', filter: 'blur(160px)', opacity: 0.08, pointerEvents: 'none' }} />
         
         <div style={{ maxWidth: 1280, margin: '0 auto', position: 'relative', zIndex: 10 }}>
@@ -1330,7 +1330,7 @@ export default function Home() {
       </section>
 
       {/* ═══ DUAL VAULT LIQUIDITY & YIELD CTA ═══ */}
-      <section className="home-section-pad" style={{ padding: '64px 16px', background: '#08080A', borderTop: '1px solid rgba(255, 255, 255, 0.05)', position: 'relative', overflow: 'hidden' }}>
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: '-10%', bottom: '-10%', width: 350, height: 350, background: '#4BFF99', borderRadius: '50%', filter: 'blur(160px)', opacity: 0.08, pointerEvents: 'none' }} />
         
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1410,7 +1410,7 @@ export default function Home() {
       </section>
 
       {/* ═══ FAQ Section ═══ */}
-      <section className="home-section-pad" style={{ padding: '64px 16px', background: '#070707', borderTop: '1px solid rgba(255, 255, 255, 0.05)', overflow: 'hidden' }}>
+      <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
         <div style={{ maxWidth: 768, margin: '0 auto' }}>
           <h2 className="responsive-headline-xl" style={{ marginBottom: 36, textAlign: 'center' }}>
             Frequently Asked Questions
