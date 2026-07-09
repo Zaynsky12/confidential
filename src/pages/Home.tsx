@@ -370,7 +370,7 @@ export default function Home() {
           position: relative;
           z-index: 30;
           padding: 0 16px;
-          margin-top: 24px;
+          margin-top: 38px;
           margin-bottom: 72px;
         }
         .stats-bar-responsive {
