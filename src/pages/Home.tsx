@@ -409,7 +409,7 @@ export default function Home() {
           white-space: nowrap;
         }
         .stats-num-responsive {
-          font-size: clamp(18px, 5.2vw, 22px);
+          font-size: clamp(20px, 5.8vw, 24px);
         }
         @media (min-width: 640px) {
           .stats-bar-section {
