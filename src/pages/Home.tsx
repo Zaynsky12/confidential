@@ -370,11 +370,11 @@ export default function Home() {
           max-width: 1024px;
           margin: 0 auto;
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           align-items: center;
           justify-content: space-around;
-          padding: 20px 16px;
-          gap: 12px;
+          padding: 16px 8px;
+          gap: 0;
           border-radius: 16px;
           border: 1px solid rgba(255,255,255,0.05);
           box-shadow: 0 24px 48px rgba(0,0,0,0.5);
@@ -383,38 +383,35 @@ export default function Home() {
         .stats-item-responsive {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 5px;
           text-align: center;
-          width: 100%;
-          padding: 4px 0;
+          flex: 1;
+          min-width: 0;
+          width: auto;
+          padding: 6px 4px;
         }
         .stats-divider-responsive {
-          width: 65%;
-          height: 1px;
-          background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+          width: 1px;
+          height: 32px;
+          background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.15), transparent);
           flex-shrink: 0;
         }
         .stats-label-responsive {
-          font-size: 11px;
-          letter-spacing: 0.08em;
+          font-size: clamp(10px, 3vw, 12px);
+          letter-spacing: 0.04em;
+          white-space: nowrap;
         }
         .stats-num-responsive {
-          font-size: 20px;
+          font-size: clamp(18px, 5.2vw, 22px);
         }
         @media (min-width: 640px) {
           .stats-bar-responsive {
-            flex-direction: row;
             padding: 18px 24px;
-            gap: 0;
           }
           .stats-item-responsive {
-            flex: 1;
-            min-width: 0;
-            width: auto;
             padding: 6px 0;
           }
           .stats-divider-responsive {
-            width: 1px;
             height: 36px;
             background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
           }
