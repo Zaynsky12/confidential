@@ -202,8 +202,8 @@ export default function Home() {
         }
         .t-hero-p {
           font-family: 'Geist', sans-serif;
-          font-size: 17px;
-          line-height: 26px;
+          font-size: 14.5px;
+          line-height: 22px;
           font-weight: 400;
         }
         .t-body-sm {
