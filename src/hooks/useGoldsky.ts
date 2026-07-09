@@ -483,6 +483,39 @@ export function useAll24hVolumes() {
   return volumes
 }
 
+export function useGlobalVolume() {
+  const [globalVolume, setGlobalVolume] = useState<number>(0)
+
+  useEffect(() => {
+    async function fetchGlobalVolume() {
+      try {
+        const query = gql`
+          query GetTotalVolume {
+            pairDayDatas(first: 1000) {
+              volumeUsd
+            }
+          }
+        `
+        const data: any = await gqlClient.request(query)
+        let total = 0
+        if (data && data.pairDayDatas) {
+          data.pairDayDatas.forEach((d: any) => {
+            total += Number(formatUnits(BigInt(d.volumeUsd), 6))
+          })
+        }
+        setGlobalVolume(total)
+      } catch (e) {
+        console.error("Goldsky Fetch Global Volume Error:", e)
+      }
+    }
+
+    fetchGlobalVolume()
+    const interval = setInterval(fetchGlobalVolume, 15000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return globalVolume
+}
 
 export interface IndexerPairStat {
   id: string

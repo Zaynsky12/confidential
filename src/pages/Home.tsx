@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTradeStore } from '../store/useTradeStore';
 import { useReadContract } from 'wagmi';
 import { CONTRACTS, ABIS } from '../config/contracts';
+import { useGlobalVolume } from '../hooks/useGoldsky';
 
 const getAssetLogo = (pair: string) => {
   const base = pair.split('/')[0].toLowerCase()
@@ -60,8 +61,10 @@ export default function Home() {
   const activeTraders = nextPositionId ? Number(nextPositionId) - 1 : 0;
   const displayTraders = activeTraders > 0 ? activeTraders.toLocaleString() : '...';
   
-  // Calculate Global Volume from the sum of all individual market 24h volumes
-  const totalVolume = markets.reduce((acc, curr) => acc + (curr.volume24h || 0), 0);
+  // Fetch cumulative all-time Global Volume across all historical days from subgraph
+  const indexedGlobalVolume = useGlobalVolume();
+  const sum24hVolume = markets.reduce((acc, curr) => acc + (curr.volume24h || 0), 0);
+  const totalVolume = Math.max(indexedGlobalVolume, sum24hVolume);
   
   // Format the total volume beautifully (e.g., "$1.2M", "$32.4B")
   let formattedVolume = "$0";
@@ -236,7 +239,7 @@ export default function Home() {
         }
 
         .hero-section-container {
-          padding-top: 78px;
+          padding-top: 104px;
         }
         /* ═══ Desktop overrides ═══ */
         @media (min-width: 768px) {
@@ -363,14 +366,58 @@ export default function Home() {
           font-weight: 700;
           color: rgba(75, 255, 153, 0.4);
         }
+        .stats-bar-responsive {
+          max-width: 1024px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-around;
+          padding: 20px 16px;
+          gap: 12px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.05);
+          box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+          background: linear-gradient(135deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.9) 100%);
+        }
+        .stats-item-responsive {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          text-align: center;
+          width: 100%;
+          padding: 4px 0;
+        }
+        .stats-divider-responsive {
+          width: 65%;
+          height: 1px;
+          background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+          flex-shrink: 0;
+        }
         .stats-label-responsive {
           font-size: 11px;
           letter-spacing: 0.08em;
         }
         .stats-num-responsive {
-          font-size: 19px;
+          font-size: 20px;
         }
         @media (min-width: 640px) {
+          .stats-bar-responsive {
+            flex-direction: row;
+            padding: 18px 24px;
+            gap: 0;
+          }
+          .stats-item-responsive {
+            flex: 1;
+            min-width: 0;
+            width: auto;
+            padding: 6px 0;
+          }
+          .stats-divider-responsive {
+            width: 1px;
+            height: 36px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
+          }
           .stats-label-responsive {
             font-size: 12px;
             letter-spacing: 0.1em;
@@ -751,12 +798,13 @@ export default function Home() {
         @media (min-width: 768px) {
           .strategy-tabs-container {
             display: flex;
-            justify-content: center;
+            flex-wrap: wrap;
+            justify-content: flex-start;
             align-items: center;
-            gap: 14px;
-            width: fit-content;
-            margin: 0 auto 28px auto;
-            padding-bottom: 24px;
+            gap: 10px;
+            width: 100%;
+            margin: 0 0 16px 0;
+            padding-bottom: 16px;
           }
         }
         .tab-mobile-only {
@@ -923,22 +971,22 @@ export default function Home() {
 
       {/* ═══ Stats Bar ═══ */}
       <section style={{ position: 'relative', zIndex: 30, padding: '0 16px', marginTop: 36, marginBottom: 36 }}>
-        <div className="glass-surface stats-bar-responsive" style={{ maxWidth: 1024, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', alignItems: 'center', padding: '14px 8px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', background: 'linear-gradient(135deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.9) 100%)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'center', flex: 1, minWidth: 0, padding: '6px 0' }}>
+        <div className="glass-surface stats-bar-responsive">
+          <div className="stats-item-responsive">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Total Trades</span>
             <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{displayTraders}</span>
           </div>
           
-          <div style={{ width: 1, height: 32, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)', flexShrink: 0 }}></div>
+          <div className="stats-divider-responsive"></div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'center', flex: 1, minWidth: 0, padding: '6px 0' }}>
+          <div className="stats-item-responsive">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Global Volume</span>
             <span className="stats-number stats-num-responsive" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{formattedVolume}</span>
           </div>
           
-          <div style={{ width: 1, height: 32, background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent)', flexShrink: 0 }}></div>
+          <div className="stats-divider-responsive"></div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'center', flex: 1, minWidth: 0, padding: '6px 0' }}>
+          <div className="stats-item-responsive">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Markets</span>
             <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{markets.length}</span>
           </div>
@@ -960,33 +1008,8 @@ export default function Home() {
 
           {/* Integrated Showcase Console Card */}
           <div className="glass-surface strategy-card-glow integrated-showcase-card" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-            {/* Top Strategy Asset Switcher Tabs */}
-            <div className="strategy-tabs-container">
-              <button
-                className={`strategy-tab-btn ${activeStrategyTab === 'metals' ? 'active' : ''}`}
-                onClick={() => setActiveStrategyTab('metals')}
-              >
-                <span className="tab-mobile-only">Metals</span>
-                <span className="tab-desktop-only">Metals x Crypto</span>
-              </button>
-              <button
-                className={`strategy-tab-btn ${activeStrategyTab === 'forex' ? 'active' : ''}`}
-                onClick={() => setActiveStrategyTab('forex')}
-              >
-                <span className="tab-mobile-only">Forex</span>
-                <span className="tab-desktop-only">Forex x Crypto</span>
-              </button>
-              <button
-                className={`strategy-tab-btn ${activeStrategyTab === 'equities' ? 'active' : ''}`}
-                onClick={() => setActiveStrategyTab('equities')}
-              >
-                <span className="tab-mobile-only">Equities</span>
-                <span className="tab-desktop-only">Equities x Crypto</span>
-              </button>
-            </div>
-
             {/* Docked Institutional Laptop Mockup */}
-            <div style={{ position: 'relative', width: '100%', maxWidth: 840, margin: '0 auto 12px auto', zIndex: 20 }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 840, margin: '0 auto 24px auto', zIndex: 20 }}>
               <img 
                 src="/app-preview.png" 
                 alt="Confidential Trading Platform" 
@@ -1005,9 +1028,34 @@ export default function Home() {
             </div>
 
             <div className="strategy-grid-responsive">
-              {/* Left Column: Description */}
-              <div className="strategy-info-col" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
-                <p className="t-body-md" style={{ color: '#bacbbb', margin: 0, lineHeight: '26px', fontSize: 16 }}>
+              {/* Left Column: Strategy Tabs + Description aligned with top of asset pair box */}
+              <div className="strategy-info-col" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 14 }}>
+                {/* Strategy Asset Switcher Tabs placed directly above description text */}
+                <div className="strategy-tabs-container">
+                  <button
+                    className={`strategy-tab-btn ${activeStrategyTab === 'metals' ? 'active' : ''}`}
+                    onClick={() => setActiveStrategyTab('metals')}
+                  >
+                    <span className="tab-mobile-only">Metals</span>
+                    <span className="tab-desktop-only">Metals x Crypto</span>
+                  </button>
+                  <button
+                    className={`strategy-tab-btn ${activeStrategyTab === 'forex' ? 'active' : ''}`}
+                    onClick={() => setActiveStrategyTab('forex')}
+                  >
+                    <span className="tab-mobile-only">Forex</span>
+                    <span className="tab-desktop-only">Forex x Crypto</span>
+                  </button>
+                  <button
+                    className={`strategy-tab-btn ${activeStrategyTab === 'equities' ? 'active' : ''}`}
+                    onClick={() => setActiveStrategyTab('equities')}
+                  >
+                    <span className="tab-mobile-only">Equities</span>
+                    <span className="tab-desktop-only">Equities x Crypto</span>
+                  </button>
+                </div>
+
+                <p className="t-body-md" style={{ color: '#bacbbb', margin: 0, lineHeight: '28px', fontSize: 16 }}>
                   {activeStrategyTab === 'metals' && 'Metals like Gold and Silver often retain or grow their value during economic uncertainty. Pair up to 50x leverage on GOLD/USDC and SILVER/USDC on one single collateral pool.'}
                   {activeStrategyTab === 'forex' && 'Capture macro rate shifts on EUR/USDC, GBP/USDC, and USDJPY/USDC. Benefit from institutional-grade liquidity and zero P2P matching delays.'}
                   {activeStrategyTab === 'equities' && 'Long or short NVDA/USDC, AAPL/USDC, and TSLA/USDC synthetics with up to 20x leverage (and 50x on SPY/USDC). No brokerage cut-off hours, no geographic restrictions.'}
