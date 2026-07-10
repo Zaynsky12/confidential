@@ -20,8 +20,8 @@ const getAssetLogo = (pair: string) => {
     aapl: 'https://ui-avatars.com/api/?name=Apple&background=000000&color=fff&rounded=true&bold=true',
     tsla: 'https://ui-avatars.com/api/?name=Tesla&background=cc0000&color=fff&rounded=true&bold=true',
     spy: 'https://ui-avatars.com/api/?name=SPY&background=003366&color=fff&rounded=true&bold=true',
-    gold: 'https://s2.coinmarketcap.com/static/img/coins/64x64/4705.png',
-    silver: 'https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true',
+    gold: '/gold.png',
+    silver: '/silver.png',
     nvda: 'https://ui-avatars.com/api/?name=Nvidia&background=76b900&color=fff&rounded=true&bold=true',
     pepe: 'https://cryptologos.cc/logos/pepe-pepe-logo.png',
     wif: '/wif.jpg',
@@ -796,12 +796,12 @@ export default function Home() {
           box-shadow: 0 0 20px rgba(75, 255, 153, 0.15);
         }
         .strategy-tabs-container {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
           border-bottom: 1px solid rgba(255,255,255,0.06);
-          padding-bottom: 16px;
-          margin-bottom: 24px;
+          padding-bottom: 10px;
+          margin-bottom: 4px;
         }
         @media (min-width: 768px) {
           .strategy-tabs-container {
@@ -813,20 +813,6 @@ export default function Home() {
             width: 100%;
             margin: 0 0 16px 0;
             padding-bottom: 16px;
-          }
-        }
-        .tab-mobile-only {
-          display: inline;
-        }
-        .tab-desktop-only {
-          display: none;
-        }
-        @media (min-width: 640px) {
-          .tab-mobile-only {
-            display: none;
-          }
-          .tab-desktop-only {
-            display: inline;
           }
         }
         .strategy-asset-row {
@@ -1044,22 +1030,19 @@ export default function Home() {
                     className={`strategy-tab-btn ${activeStrategyTab === 'metals' ? 'active' : ''}`}
                     onClick={() => setActiveStrategyTab('metals')}
                   >
-                    <span className="tab-mobile-only">Metals</span>
-                    <span className="tab-desktop-only">Metals x Crypto</span>
+                    Metals x Crypto
                   </button>
                   <button
                     className={`strategy-tab-btn ${activeStrategyTab === 'forex' ? 'active' : ''}`}
                     onClick={() => setActiveStrategyTab('forex')}
                   >
-                    <span className="tab-mobile-only">Forex</span>
-                    <span className="tab-desktop-only">Forex x Crypto</span>
+                    Forex x Crypto
                   </button>
                   <button
                     className={`strategy-tab-btn ${activeStrategyTab === 'equities' ? 'active' : ''}`}
                     onClick={() => setActiveStrategyTab('equities')}
                   >
-                    <span className="tab-mobile-only">Equities</span>
-                    <span className="tab-desktop-only">Equities x Crypto</span>
+                    Equities x Crypto
                   </button>
                 </div>
 
@@ -1082,7 +1065,7 @@ export default function Home() {
                     <>
                       <div className="strategy-asset-row">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/4705.png" alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', background: '#fff', padding: '2px', flexShrink: 0 }} />
+                          <img src="/gold.png" alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                           <div>
                             <div style={{ fontWeight: 600, color: '#fbfff8', fontSize: 14 }}>GOLD / USDC</div>
                             <div style={{ fontSize: 11, color: '#88919e' }}>Pyth Sub-ms Oracle</div>
@@ -1092,7 +1075,7 @@ export default function Home() {
                       </div>
                       <div className="strategy-asset-row">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <img src="https://ui-avatars.com/api/?name=Silver&background=c0c0c0&color=000&rounded=true&bold=true" alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                          <img src="/silver.png" alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                           <div>
                             <div style={{ fontWeight: 600, color: '#fbfff8', fontSize: 14 }}>SILVER / USDC</div>
                             <div style={{ fontSize: 11, color: '#88919e' }}>Pyth Sub-ms Oracle</div>
