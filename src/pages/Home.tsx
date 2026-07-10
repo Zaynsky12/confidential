@@ -239,7 +239,7 @@ export default function Home() {
         }
 
         .hero-section-container {
-          padding-top: 104px;
+          padding-top: 112px;
         }
         /* ═══ Desktop overrides ═══ */
         @media (min-width: 768px) {
