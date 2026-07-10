@@ -83,13 +83,13 @@ export default function EditTpSlModal({ isOpen, onClose, data }: EditTpSlModalPr
           </button>
         </div>
 
-        <div style={{ fontSize: 13, color: '#8e8e93', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 13, color: '#8e8e93', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div>
             Market: <span style={{ color: '#fff', fontWeight: 500 }}>{data.pair}</span> 
             <span className={data.isLong ? 'text-green' : 'text-red'} style={{ marginLeft: 8, textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>{data.isLong ? 'LONG' : 'SHORT'}</span>
           </div>
           {data.entryPrice && (
-            <div style={{ fontSize: 11, color: '#8e8e93' }}>
+            <div style={{ fontSize: 12, color: '#8e8e93' }}>
               Entry: <span style={{ color: '#fff', fontFamily: 'var(--font-mono)' }}>${data.entryPrice < 10 ? data.entryPrice.toFixed(4) : data.entryPrice.toFixed(2)}</span>
               {data.leverage && <span style={{ color: '#8e8e93', marginLeft: 4 }}>({data.leverage}x)</span>}
             </div>
