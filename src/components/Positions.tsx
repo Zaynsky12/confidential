@@ -202,7 +202,9 @@ export default function Positions() {
                                 pair: pairName,
                                 isLong: p.isLong,
                                 currentTp: liveTp,
-                                currentSl: liveSl
+                                currentSl: liveSl,
+                                entryPrice: p.entryPrice,
+                                leverage: Number(p.leverage) || 1
                               })}
                               title="Edit TP/SL"
                             >

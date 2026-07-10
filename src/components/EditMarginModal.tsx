@@ -19,15 +19,23 @@ export default function EditMarginModal({ isOpen, onClose, data }: EditMarginMod
   const { addCollateral, removeCollateral, isTxPending } = useConfidentialTrading()
   const [amount, setAmount] = useState('')
   const [mode, setMode] = useState<'add' | 'remove'>('add')
+  const [percentage, setPercentage] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isOpen) {
       setAmount('')
       setMode('add')
+      setPercentage(null)
     }
   }, [isOpen])
 
   if (!isOpen || !data) return null
+
+  const handlePercentageClick = (pct: number) => {
+    setPercentage(pct)
+    const amt = ((data.currentMargin * pct) / 100).toFixed(2)
+    setAmount(amt)
+  }
 
   const handleSubmit = async () => {
     try {
@@ -63,13 +71,13 @@ export default function EditMarginModal({ isOpen, onClose, data }: EditMarginMod
         <div style={{ display: 'flex', background: 'var(--color-bg1)', borderRadius: 8, padding: 4 }}>
           <button 
             style={{ flex: 1, padding: '6px 0', fontSize: 13, fontWeight: 600, borderRadius: 6, border: 'none', background: mode === 'add' ? 'var(--color-bg3)' : 'transparent', color: mode === 'add' ? '#fff' : '#8e8e93', cursor: 'pointer', transition: 'all 0.2s' }}
-            onClick={() => setMode('add')}
+            onClick={() => { setMode('add'); setAmount(''); setPercentage(null) }}
           >
             Add Margin
           </button>
           <button 
             style={{ flex: 1, padding: '6px 0', fontSize: 13, fontWeight: 600, borderRadius: 6, border: 'none', background: mode === 'remove' ? 'var(--color-bg3)' : 'transparent', color: mode === 'remove' ? '#fff' : '#8e8e93', cursor: 'pointer', transition: 'all 0.2s' }}
-            onClick={() => setMode('remove')}
+            onClick={() => { setMode('remove'); setAmount(''); setPercentage(null) }}
           >
             Remove Margin
           </button>
@@ -85,11 +93,34 @@ export default function EditMarginModal({ isOpen, onClose, data }: EditMarginMod
               type="number" 
               placeholder="0.00" 
               value={amount} 
-              onChange={e => setAmount(e.target.value)} 
+              onChange={e => { setAmount(e.target.value); setPercentage(null) }} 
               style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 15, outline: 'none', fontFamily: 'var(--font-mono)' }} 
             />
             <span style={{ fontSize: 12, color: '#8e8e93' }}>USDC</span>
           </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(mode === 'add' ? [25, 50, 100, 200] : [25, 50, 75, 90]).map(pct => (
+            <button
+              key={pct}
+              onClick={() => handlePercentageClick(pct)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                fontSize: 11,
+                fontWeight: 600,
+                background: percentage === pct ? 'var(--color-bg3)' : 'var(--color-bg1)',
+                color: percentage === pct ? '#fff' : '#8e8e93',
+                border: percentage === pct ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                borderRadius: 4,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {mode === 'add' ? `+${pct}%` : `${pct}%`}
+            </button>
+          ))}
         </div>
 
         {mode === 'add' ? (

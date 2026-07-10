@@ -7,6 +7,8 @@ export interface EditTpSlData {
   isLong: boolean
   currentTp: number
   currentSl: number
+  entryPrice?: number
+  leverage?: number
 }
 
 interface EditTpSlModalProps {
@@ -29,6 +31,37 @@ export default function EditTpSlModal({ isOpen, onClose, data }: EditTpSlModalPr
 
   if (!isOpen || !data) return null
 
+  const handleTpPercent = (percent: number) => {
+    if (!data?.entryPrice) return
+    const lev = data.leverage || 10
+    const movePct = percent / lev / 100
+    const targetPrice = data.isLong 
+      ? data.entryPrice * (1 + movePct) 
+      : data.entryPrice * (1 - movePct)
+    setTpPrice(targetPrice < 10 ? targetPrice.toFixed(4) : targetPrice.toFixed(2))
+  }
+
+  const handleSlPercent = (percent: number) => {
+    if (!data?.entryPrice) return
+    const lev = data.leverage || 10
+    const movePct = percent / lev / 100
+    const targetPrice = data.isLong 
+      ? data.entryPrice * (1 - movePct) 
+      : data.entryPrice * (1 + movePct)
+    setSlPrice(targetPrice < 10 ? targetPrice.toFixed(4) : targetPrice.toFixed(2))
+  }
+
+  const calcRoe = (priceStr: string) => {
+    const p = Number(priceStr)
+    if (!p || !data?.entryPrice) return null
+    const diff = data.isLong ? (p - data.entryPrice) : (data.entryPrice - p)
+    const roe = (diff / data.entryPrice) * (data.leverage || 1) * 100
+    return roe
+  }
+
+  const tpRoe = calcRoe(tpPrice)
+  const slRoe = calcRoe(slPrice)
+
   const handleSubmit = async () => {
     try {
       const tp = Number(tpPrice) || 0
@@ -50,26 +83,74 @@ export default function EditTpSlModal({ isOpen, onClose, data }: EditTpSlModalPr
           </button>
         </div>
 
-        <div style={{ fontSize: 13, color: '#8e8e93' }}>
-          Market: <span style={{ color: '#fff', fontWeight: 500 }}>{data.pair}</span> 
-          <span className={data.isLong ? 'text-green' : 'text-red'} style={{ marginLeft: 8, textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>{data.isLong ? 'LONG' : 'SHORT'}</span>
+        <div style={{ fontSize: 13, color: '#8e8e93', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            Market: <span style={{ color: '#fff', fontWeight: 500 }}>{data.pair}</span> 
+            <span className={data.isLong ? 'text-green' : 'text-red'} style={{ marginLeft: 8, textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>{data.isLong ? 'LONG' : 'SHORT'}</span>
+          </div>
+          {data.entryPrice && (
+            <div style={{ fontSize: 11, color: '#8e8e93' }}>
+              Entry: <span style={{ color: '#fff', fontFamily: 'var(--font-mono)' }}>${data.entryPrice < 10 ? data.entryPrice.toFixed(4) : data.entryPrice.toFixed(2)}</span>
+              {data.leverage && <span style={{ color: '#8e8e93', marginLeft: 4 }}>({data.leverage}x)</span>}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, color: '#8e8e93' }}>Take Profit Price</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#8e8e93' }}>Take Profit Price</span>
+              {data.entryPrice && (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[25, 50, 100, 300].map(p => (
+                    <span 
+                      key={p} 
+                      onClick={() => handleTpPercent(p)} 
+                      style={{ fontSize: 10, cursor: 'pointer', color: '#4BFF99', background: 'rgba(75, 255, 153, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 600, transition: 'background 0.2s' }}
+                    >
+                      {p}%
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-bg0)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px' }}>
               <input type="number" placeholder="0.00" value={tpPrice} onChange={e => setTpPrice(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 15, outline: 'none', fontFamily: 'var(--font-mono)' }} />
               <span style={{ fontSize: 12, color: '#8e8e93' }}>USD</span>
             </div>
+            {tpRoe !== null && (
+              <div style={{ fontSize: 11, color: tpRoe >= 0 ? '#4BFF99' : '#ff4b4b', textAlign: 'right' }}>
+                Est. ROE: {tpRoe >= 0 ? '+' : ''}{tpRoe.toFixed(1)}%
+              </div>
+            )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, color: '#8e8e93' }}>Stop Loss Price</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#8e8e93' }}>Stop Loss Price</span>
+              {data.entryPrice && (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[10, 25, 50, 75].map(p => (
+                    <span 
+                      key={p} 
+                      onClick={() => handleSlPercent(p)} 
+                      style={{ fontSize: 10, cursor: 'pointer', color: '#ff4b4b', background: 'rgba(255, 75, 75, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 600, transition: 'background 0.2s' }}
+                    >
+                      -{p}%
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-bg0)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px' }}>
               <input type="number" placeholder="0.00" value={slPrice} onChange={e => setSlPrice(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 15, outline: 'none', fontFamily: 'var(--font-mono)' }} />
               <span style={{ fontSize: 12, color: '#8e8e93' }}>USD</span>
             </div>
+            {slRoe !== null && (
+              <div style={{ fontSize: 11, color: slRoe >= 0 ? '#4BFF99' : '#ff4b4b', textAlign: 'right' }}>
+                Est. ROE: {slRoe >= 0 ? '+' : ''}{slRoe.toFixed(1)}%
+              </div>
+            )}
           </div>
         </div>
 
