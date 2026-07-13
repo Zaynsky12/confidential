@@ -358,6 +358,7 @@ export interface IndexerTradeRecord {
   id: string
   trader: string
   pairId: string
+  isLong?: boolean
   action: string
   sizeUsd: number
   price: number
@@ -381,6 +382,7 @@ export function useTradeRecords(userAddress?: string) {
                 id
                 trader
                 pairId
+                isLong
                 action
                 sizeUsd
                 price
@@ -409,6 +411,7 @@ export function useTradeRecords(userAddress?: string) {
               id
               trader
               pairId
+              isLong
               action
               sizeUsd
               price

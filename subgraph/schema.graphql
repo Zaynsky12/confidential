@@ -43,6 +43,7 @@ type TradeRecord @entity {
   id: ID!
   trader: Bytes!
   pairId: Bytes!
+  isLong: Boolean
   action: String! # "Open", "Close", "Liquidate", "PartialClose", "Increase", "AddCollateral", "RemoveCollateral"
   sizeUsd: BigInt!
   price: BigInt!

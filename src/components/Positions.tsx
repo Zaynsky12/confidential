@@ -352,15 +352,44 @@ export default function Positions() {
                     }
 
                     let displayAction = t.action;
-                    if (t.action === 'AddCollateral') displayAction = 'Add Margin';
-                    if (t.action === 'RemoveCollateral') displayAction = 'Remove Margin';
-                    if (t.action === 'PartialClose') displayAction = 'Partial Close';
+                    let actionClass = 'text-accent';
+                    
+                    if (t.isLong !== undefined) {
+                      const sideText = t.isLong ? 'Long' : 'Short';
+                      if (t.action === 'Open') {
+                        displayAction = `Open ${sideText}`;
+                        actionClass = t.isLong ? 'text-green' : 'text-red';
+                      } else if (t.action === 'Close') {
+                        displayAction = `Close ${sideText}`;
+                        actionClass = 'text-red';
+                      } else if (t.action === 'Liquidate') {
+                        displayAction = `Liquidate ${sideText}`;
+                        actionClass = 'text-red';
+                      } else if (t.action === 'PartialClose') {
+                        displayAction = `Partial Close ${sideText}`;
+                        actionClass = 'text-red';
+                      } else if (t.action === 'Increase') {
+                        displayAction = `Increase ${sideText}`;
+                        actionClass = t.isLong ? 'text-green' : 'text-red';
+                      } else if (t.action === 'AddCollateral') {
+                        displayAction = 'Add Margin';
+                        actionClass = 'text-accent';
+                      } else if (t.action === 'RemoveCollateral') {
+                        displayAction = 'Remove Margin';
+                        actionClass = 'text-accent';
+                      }
+                    } else {
+                      if (t.action === 'AddCollateral') displayAction = 'Add Margin';
+                      if (t.action === 'RemoveCollateral') displayAction = 'Remove Margin';
+                      if (t.action === 'PartialClose') displayAction = 'Partial Close';
+                      actionClass = t.action === 'Open' ? 'text-green' : (t.action.includes('Close') || t.action === 'Liquidate') ? 'text-red' : 'text-accent';
+                    }
 
                     return (
                     <div key={t.id} className="pos-row" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', minWidth: '800px' }}>
                       <span style={{ color: 'var(--color-text3)' }}>{formatTime(t.timestamp)}</span>
                       <span style={{ fontWeight: 600, textAlign: 'left' }}>{pairName}</span>
-                      <span className={t.action === 'Open' ? 'text-green' : (t.action.includes('Close') || t.action === 'Liquidate') ? 'text-red' : 'text-accent'} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'center' }}>
+                      <span className={actionClass} style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, textAlign: 'center' }}>
                         {displayAction}
                       </span>
                       <span className="font-mono" style={{ textAlign: 'center' }}>{t.sizeUsd.toFixed(2)}</span>

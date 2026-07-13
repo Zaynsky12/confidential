@@ -98,6 +98,7 @@ export function handlePositionOpened(event: PositionOpened): void {
   let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
   trade.trader = event.params.trader
   trade.pairId = event.params.pairId
+  trade.isLong = event.params.isLong
   trade.action = "Open"
   trade.sizeUsd = event.params.sizeUsd
   trade.price = event.params.entryPrice
@@ -133,6 +134,7 @@ export function handlePositionClosed(event: PositionClosed): void {
     let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
     trade.trader = event.params.trader
     trade.pairId = position.pairId
+    trade.isLong = position.isLong
     trade.action = "Close"
     trade.sizeUsd = position.sizeUsd
     trade.price = event.params.exitPrice
@@ -169,6 +171,7 @@ export function handlePositionLiquidated(event: PositionLiquidated): void {
     let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
     trade.trader = position.trader
     trade.pairId = position.pairId
+    trade.isLong = position.isLong
     trade.action = "Liquidate"
     trade.sizeUsd = position.sizeUsd
     trade.price = position.liquidationPrice
@@ -209,6 +212,7 @@ export function handleCollateralAdded(event: CollateralAdded): void {
     let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
     trade.trader = event.params.trader
     trade.pairId = position.pairId
+    trade.isLong = position.isLong
     trade.action = "AddCollateral"
     trade.sizeUsd = event.params.amount
     trade.price = BigInt.fromI32(0)
@@ -236,6 +240,7 @@ export function handleCollateralRemoved(event: CollateralRemoved): void {
     let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
     trade.trader = event.params.trader
     trade.pairId = position.pairId
+    trade.isLong = position.isLong
     trade.action = "RemoveCollateral"
     trade.sizeUsd = event.params.amount
     trade.price = BigInt.fromI32(0)
@@ -266,6 +271,7 @@ export function handlePositionIncreased(event: PositionIncreased): void {
     let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
     trade.trader = event.params.trader
     trade.pairId = position.pairId
+    trade.isLong = position.isLong
     trade.action = "Increase"
     trade.sizeUsd = event.params.additionalSizeUsd
     trade.price = event.params.newEntryPrice
@@ -307,6 +313,7 @@ export function handlePositionPartialClose(event: PositionPartialClose): void {
     let trade = new TradeRecord(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
     trade.trader = event.params.trader
     trade.pairId = position.pairId
+    trade.isLong = position.isLong
     trade.action = "PartialClose"
     trade.sizeUsd = event.params.closeSizeUsd
     trade.price = event.params.exitPrice
