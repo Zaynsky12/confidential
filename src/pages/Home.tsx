@@ -151,9 +151,6 @@ export default function Home() {
         .marquee-right {
           animation: scroll-reverse 120s linear infinite;
         }
-        .market-marquee:hover {
-          animation-play-state: paused;
-        }
         .market-item {
           display: flex;
           align-items: center;
