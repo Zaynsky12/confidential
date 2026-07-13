@@ -1,4 +1,4 @@
-# Confidential DEX (V2)
+# Confidential DEX (V1)
 
 A decentralized, high-performance perpetual trading platform built on the **Arc Network Testnet**. Confidential DEX offers a professional, institutional-grade trading experience with instantaneous order execution, dynamic charts, and an isolated yield vault architecture that rivals centralized exchanges (CEXs) like Binance while maintaining 100% self-custody.
 
@@ -22,10 +22,10 @@ A decentralized, high-performance perpetual trading platform built on the **Arc 
 - **UI/UX:** Custom Design System (Vanilla CSS with dynamic themes)
 
 ### Smart Contracts (Solidity)
-The V2 Architecture separates concerns into three primary contracts to maximize security:
-- **`ConfidentialCore.sol`**: The central registry. Manages pairs, oracle integration, maximum open interest limits, fee distribution routing, and dynamic funding rate calculation.
-- **`ConfidentialVault.sol`**: The treasury. Holds all user deposits (LPs) and trader collaterals. Responsible for paying out PnL and collecting losses.
-- **`ConfidentialTrading.sol`**: The execution engine. Processes Market Orders, Limit Orders, Stop Losses, Take Profits, and Liquidations seamlessly.
+The V1 Architecture separates concerns into three primary contracts to maximize security:
+- **`ConfidentialCoreV1.sol`**: The central registry. Manages pairs, oracle integration, maximum open interest limits, fee distribution routing, and dynamic funding rate calculation.
+- **`ConfidentialVaultV1.sol`**: The treasury. Holds all user deposits (LPs) and trader collaterals. Responsible for paying out PnL and collecting losses.
+- **`ConfidentialTradingV1.sol`**: The execution engine. Processes Market Orders, Limit Orders, Stop Losses, Take Profits, and Liquidations seamlessly.
 
 ### Infrastructure
 - **Blockchain:** Arc Testnet (`rpc.testnet.arc.network`)
