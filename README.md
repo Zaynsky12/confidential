@@ -2,6 +2,8 @@
 
 A decentralized, high-performance perpetual trading platform built on the **Arc Network Testnet**. Confidential DEX offers a professional, institutional-grade trading experience with instantaneous order execution, dynamic charts, and an isolated yield vault architecture that rivals centralized exchanges (CEXs) like Binance while maintaining 100% self-custody.
 
+![Confidential DEX Preview](./confidential%20app.png)
+
 ## 🚀 Key Features
 
 - **⚡ Instant Execution & Zero Slippage:** Frontend-injected Pyth Oracle updates ensure your orders execute exactly when you click, removing the need for a secondary keeper for market orders.
