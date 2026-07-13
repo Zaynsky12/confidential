@@ -47,7 +47,17 @@ export default function OrderBook({ hideTabs }: OrderBookProps = {}) {
         {realRecentTrades.length === 0 ? (
           <div style={{ padding: 12, textAlign: 'center', color: 'var(--color-text3)', fontSize: 12 }}>No recent trades</div>
         ) : realRecentTrades.map((t) => {
-          const color = t.action === 'Open' ? '#3FB06A' : t.action === 'Liquidate' ? '#F7931A' : '#E05252';
+          // Determine color based on trade direction (buying pressure vs selling pressure)
+          let color = '#2ebd85'; // Default green
+          
+          if (t.isLong !== undefined) {
+            const isBuyingPressure = 
+              (t.isLong && (t.action === 'Open' || t.action === 'Increase')) ||
+              (!t.isLong && (t.action === 'Close' || t.action === 'Liquidate' || t.action === 'PartialClose'));
+            color = isBuyingPressure ? '#2ebd85' : '#f6465d';
+          } else {
+            color = t.action === 'Open' ? '#2ebd85' : t.action === 'Liquidate' ? '#F7931A' : '#f6465d';
+          }
           return (
             <div key={t.id} className="ob-row trade-row">
               <span className="font-mono" style={{ color }}>{formatPrice(t.price)}</span>
