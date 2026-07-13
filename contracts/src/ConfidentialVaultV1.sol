@@ -50,7 +50,7 @@ contract ConfidentialVaultV1 is ReentrancyGuard {
     uint256 public maxDepositPerUser = 1_000_000 * 1e6;
     uint256 public maxDegenDeposits = 15_000_000 * 1e6; // $15M
     uint256 public maxPrimeDeposits = 35_000_000 * 1e6; // $35M
-    uint256 public primeProtectionBps = 7000; // 70% capital protected
+    uint256 public primeProtectionBps = 6000; // 60% capital protected
     bool public depositsEnabled = true;
 
     // ──────────── Events ────────────
@@ -252,41 +252,63 @@ contract ConfidentialVaultV1 is ReentrancyGuard {
         if (netPnl >= 0) {
             uint256 profit = uint256(netPnl);
             
-            uint256 maxPrimeLiability = (totalPrimeAssets * (10000 - primeProtectionBps)) / 10000;
-            uint256 totalAvailable = totalDegenAssets + maxPrimeLiability;
+            // Proportional Shared-Loss with Prime Protection Floor
+            uint256 primeFloor = (totalPrimeAssets * primeProtectionBps) / 10000;
+            uint256 maxPrimeLoss = totalPrimeAssets > primeFloor ? totalPrimeAssets - primeFloor : 0;
+            uint256 totalAvailable = totalDegenAssets + maxPrimeLoss;
 
             if (profit > totalAvailable) {
                 emit ProfitCapped(trader, profit, totalAvailable);
                 profit = totalAvailable;
             }
 
-            // First-Loss hits Degen
-            if (profit <= totalDegenAssets) {
-                totalDegenAssets -= profit;
-                if (totalDegenAssets == 0) {
-                    degenEpoch++;
-                    totalDegenShares = 0;
-                    emit EpochReset(true, degenEpoch);
-                }
+            // Calculate proportional loss shares based on TVL ratio
+            uint256 totalVaultAssets = totalDegenAssets + totalPrimeAssets;
+            uint256 degenLoss;
+            uint256 primeLoss;
+
+            if (totalVaultAssets > 0) {
+                degenLoss = (profit * totalDegenAssets) / totalVaultAssets;
+                primeLoss = profit - degenLoss; // remainder avoids rounding loss
             } else {
-                uint256 remainingLoss = profit - totalDegenAssets;
-                totalDegenAssets = 0;
+                degenLoss = profit;
+                primeLoss = 0;
+            }
+
+            // Enforce Prime Floor — overflow redirected to Degen
+            if (primeLoss > maxPrimeLoss) {
+                uint256 overflow = primeLoss - maxPrimeLoss;
+                primeLoss = maxPrimeLoss;
+                degenLoss += overflow;
+            }
+
+            // Cap degenLoss to available Degen assets — push remainder to Prime
+            if (degenLoss > totalDegenAssets) {
+                uint256 extraNeeded = degenLoss - totalDegenAssets;
+                degenLoss = totalDegenAssets;
+                primeLoss += extraNeeded;
+            }
+
+            // Apply Degen loss
+            totalDegenAssets -= degenLoss;
+            if (totalDegenAssets == 0 && degenLoss > 0) {
                 degenEpoch++;
                 totalDegenShares = 0;
                 emit EpochReset(true, degenEpoch);
-                
-                totalPrimeAssets = totalPrimeAssets > remainingLoss ? totalPrimeAssets - remainingLoss : 0;
+            }
+
+            // Apply Prime loss & track for Circuit Breaker
+            if (primeLoss > 0) {
+                totalPrimeAssets = totalPrimeAssets > primeLoss ? totalPrimeAssets - primeLoss : 0;
+                core.trackVaultLoss(primeLoss);
                 if (totalPrimeAssets == 0) {
                     primeEpoch++;
                     totalPrimeShares = 0;
                     emit EpochReset(false, primeEpoch);
                 }
-                
-                // Track loss hitting Prime Vault for Circuit Breaker
-                core.trackVaultLoss(remainingLoss);
             }
 
-            // FIX EXPLOIT-2: Solvency safety — ensure Vault has enough USDC
+            // Solvency safety — ensure Vault has enough USDC
             uint256 payout = collateral + profit;
             uint256 vaultBalance = usdc.balanceOf(address(this));
             if (payout > vaultBalance) {
@@ -397,27 +419,55 @@ contract ConfidentialVaultV1 is ReentrancyGuard {
     function payFundingReward(uint256 amount) external onlyTrading returns (uint256) {
         if (amount == 0) return 0;
         
-        uint256 maxPrimeLiability = (totalPrimeAssets * (10000 - primeProtectionBps)) / 10000;
-        uint256 totalAvailable = totalDegenAssets + maxPrimeLiability;
+        // Proportional Shared-Loss with Prime Protection Floor
+        uint256 primeFloor = (totalPrimeAssets * primeProtectionBps) / 10000;
+        uint256 maxPrimeLoss = totalPrimeAssets > primeFloor ? totalPrimeAssets - primeFloor : 0;
+        uint256 totalAvailable = totalDegenAssets + maxPrimeLoss;
         
         if (amount > totalAvailable) {
             emit ProfitCapped(msg.sender, amount, totalAvailable);
             amount = totalAvailable;
         }
 
-        // Deduct from LP assets using first-loss waterfall (same as trader profit)
-        if (amount <= totalDegenAssets) {
-            totalDegenAssets -= amount;
+        // Calculate proportional loss shares based on TVL ratio
+        uint256 totalVaultAssets = totalDegenAssets + totalPrimeAssets;
+        uint256 degenLoss;
+        uint256 primeLoss;
+
+        if (totalVaultAssets > 0) {
+            degenLoss = (amount * totalDegenAssets) / totalVaultAssets;
+            primeLoss = amount - degenLoss;
         } else {
-            uint256 remainingLoss = amount - totalDegenAssets;
-            totalDegenAssets = 0;
+            degenLoss = amount;
+            primeLoss = 0;
+        }
+
+        // Enforce Prime Floor — overflow to Degen
+        if (primeLoss > maxPrimeLoss) {
+            uint256 overflow = primeLoss - maxPrimeLoss;
+            primeLoss = maxPrimeLoss;
+            degenLoss += overflow;
+        }
+
+        // Cap degenLoss to available — push remainder to Prime
+        if (degenLoss > totalDegenAssets) {
+            uint256 extraNeeded = degenLoss - totalDegenAssets;
+            degenLoss = totalDegenAssets;
+            primeLoss += extraNeeded;
+        }
+
+        // Apply Degen loss
+        totalDegenAssets -= degenLoss;
+        if (totalDegenAssets == 0 && degenLoss > 0) {
             degenEpoch++;
             totalDegenShares = 0;
             emit EpochReset(true, degenEpoch);
-            
-            totalPrimeAssets = totalPrimeAssets > remainingLoss ? totalPrimeAssets - remainingLoss : 0;
-            core.trackVaultLoss(remainingLoss);
+        }
 
+        // Apply Prime loss & track for Circuit Breaker
+        if (primeLoss > 0) {
+            totalPrimeAssets = totalPrimeAssets > primeLoss ? totalPrimeAssets - primeLoss : 0;
+            core.trackVaultLoss(primeLoss);
             if (totalPrimeAssets == 0) {
                 primeEpoch++;
                 totalPrimeShares = 0;

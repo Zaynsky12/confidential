@@ -1391,7 +1391,7 @@ export default function Home() {
                 <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}>Prime Vault</span>
               </div>
               <p className="vault-desc-p" style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
-                Designed for capital preservation. Prime LPs enjoy 70% capital protection against severe drawdowns while earning steady yield with 5-day lockup.
+                Designed for capital preservation. Prime LPs share trader liabilities proportionally with Degen LPs and enjoy a 60% hard capital protection floor against drawdowns (5-day lockup).
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <span style={{ color: '#88919e', fontSize: 13 }}>Est. APY</span>
@@ -1404,7 +1404,7 @@ export default function Home() {
                 <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}>Degen Vault</span>
               </div>
               <p className="vault-desc-p" style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
-                Designed for maximum yield hunters. Earn 3x higher profit share from all protocol trading fees and liquidation bonuses as the first-loss liquidity buffer (2-day lockup).
+                Designed for maximum yield hunters. Earn a 3x higher profit multiplier from protocol trading fees and liquidation bonuses while sharing liabilities proportionally (2-day lockup).
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <span style={{ color: '#88919e', fontSize: 13 }}>Est. APY</span>

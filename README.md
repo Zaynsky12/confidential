@@ -37,10 +37,10 @@ For an in-depth understanding of the platform's tier-1 circuit breakers, quadrat
 
 ## 📜 Contract Addresses (Arc Testnet V1)
 
-- **ConfidentialCore**: `0x873977b19800F8A3B94891d04455Ef590a62A50F`
-- **ConfidentialTrading**: `0xB5cD2F7d134892fe0DE11518026F382eaD8C217d`
-- **ConfidentialVault**: `0x620AB088ffC0bFa8b44A7E84D51a786f2CFD30bA`
-- **USDC Token (Mock)**: `0x3600000000000000000000000000000000000000`
+- **ConfidentialCore**: `0xC3EB0406FF2601D452673710e859Fbf75A0B892d`
+- **ConfidentialTrading**: `0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67`
+- **ConfidentialVault**: `0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c`
+- **USDC Token (Arc)**: `0x3600000000000000000000000000000000000000`
 - **Pyth Oracle**: `0x897b9947185079B42d94CbbF332192CEFd9ACCFA`
 
 ## 💻 Quick Start Guide

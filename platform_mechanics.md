@@ -22,7 +22,7 @@ Likuiditas di DEX ini disegmentasi menjadi dua lapisan brankas (*tranche*) indep
 Diperuntukkan bagi penyedia likuiditas (LP) dengan profil risiko tinggi yang mendambakan pertumbuhan modal agresif.
 *   **Kapasitas Maksimal (Porsi):** **$15.000.000** (30% dari Total TVL)
 *   **Insentif Keuntungan:** Mendapatkan persentase laba **3x lipat lebih besar** dari seluruh pendapatan protokol (Biaya *Trading*, Likuidasi, *Funding Rate*, dan Kerugian *Trader*).
-*   **Risiko (First-Loss):** Bertindak sebagai bantalan perisai pertama. Jika *trader* menang, uang kemenangan akan ditarik sepenuhnya dari Degen Vault terlebih dahulu. Degen Vault dapat tergerus hingga $0 (memicu *Epoch Reset*).
+*   **Risiko (Proportional Shared-Loss):** Kerugian akibat kemenangan *trader* dibagi secara **proporsional** antara Degen dan Prime berdasarkan rasio TVL masing-masing. Degen tetap menanggung porsi lebih besar karena biasanya TVL-nya lebih kecil, ditambah menerima limpahan (*overflow*) jika Prime menyentuh batas *Protection Floor*. Degen Vault dapat tergerus hingga $0 (memicu *Epoch Reset*).
 *   **Lockup Period:** 2 Hari (172.800 detik). Uang yang disetor akan dikunci selama 2 hari kalender absolut tanpa celah pintas.
 
 ### 🔵 Prime Vault (Capital Protected Vault)
@@ -42,10 +42,11 @@ Untuk menjaga roda ekonomi *smart contract* tetap berputar stabil, ekosistem dib
 *   Berlaku saat *trader* **MEMBUKA** posisi.
 *   Sistem tidak akan mengizinkan pembukaan posisi baru jika uang tunai yang sedang terpakai untuk menahan posisi berjalan (*Open Interest*) menyentuh **80%** dari saldo Vault. Sisa **20%** adalah dana kas (*Cash Reserve*) suci yang dijamin tersedia agar para LP selalu bisa menarik (*Withdraw*) aset mereka kapanpun tanpa kegagalan transaksi (*Revert*).
 
-### B. Prime Capital Protection (Sabuk Pengaman Modal) : `70%`
-*   Berlaku saat *trader* paus **MENUTUP** posisi (Membawa kemenangan raksasa), maupun saat distribusi untung/rugi *Funding Rate*.
-*   Jika seorang *trader* mencetak profit tak terhingga hingga menguras $15 Juta dari Degen Vault menjadi $0, kerugian tersebut akan mulai bocor/merembes ke Prime Vault.
-*   Namun, *Smart Contract* akan langsung menurunkan pemutus daya (*circuit breaker*): **Maksimal kerugian absolut yang boleh ditanggung Prime Vault hanyalah 30% dari Total Deposit Historis**. Sisa **70% dari Total Deposit Prime Vault dikunci absolut** dan tidak dapat diklaim sebagai kemenangan *trader* (*Profit Capping*). Batas ini dilacak seumur hidup (historical absolute) dan tidak akan me-reset harian.
+### B. Proportional Shared-Loss with Prime Protection Floor : `60%`
+*   Berlaku saat *trader* **MENUTUP** posisi (Membawa kemenangan), maupun saat distribusi untung/rugi *Funding Rate*.
+*   Kerugian akibat kemenangan *trader* dibagi secara **proporsional** antara Degen Vault dan Prime Vault berdasarkan rasio TVL masing-masing. Jadi kedua pihak LP ikut menanggung secara adil.
+*   Namun, Prime Vault dilindungi oleh *Protection Floor*: **Minimum 60% dari Total Asset Prime Vault dikunci absolut** dan tidak dapat disedot. Jika porsi proporsional Prime melebihi batas ini, kelebihan (*overflow*) dialihkan ke Degen Vault.
+*   **Circuit Breaker (40%):** Jika total kerugian kumulatif Prime Vault mencapai **40% dari Total Deposit Historis**, *Smart Contract* otomatis mem-pause seluruh DEX untuk melindungi modal LP. Batas ini dilacak seumur hidup (historical absolute) dan tidak akan me-reset harian.
 
 ### C. Emergency Auto-Deleveraging (ADL) : `95%`
 *   Garis pertahanan krisis likuiditas paling ekstrem. 

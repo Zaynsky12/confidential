@@ -64,7 +64,7 @@ contract ConfidentialCoreV1 {
     uint256 public minPositionDuration = 5; // 5 seconds — prevents flash loan attacks
 
     // ── Circuit Breaker ──
-    uint256 public maxDrawdownBps = 3000; // 30% max absolute prime loss triggers pause
+    uint256 public maxDrawdownBps = 4000; // 40% max absolute prime loss triggers pause
     uint256 public totalHistoricalPrimeDeposits;
     uint256 public absolutePrimeLoss;
 

@@ -203,7 +203,7 @@ export default function Vault() {
                 </div>
               </div>
               <div className="tc-desc">
-                The maximum-yield engine. Acts as the first line of defense for the exchange, absorbing initial trader winnings. In return for underwriting this first-loss risk, Degen LPs capture a 3x profit multiplier across all platform fees and liquidations.
+                The maximum-yield engine. Shares trader liabilities proportionally with Prime LPs based on TVL, and absorbs any overflow if Prime hits its protection floor. In return, Degen LPs capture a 3x profit multiplier across all platform fees and liquidations.
               </div>
               <div className="tc-user-balance">
                 <span>Your Balance:</span>
@@ -217,7 +217,7 @@ export default function Vault() {
                 <div>
                   <h2>Prime Vault</h2>
                 </div>
-                <div className="badge badge-green">Capital Protected</div>
+                <div className="badge badge-green">60% Protected Floor</div>
               </div>
               <div className="tc-stats">
                 <div className="tc-stat">
@@ -238,7 +238,7 @@ export default function Vault() {
                 </div>
               </div>
               <div className="tc-desc">
-                The capital preservation tier. Fully shielded from trader winnings while the Degen Vault is solvent. Even in black swan events, Prime LPs enjoy 70% hard capital protection, ensuring conservative, steady yields.
+                The capital preservation tier. Shares payout liabilities proportionally with Degen LPs. Equipped with a 60% hard capital protection floor and a 40% protocol circuit breaker, ensuring steady, institutional-grade security.
               </div>
               <div className="tc-user-balance">
                 <span>Your Balance:</span>

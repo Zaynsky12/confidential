@@ -24,13 +24,14 @@ export default function Portfolio({ isCompact = false }: { isCompact?: boolean }
   // Calculate Realized PnL from closed positions
   const realizedPnl = closedPositions.reduce((sum, p) => sum + (p.pnl || 0), 0)
 
-  // Calculate Unrealized PnL from open positions
+  // Calculate Unrealized PnL from open positions (Net PnL after closing fee estimate)
   const unrealizedPnl = activePositions.reduce((sum, p) => {
     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
     const markPrice = matchedMarket ? matchedMarket.price : p.entryPrice
     const sizeBaseAsset = p.sizeUsd / p.entryPrice
-    const pnl = matchedMarket ? (p.isLong ? (markPrice - p.entryPrice) * sizeBaseAsset : (p.entryPrice - markPrice) * sizeBaseAsset) : 0
-    return sum + pnl
+    const rawPnl = matchedMarket ? (p.isLong ? (markPrice - p.entryPrice) * sizeBaseAsset : (p.entryPrice - markPrice) * sizeBaseAsset) : 0
+    const closingFee = p.sizeUsd * 0.0004
+    return sum + (rawPnl - closingFee)
   }, 0)
 
   const totalPnl = realizedPnl + unrealizedPnl

@@ -256,9 +256,11 @@ export const useTradeStore = create<TradeStore>()(
             const market = markets.find((m) => m.id === p.marketId)
             if (!market) return p
             const markPrice = market.price
-            const pnl = p.side === 'long'
+            const rawPnl = p.side === 'long'
               ? (markPrice - p.entryPrice) * p.size
               : (p.entryPrice - markPrice) * p.size
+            const closingFee = p.size * markPrice * 0.0004
+            const pnl = rawPnl - closingFee
             const pnlPercent = (pnl / p.collateral) * 100
             return { ...p, markPrice, pnl: +pnl.toFixed(2), pnlPercent: +pnlPercent.toFixed(2) }
           }),

@@ -20,11 +20,11 @@ The main logic of this protocol is split into three core *Smart Contract* pillar
 
 Our security system is designed to withstand all types of high-level hacks and network manipulations in DeFi:
 
-### 1. 2-Step Execution (Anti-Toxic Flow)
-::: info Advanced MEV Shield
-Instead of allowing traders to execute trades instantaneously against potentially stale prices, *Confidential DEX* employs a **2-Step Request-Execute** model. 
-1. The Trader submits an execution request (Open, Close, Modify) which is recorded in an on-chain queue.
-2. The decentralized Keeper Network instantly fulfills this request using the most up-to-date Pyth Oracle price, completely neutralizing *Toxic Flow*, *Stale Price Arbitrage*, and *MEV (Maximal Extractable Value)* attacks.
+### 1. 2-Step Request-Execute Model (Anti-MEV & Anti-Exploit)
+::: info Advanced MEV & Toxic Flow Shield
+*Confidential DEX V1* employs a secure **2-Step Request-Execute** model for all orders (Market, Limit, Stop, TWAP, and Close):
+1. **Request (Step 1):** The Trader submits an order request (`placeOrder`) which locks collateral and records the intent on-chain without trusting static/stale prices.
+2. **Execute (Step 2):** The decentralized Unified Keeper Network (`feederBot`) instantly monitors the request, pulls the freshest real-time Pyth Oracle VAA proof, and calls `executeOrder` to settle the trade directly against the Vault. This completely eliminates *Stale Price Arbitrage*, *Sandwich Attacks*, and *Toxic Flow*.
 :::
 
 ### 2. Anti-Flash Loan & 5-Second Cooldown
