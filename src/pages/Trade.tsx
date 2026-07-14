@@ -117,6 +117,13 @@ export default function Trade() {
     return v.toFixed(2)
   }
 
+  const fvCompactNoDecimals = (v: number) => {
+    if (v >= 1e9) return Math.round(v / 1e9) + 'B'
+    if (v >= 1e6) return Math.round(v / 1e6) + 'M'
+    if (v >= 1e3) return Math.round(v / 1e3) + 'K'
+    return Math.round(v).toString()
+  }
+
   const longPct = totalOI > 0 ? Math.round((longOIVal / totalOI) * 100) : 50
   const shortPct = totalOI > 0 ? Math.round((shortOIVal / totalOI) * 100) : 50
 
@@ -205,13 +212,13 @@ export default function Trade() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                     <span style={{ color: 'var(--color-green)', fontSize: '12px', lineHeight: 1 }}>↗</span>
                     <span style={{ color: 'var(--color-text2)' }}>:</span>
-                    <span style={{ color: 'var(--color-green)' }}>${fvCompact(availableLongVal)}</span>
+                    <span style={{ color: 'var(--color-green)' }}>${fvCompactNoDecimals(availableLongVal)}</span>
                   </span>
                   <span style={{ color: 'var(--color-text3)' }}>/</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                     <span style={{ color: 'var(--color-red)', fontSize: '12px', lineHeight: 1 }}>↘</span>
                     <span style={{ color: 'var(--color-text2)' }}>:</span>
-                    <span style={{ color: 'var(--color-red)' }}>${fvCompact(availableShortVal)}</span>
+                    <span style={{ color: 'var(--color-red)' }}>${fvCompactNoDecimals(availableShortVal)}</span>
                   </span>
                 </span>
               </div>

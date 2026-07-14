@@ -1,12 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { usePrivy } from '@privy-io/react-auth'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useTradeStore } from '../store/useTradeStore'
 import { useTranslation } from 'react-i18next'
-import { useReadContracts } from 'wagmi'
-import { CONTRACTS, ABIS } from '../config/contracts'
-import { formatUnits } from 'viem'
 
 import { useAll24hVolumes, usePairStats } from '../hooks/useGoldsky'
 
@@ -60,39 +57,6 @@ export default function Topbar() {
 
   const pairStats = usePairStats()
   const activeMarket = markets.find((m) => m.id === activeMarketId)
-
-  // Fetch getOIInfo for all 32 markets
-  const { data: allOiInfo } = useReadContracts({
-    contracts: markets.map((m) => ({
-      address: CONTRACTS.CORE as `0x${string}`,
-      abi: ABIS.CORE,
-      functionName: 'getOIInfo',
-      args: [m.pairHash as `0x${string}`]
-    })),
-    query: {
-      enabled: isMarketSelectorOpen,
-      refetchInterval: 10000
-    }
-  })
-
-  const oiMap = useMemo(() => {
-    const map: Record<string, { longOI: number; shortOI: number; maxLong: number; maxShort: number }> = {}
-    if (!allOiInfo) return map
-    
-    markets.forEach((m, idx) => {
-      const res = allOiInfo[idx]
-      if (res && res.status === 'success' && res.result) {
-        const [longOI, shortOI, maxLong, maxShort] = res.result as [bigint, bigint, bigint, bigint]
-        map[m.pairHash.toLowerCase()] = {
-          longOI: Number(formatUnits(longOI, 6)),
-          shortOI: Number(formatUnits(shortOI, 6)),
-          maxLong: Number(formatUnits(maxLong, 6)),
-          maxShort: Number(formatUnits(maxShort, 6))
-        }
-      }
-    })
-    return map
-  }, [allOiInfo, markets])
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [marketSearch, setMarketSearch] = useState('')
@@ -515,7 +479,6 @@ export default function Topbar() {
                     <th className="msp-th msp-th-right">24h Change</th>
                     <th className="msp-th msp-th-right desktop-col">24h Vol</th>
                     <th className="msp-th msp-th-right">Open Interest</th>
-                    <th className="msp-th msp-th-right desktop-col">Liquidity (L/S)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -525,21 +488,11 @@ export default function Topbar() {
                     const pairIdHash = m.pairHash.toLowerCase()
                     const realVolume = volumes[pairIdHash] || 0
                     
-                    // Extract real OI and limits
+                    // Extract real OI from Goldsky
                     let realOI = 0
-                    let availableLong = 10000000
-                    let availableShort = 10000000
-                    
-                    const oiData = oiMap[pairIdHash]
-                    if (oiData) {
-                      realOI = oiData.longOI + oiData.shortOI
-                      availableLong = Math.max(0, oiData.maxLong - oiData.longOI)
-                      availableShort = Math.max(0, oiData.maxShort - oiData.shortOI)
-                    } else {
-                      const stat = pairStats[pairIdHash]
-                      if (stat) {
-                        realOI = stat.longOI + stat.shortOI
-                      }
+                    const stat = pairStats[pairIdHash]
+                    if (stat) {
+                      realOI = stat.longOI + stat.shortOI
                     }
                     const displayOI = realOI
 
@@ -600,12 +553,6 @@ export default function Topbar() {
                         </td>
                         <td className="msp-td msp-td-vol font-mono desktop-col">{formatVol(realVolume)}</td>
                         <td className="msp-td msp-td-oi font-mono">{formatOI(displayOI)}</td>
-                        <td className="msp-td msp-td-oi font-mono desktop-col" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end', fontSize: '11px' }}>
-                            <span style={{ color: 'var(--color-green)' }}>L: {formatOI(availableLong)}</span>
-                            <span style={{ color: 'var(--color-red)' }}>S: {formatOI(availableShort)}</span>
-                          </div>
-                        </td>
                       </tr>
                     )
                   })}
