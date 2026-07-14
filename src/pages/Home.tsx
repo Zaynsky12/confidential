@@ -66,17 +66,17 @@ export default function Home() {
   const sum24hVolume = markets.reduce((acc, curr) => acc + (curr.volume24h || 0), 0);
   const totalVolume = Math.max(indexedGlobalVolume, sum24hVolume);
   
-  // Format the total volume beautifully (e.g., "$1.2M", "$32.4B")
+  // Format the total volume without decimals (e.g., "$1M", "$32B", "$124K")
   let formattedVolume = "$0";
   if (totalVolume > 0) {
     if (totalVolume >= 1_000_000_000) {
-      formattedVolume = `$${(totalVolume / 1_000_000_000).toFixed(2)}B`;
+      formattedVolume = `$${(totalVolume / 1_000_000_000).toFixed(0)}B`;
     } else if (totalVolume >= 1_000_000) {
-      formattedVolume = `$${(totalVolume / 1_000_000).toFixed(2)}M`;
+      formattedVolume = `$${(totalVolume / 1_000_000).toFixed(0)}M`;
     } else if (totalVolume >= 1_000) {
-      formattedVolume = `$${(totalVolume / 1_000).toFixed(2)}K`;
+      formattedVolume = `$${(totalVolume / 1_000).toFixed(0)}K`;
     } else {
-      formattedVolume = `$${totalVolume.toFixed(2)}`;
+      formattedVolume = `$${totalVolume.toFixed(0)}`;
     }
   }
 
