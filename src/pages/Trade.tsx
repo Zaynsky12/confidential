@@ -203,11 +203,15 @@ export default function Trade() {
                 <span className="chart-stat-label">Available Liquidity</span>
                 <span className="font-mono chart-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <span style={{ color: 'var(--color-green)' }}>L: ${fvCompact(availableLongVal)}</span>
+                    <span style={{ color: 'var(--color-green)', fontSize: '12px', lineHeight: 1 }}>↗</span>
+                    <span style={{ color: 'var(--color-text2)' }}>:</span>
+                    <span style={{ color: 'var(--color-green)' }}>${fvCompact(availableLongVal)}</span>
                   </span>
                   <span style={{ color: 'var(--color-text3)' }}>/</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <span style={{ color: 'var(--color-red)' }}>S: ${fvCompact(availableShortVal)}</span>
+                    <span style={{ color: 'var(--color-red)', fontSize: '12px', lineHeight: 1 }}>↘</span>
+                    <span style={{ color: 'var(--color-text2)' }}>:</span>
+                    <span style={{ color: 'var(--color-red)' }}>${fvCompact(availableShortVal)}</span>
                   </span>
                 </span>
               </div>
