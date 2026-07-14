@@ -1,75 +1,155 @@
-# Confidential DEX (V1)
+# 🛡️ Confidential DEX (V1)
 
-A decentralized, high-performance perpetual trading platform built on the **Arc Network Testnet**. Confidential DEX offers a professional, institutional-grade trading experience with instantaneous order execution, dynamic charts, and an isolated yield vault architecture that rivals centralized exchanges (CEXs) like Binance while maintaining 100% self-custody.
+[![Network: Arc Testnet](https://img.shields.io/badge/Network-Arc_Testnet-6E56CF?style=flat-square&logo=ethereum)](https://explorer.arc.network)
+[![Contracts: Solidity](https://img.shields.io/badge/Contracts-Solidity_%5E0.8.24-363636?style=flat-square&logo=solidity)](./contracts/src)
+[![Frontend: Vite + React](https://img.shields.io/badge/Frontend-Vite_+_React-646CFF?style=flat-square&logo=vite&logoColor=white)](./src)
+[![Indexer: Goldsky](https://img.shields.io/badge/Indexer-Goldsky_Subgraph-FF4D4D?style=flat-square&logo=graphql)](https://goldsky.com)
 
-![Confidential DEX Preview](./confidential%20app.png)
+A decentralized, institutional-grade perpetual trading platform built on the **Arc Network Testnet**. Confidential DEX combines the speed and responsiveness of centralized exchanges (CEXs) with 100% self-custody and trustless execution using a modular smart contract architecture, Pyth Oracle price feeds, and a decentralized keeper network.
 
-## 🚀 Key Features
+---
 
-- **⚡ Instant Execution & Zero Slippage:** Frontend-injected Pyth Oracle updates ensure your orders execute exactly when you click, removing the need for a secondary keeper for market orders.
-- **🛡️ 1-Click Trading:** Approve USDC once and trade effortlessly without repeated Metamask confirmations.
-- **🏦 Real Yield Vault:** Liquidity Providers (LPs) can deposit USDC to earn a real yield powered by trading fees and liquidations.
-- **📈 Advanced Charting:** Fully integrated interactive charts for real-time technical analysis of Crypto, Forex, and RWA (Metals/Equities).
-- **🔒 Decentralized & Secure:** Fully transparent, isolated contracts audited through multiple iterations.
-- **📱 Mobile-First Design:** A highly responsive, app-like interface designed specifically for mobile and desktop efficiency.
+## 🗺️ System Architecture
 
-## 🛠️ Architecture & Tech Stack
+Confidential DEX employs an event-driven, keeper-automated execution pipeline. The system is split into three layers: the Client Web Application, the Smart Contract Execution Engine, and the Automation Infrastructure.
 
-### Frontend Application
-- **Framework:** React 18, TypeScript, Vite
-- **Web3 Integrations:** Wagmi v2, Viem, Privy (Email/Social/Wallet login abstraction)
-- **State Management:** Zustand
-- **UI/UX:** Custom Design System (Vanilla CSS with dynamic themes)
+```mermaid
+graph TD
+    subgraph Frontend [Client Layer]
+        User["👤 Trader / LP"] <--> |Privy / Wallet| React["💻 React + Wagmi App"]
+    end
 
-### Smart Contracts (Solidity)
-The V1 Architecture separates concerns into three primary contracts to maximize security:
-- **`ConfidentialCoreV1.sol`**: The central registry. Manages pairs, oracle integration, maximum open interest limits, fee distribution routing, and dynamic funding rate calculation.
-- **`ConfidentialVaultV1.sol`**: The treasury. Holds all user deposits (LPs) and trader collaterals. Responsible for paying out PnL and collecting losses.
-- **`ConfidentialTradingV1.sol`**: The execution engine. Processes Market Orders, Limit Orders, Stop Losses, Take Profits, and Liquidations seamlessly.
+    subgraph Infra [Automation Layer]
+        Keeper["🤖 Unified Keeper Bot (feederBot)"] <--> |Polls every 2.5s| RPC["⚡ Arc RPC Node"]
+        Pyth["🔮 Pyth Hermes API"] --> |Price VAA updates| Keeper
+        Goldsky["📊 Goldsky Subgraph"] <--> |GraphQL API Queries| React
+    end
 
-### Infrastructure
-- **Blockchain:** Arc Testnet (`rpc.testnet.arc.network`)
-- **Data Subgraph:** Goldsky Subgraph (`0.1`)
-- **Oracle Network:** Pyth Network
-- **Keeper Bot:** Custom Node.js Bot running on PM2 for background liquidations and Limit Orders.
+    subgraph Contracts [Solidity Core - Arc Chain]
+        Trading["⚔️ ConfidentialTradingV1"] <--> |Settles Margin & Profit| Vault["🏦 ConfidentialVaultV1 (cUSDC)"]
+        Trading --> |Queries Price| Oracle["PythPriceOracle"]
+        Core["⚙️ ConfidentialCoreV1"] <--> |Manages Pair & Config| Trading
+        Core <--> Oracle
+    end
 
-## 📚 Documentation
+    React --> |1. Place Order| Trading
+    Trading -.-> |2. Emit Events| Goldsky
+    Keeper --> |3. executeOrder / liquidate| Trading
+```
 
-For an in-depth understanding of the platform's tier-1 circuit breakers, quadratic price impacts, and security mechanisms, please read our comprehensive **[Platform Mechanics Guide](./platform_mechanics.md)**.
+---
 
-## 📜 Contract Addresses (Arc Testnet V1)
+## 📁 Repository Structure
 
-- **ConfidentialCore**: `0xC3EB0406FF2601D452673710e859Fbf75A0B892d`
-- **ConfidentialTrading**: `0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67`
-- **ConfidentialVault**: `0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c`
-- **USDC Token (Arc)**: `0x3600000000000000000000000000000000000000`
-- **Pyth Oracle**: `0x897b9947185079B42d94CbbF332192CEFd9ACCFA`
+The codebase is organized as a monorepo consisting of the smart contract suite, the frontend web application, and the indexing subgraph:
 
-## 💻 Quick Start Guide
+```
+├── contracts/               # Smart contract suite (Foundry/Hardhat)
+│   ├── src/                 # Solidity contract source files
+│   ├── test/                # Local Solidity unit & integration tests
+│   ├── scripts/             # Contract deployment & configurations
+│   └── feederBot.cjs        # PM2-compatible keeper bot (automated TP/SL, Limit, & Liquidations)
+├── src/                     # Frontend web application (React, TS, Vite)
+│   ├── abis/                # Contract ABI JSON artifacts
+│   ├── components/          # Reusable UI components & modals
+│   ├── config/              # RPC providers, chains, and Wagmi configs
+│   ├── hooks/               # Custom React hooks (on-chain RPC & Subgraph readers)
+│   ├── pages/               # Main application views (Trade, Vaults, Portfolio)
+│   └── store/               # Zustand global state modules
+├── subgraph/                # GraphQL indexing subgraph
+│   ├── src/mapping.ts       # Subgraph event handlers (AssemblyScript)
+│   ├── schema.graphql       # Subgraph database schemas
+│   └── subgraph.yaml        # Subgraph manifest configuration
+└── docs/                    # VitePress documentation site
+```
 
-### 1. Installation
-Clone the repository and install dependencies using NPM:
+---
+
+## ⚙️ Protocol Core Mechanics
+
+### 1. Dual-Tranche Vault (ERC-4626 cUSDC)
+Platform liquidity is provided by depositors into a tokenized vault divided into two risk-reward segments (*tranches*) with a maximum absolute TVL cap of **$50,000,000 USDC**:
+
+*   **Degen Vault (High Yield, High Risk):** Capped at **$15,000,000** (30% TVL). Earns **3x** the baseline share of trading fees, liquidation rewards, borrow fees, and trader losses. However, it takes the first hit during trader wins, allowing drawdown down to $0 (triggering an Epoch reset).
+*   **Prime Vault (Capital Protected, Low Risk):** Capped at **$35,000,000** (70% TVL). Earns 1x baseline profit shares. Mechanically protected from bankruptcy by a strict **60% capital protection floor** (minimum 60% of historic assets cannot be drained by trader payouts).
+
+### 2. Risk Management & Safeguards
+*   **Utilization Cap (80%):** Trader positions cannot be opened if the vault cash utilization exceeds 80%. This guarantees a 20% cash buffer so LPs can withdraw their capital at any time.
+*   **Emergency Auto-Deleveraging (ADL):** If high volatility causes vault utilization to surge past **95%**, the keeper network is authorized to force-close the most profitable trading positions to return liquidity to safe levels.
+*   **Anti-MEV / Flash Loan Cooldown:** A mandatory 5-second cooldown is enforced between opening and closing a position to prevent sandwich and flash loan attack vectors.
+*   **Dynamic Quadratic Price Impact:** To prevent market manipulation by whales, trade price impact is calculated exponentially relative to the pair's Open Interest. PAIR balancing trades (reducing skew) receive a **50% discount** on price impact.
+
+### 3. Unified Keeper Economics (`feederBot.cjs`)
+The network is automated by permissionless Keepers running the custom keeper bot:
+*   **No-Cost Monitoring:** Keeper operations scan orders and positions via free RPC `eth_call` (Read-only), requiring 0 gas fees to monitor.
+*   **Compensation Loop:** Execution commands (`executeOrder`, `liquidate`, `executeTPSL`) consume network gas + Oracle fee. The user pre-funds this using an `Execution Fee` (paid in `ARC`), which is instantly forwarded to the executing Keeper (`msg.sender`) upon a successful transaction.
+
+---
+
+## 📜 Contract Addresses (Arc Testnet)
+
+| Contract | Address | Explorer Link |
+| :--- | :--- | :--- |
+| **ConfidentialCoreV1** | `0xC3EB0406FF2601D452673710e859Fbf75A0B892d` | [View Explorer](https://explorer.arc.network/address/0xC3EB0406FF2601D452673710e859Fbf75A0B892d) |
+| **ConfidentialTradingV1** | `0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67` | [View Explorer](https://explorer.arc.network/address/0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67) |
+| **ConfidentialVaultV1** | `0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c` | [View Explorer](https://explorer.arc.network/address/0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c) |
+| **USDC Mock Token** | `0x3600000000000000000000000000000000000000` | [View Explorer](https://explorer.arc.network/address/0x3600000000000000000000000000000000000000) |
+| **Pyth Oracle** | `0x897b9947185079B42d94CbbF332192CEFd9ACCFA` | [View Explorer](https://explorer.arc.network/address/0x897b9947185079B42d94CbbF332192CEFd9ACCFA) |
+
+---
+
+## 💻 Developer Setup & Installation
+
+### Prerequisites
+*   Node.js (v18+)
+*   NPM (v9+)
+*   [Foundry](https://book.getfoundry.sh/getting-started/installation) (for contract testing/development)
+
+### 1. Smart Contracts
+Navigate to the contracts directory and install dependencies:
+```bash
+cd contracts
+npm install
+```
+To run local Solidity unit tests using Forge (Foundry):
+```bash
+forge test
+```
+To compile contracts:
+```bash
+forge build
+```
+
+### 2. Frontend Application
+Navigate to the root directory and install dependencies:
 ```bash
 npm install
 ```
-
-### 2. Environment Configuration
-Create a `.env` file in the root directory:
+Configure your environment variables in `.env` in the root:
 ```env
 VITE_PRIVY_APP_ID=your_privy_app_id
 VITE_ARC_RPC=https://rpc.testnet.arc.network
 ```
-
-### 3. Run Development Server
+Run the local Vite development server:
 ```bash
 npm run dev
 ```
-The application will launch on `http://localhost:5173`.
+Open `http://localhost:5173` in your browser.
+
+### 3. Running the Keeper Bot
+Run the background automation script to process limit orders, liquidations, and TP/SL:
+```bash
+cd contracts
+# Set private key of the keeper wallet with testnet ARC gas
+export PRIVATE_KEY=0xyour_keeper_private_key
+node feederBot.cjs
+```
 
 ---
 
-## 🔒 Security & Contribution
+## 🛡️ Audits & Security
+This codebase is deployed on the **Arc Network Testnet** and represents a beta deployment. Do not use production funds. 
 
-This is currently a Testnet deployment. While the architecture mimics production environments, do not deposit real funds into these contracts. For security reports or contributions, please open an issue or submit a pull request.
+To report bugs, security vulnerabilities, or contribute improvements, please open a GitHub Issue or submit a Pull Request.
 
 **Confidential DEX © 2026**
