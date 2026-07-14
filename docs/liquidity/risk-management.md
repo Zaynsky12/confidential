@@ -11,6 +11,12 @@ This is the first threshold that acts proactively every time a trader **OPENS** 
 - The Smart Contract will intercept and reject (revert) a position opening request if the Vault's cash collateral currently used to back the total Open Interest is above the **80%** mark.
 - The sacred **20% (Cash Reserve)** limit will always be protected. This guarantees fresh capital availability so that any day, any Liquidity Provider can process a withdrawal from their Vault shares without experiencing frozen funds or transaction execution failures.
 
+### Market-Specific Open Interest Limits (L/S Cap)
+
+To prevent concentrated exposure and protect vault reserves from single-asset volatility, maximum open interest capacity is hardcoded per trading pair:
+- **Major Crypto (`BTC/USDC`, `ETH/USDC`):** Capped at **$10,000,000 ($10M)** per side (Long / Short).
+- **Altcoins, Commodities, Forex & Stocks:** Capped at **$5,000,000 ($5M)** per side (Long / Short).
+
 ---
 
 ## 2. Emergency Auto-Deleveraging (ADL): 95%
