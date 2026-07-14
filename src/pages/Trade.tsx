@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { keccak256, toHex } from 'viem'
+import { keccak256, toHex, formatUnits } from 'viem'
 import { useReadContract } from 'wagmi'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import PriceChart from '../components/PriceChart'
@@ -59,11 +59,31 @@ export default function Trade() {
   let totalOI = 0
   let longOIVal = 0
   let shortOIVal = 0
+  let availableLongVal = 10000000
+  let availableShortVal = 10000000
 
   if (currentStat) {
     longOIVal = currentStat.longOI
     shortOIVal = currentStat.shortOI
     totalOI = longOIVal + shortOIVal
+  }
+
+  // Read real-time OI and limits for the active pair
+  const { data: activePairOiResult } = useReadContract({
+    address: CONTRACTS.CORE as `0x${string}`,
+    abi: ABIS.CORE,
+    functionName: 'getOIInfo',
+    args: [pairId],
+    query: { refetchInterval: 10000 }
+  })
+
+  if (activePairOiResult) {
+    const [longOI, shortOI, maxLong, maxShort] = activePairOiResult as [bigint, bigint, bigint, bigint]
+    longOIVal = Number(formatUnits(longOI, 6))
+    shortOIVal = Number(formatUnits(shortOI, 6))
+    totalOI = longOIVal + shortOIVal
+    availableLongVal = Math.max(0, Number(formatUnits(maxLong, 6)) - longOIVal)
+    availableShortVal = Math.max(0, Number(formatUnits(maxShort, 6)) - shortOIVal)
   }
 
   // Read projected funding rate directly from Core contract (1hr rate in 1e18 scale)
@@ -175,6 +195,19 @@ export default function Trade() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                     <span style={{ color: 'var(--color-red)', fontSize: '12px', lineHeight: 1 }}>↘</span>
                     <span style={{ color: 'var(--color-red)' }}>${fvCompact(shortOIVal)}</span>
+                  </span>
+                </span>
+              </div>
+
+              <div className="chart-stat-item">
+                <span className="chart-stat-label">Available Liquidity</span>
+                <span className="font-mono chart-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <span style={{ color: 'var(--color-green)' }}>L: ${fvCompact(availableLongVal)}</span>
+                  </span>
+                  <span style={{ color: 'var(--color-text3)' }}>/</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <span style={{ color: 'var(--color-red)' }}>S: ${fvCompact(availableShortVal)}</span>
                   </span>
                 </span>
               </div>
