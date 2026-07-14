@@ -7,6 +7,8 @@
 
 A decentralized, institutional-grade perpetual trading platform built on the **Arc Network Testnet**. Confidential DEX combines the speed and responsiveness of centralized exchanges (CEXs) with 100% self-custody and trustless execution using a modular smart contract architecture, Pyth Oracle price feeds, and a decentralized keeper network.
 
+![Confidential DEX Preview](./resources/confidential_app.png)
+
 ---
 
 ## 🗺️ System Architecture
@@ -83,6 +85,12 @@ Platform liquidity is provided by depositors into a tokenized vault divided into
 The network is automated by permissionless Keepers running the custom keeper bot:
 *   **No-Cost Monitoring:** Keeper operations scan orders and positions via free RPC `eth_call` (Read-only), requiring 0 gas fees to monitor.
 *   **Compensation Loop:** Execution commands (`executeOrder`, `liquidate`, `executeTPSL`) consume network gas + Oracle fee. The user pre-funds this using an `Execution Fee` (paid in `ARC`), which is instantly forwarded to the executing Keeper (`msg.sender`) upon a successful transaction.
+
+---
+
+## 📚 Documentation
+
+For an in-depth understanding of the platform's tier-1 circuit breakers, quadratic price impacts, and security mechanisms, please read our comprehensive **[Platform Mechanics Guide](./resources/platform_mechanics.md)**.
 
 ---
 
