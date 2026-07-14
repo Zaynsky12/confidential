@@ -56,16 +56,21 @@ export default function Trade() {
   const pairStats = usePairStats()
   const currentStat = pairStats[pairId.toLowerCase()]
 
+  const isMajorPair = activeMarket?.pair === 'BTC/USDC' || activeMarket?.pair === 'ETH/USDC'
+  const defaultLimit = isMajorPair ? 10000000 : 5000000
+
   let totalOI = 0
   let longOIVal = 0
   let shortOIVal = 0
-  let availableLongVal = 10000000
-  let availableShortVal = 10000000
+  let availableLongVal = defaultLimit
+  let availableShortVal = defaultLimit
 
   if (currentStat) {
     longOIVal = currentStat.longOI
     shortOIVal = currentStat.shortOI
     totalOI = longOIVal + shortOIVal
+    availableLongVal = Math.max(0, defaultLimit - longOIVal)
+    availableShortVal = Math.max(0, defaultLimit - shortOIVal)
   }
 
   // Read real-time OI and limits for the active pair
@@ -82,8 +87,12 @@ export default function Trade() {
     longOIVal = Number(formatUnits(longOI, 6))
     shortOIVal = Number(formatUnits(shortOI, 6))
     totalOI = longOIVal + shortOIVal
-    availableLongVal = Math.max(0, Number(formatUnits(maxLong, 6)) - longOIVal)
-    availableShortVal = Math.max(0, Number(formatUnits(maxShort, 6)) - shortOIVal)
+    const onChainMaxLong = Number(formatUnits(maxLong, 6))
+    const onChainMaxShort = Number(formatUnits(maxShort, 6))
+    const finalMaxLong = (onChainMaxLong === 10000000 && !isMajorPair) ? 5000000 : onChainMaxLong
+    const finalMaxShort = (onChainMaxShort === 10000000 && !isMajorPair) ? 5000000 : onChainMaxShort
+    availableLongVal = Math.max(0, finalMaxLong - longOIVal)
+    availableShortVal = Math.max(0, finalMaxShort - shortOIVal)
   }
 
   // Read projected funding rate directly from Core contract (1hr rate in 1e18 scale)

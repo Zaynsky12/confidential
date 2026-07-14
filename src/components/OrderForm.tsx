@@ -58,10 +58,12 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
     query: { refetchInterval: 10000 }
   })
 
+  const isMajorPair = pairIdStr === 'BTC/USDC' || pairIdStr === 'ETH/USDC'
+  const defaultMaxOI = isMajorPair ? 10000000 : 5000000
   let longOIVal = 0
   let shortOIVal = 0
-  let maxLongOIVal = 10000000
-  let maxShortOIVal = 10000000
+  let maxLongOIVal = defaultMaxOI
+  let maxShortOIVal = defaultMaxOI
   if (oiInfo && oiInfo[0] && oiInfo[1]) {
     const longOI = oiInfo[0].status === 'success' ? oiInfo[0].result as bigint : 0n
     const shortOI = oiInfo[1].status === 'success' ? oiInfo[1].result as bigint : 0n
@@ -71,8 +73,10 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
   // Read real maxOI from getOIInfo (returns [longOI, shortOI, maxLongOI, maxShortOI])
   if (oiInfo && oiInfo[2] && oiInfo[2].status === 'success') {
     const oiResult = oiInfo[2].result as [bigint, bigint, bigint, bigint]
-    maxLongOIVal = Number(formatUnits(oiResult[2], 6))
-    maxShortOIVal = Number(formatUnits(oiResult[3], 6))
+    const onChainMaxLong = Number(formatUnits(oiResult[2], 6))
+    const onChainMaxShort = Number(formatUnits(oiResult[3], 6))
+    maxLongOIVal = (onChainMaxLong === 10000000 && !isMajorPair) ? 5000000 : onChainMaxLong
+    maxShortOIVal = (onChainMaxShort === 10000000 && !isMajorPair) ? 5000000 : onChainMaxShort
   }
   const maxOISide = side === 'long' ? maxLongOIVal : maxShortOIVal
   const availableLiquidity = side === 'long' ? Math.max(0, maxLongOIVal - longOIVal) : Math.max(0, maxShortOIVal - shortOIVal)
