@@ -5,7 +5,7 @@ import { CONTRACTS, ABIS } from '../config/contracts'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
-import { usePositions } from '../hooks/useGoldsky'
+import { usePositions } from '../hooks/usePositions'
 import type { OrderSide, OrderType } from '../types'
 
 
