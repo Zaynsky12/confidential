@@ -26,7 +26,7 @@ const en = {
         f1Title: "Zero Price Impact",
         f1Desc: "Execute trades exactly at Oracle prices. No orderbook slippage, regardless of your trade size. Deep liquidity guaranteed up to the global Open Interest cap.",
         f2Title: "Unified Margin Account",
-        f2Desc: "Trade Crypto, Forex, and Commodities from a single USDC collateral pool. Seamlessly manage risk across entirely different asset classes.",
+        f2Desc: "Trade Crypto, Forex, and Commodities using single-asset USDC collateral. Seamlessly manage risk across entirely different asset classes against a unified liquidity vault.",
         f3Title: "Real Yield Vault",
         f3Desc: "Liquidity providers act as the counterparty to all trades. Earn real USDC yield directly from trader losses, funding fees, and liquidations without active management."
       },

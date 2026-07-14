@@ -534,14 +534,18 @@ export default function Home() {
           }
         }
         .edge-card:hover {
-          border-color: rgba(75, 255, 153, 0.3);
           transform: translateY(-5px);
-          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(75, 255, 153, 0.08);
           background: rgba(20, 22, 28, 0.75);
         }
+        .edge-card-trader {
+          background: radial-gradient(circle at 100% 0%, rgba(75, 255, 153, 0.12) 0%, transparent 60%), rgba(14, 14, 19, 0.65);
+        }
         .edge-card-trader:hover {
-          border-color: rgba(213, 134, 255, 0.45);
-          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(213, 134, 255, 0.12);
+          border-color: rgba(75, 255, 153, 0.45);
+          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(75, 255, 153, 0.12);
+        }
+        .edge-card-lp {
+          background: radial-gradient(circle at 100% 0%, rgba(75, 255, 153, 0.12) 0%, transparent 60%), rgba(14, 14, 19, 0.65);
         }
         .edge-card-lp:hover {
           border-color: rgba(75, 255, 153, 0.45);
@@ -912,7 +916,7 @@ export default function Home() {
           </h1>
 
           <p className="t-hero-p" style={{ color: '#bacbbb', maxWidth: 740, margin: '0 auto', textAlign: 'center' }}>
-            Trade Crypto, Forex, Metals, and Equities with up to 100x leverage on a single unified collateral pool. Experience institutional-grade liquidity, zero front-running, and deterministic sub-millisecond execution on the Arc Network.
+            A permissionless on-chain exchange offering deep liquidity and ultra-low costs. Trade Crypto, Forex, Metals, and Equities up to 100x leverage against a shared liquidity vault. Experience zero front-running and sub-millisecond execution on Arc Network.
           </p>
         </div>
 
@@ -1044,7 +1048,7 @@ export default function Home() {
                 </div>
 
                 <p className="t-body-md" style={{ color: '#bacbbb', margin: 0, lineHeight: '28px', fontSize: 16 }}>
-                  {activeStrategyTab === 'metals' && 'Metals like Gold and Silver often retain or grow their value during economic uncertainty. Pair up to 50x leverage on GOLD/USDC and SILVER/USDC on one single collateral pool.'}
+                  {activeStrategyTab === 'metals' && 'Metals like Gold and Silver often retain or grow their value during economic uncertainty. Pair up to 50x leverage on GOLD/USDC and SILVER/USDC backed by one unified liquidity pool.'}
                   {activeStrategyTab === 'forex' && 'Capture macro rate shifts on EUR/USDC, GBP/USDC, and USDJPY/USDC. Benefit from institutional-grade liquidity and zero P2P matching delays.'}
                   {activeStrategyTab === 'equities' && 'Long or short NVDA/USDC, AAPL/USDC, and TSLA/USDC synthetics with up to 20x leverage (and 50x on SPY/USDC). No brokerage cut-off hours, no geographic restrictions.'}
                 </p>
@@ -1235,7 +1239,7 @@ export default function Home() {
                   Contrarian Skew Advantage
                 </h3>
                 <p className="edge-card-desc">
-                  Trade smarter against crowded sentiment: Get up to a <strong style={{ color: '#fbfff8' }}>50% discount on price impact</strong> and earn continuous P2P funding rewards when your trade balances Open Interest skew.
+                  Trade smarter against crowded sentiment: Get up to a <strong style={{ color: '#4BFF99' }}>50% discount on price impact</strong> and earn continuous P2P funding rewards when your trade balances Open Interest skew.
                 </p>
               </div>
 
@@ -1243,7 +1247,7 @@ export default function Home() {
               <div className="edge-widget-box" style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" }}>
                   <span style={{ color: '#bacbbb' }}>MARKET SKEW RATIO</span>
-                  <span style={{ color: '#4BFF99', fontWeight: 600 }}>LONG 76% / SHORT 24%</span>
+                  <span style={{ fontWeight: 600 }}><span style={{ color: '#ff5c5c' }}>LONG 76%</span> <span style={{ color: '#88919e' }}>/</span> <span style={{ color: '#4BFF99' }}>SHORT 24%</span></span>
                 </div>
                 <div style={{ width: '100%', height: 8, background: '#262626', borderRadius: 4, overflow: 'hidden', display: 'flex', marginBottom: 14 }}>
                   <div style={{ width: '76%', background: '#ff5c5c' }} />
@@ -1303,7 +1307,7 @@ export default function Home() {
                   Optimized LP Yield Matrix
                 </h3>
                 <p className="edge-card-desc">
-                  Act as the house. Our dynamic risk engine optimizes LP returns across all market regimes. Earn sustainable, auto-compounding yield from platform trading fees, liquidations, and borrow rates.
+                  Act as the house. Our dynamic risk engine optimizes LP returns across all market regimes. Earn <strong style={{ color: '#4BFF99' }}>auto-compounding yield</strong> from platform trading fees, liquidations, and borrow rates.
                 </p>
               </div>
 
@@ -1342,7 +1346,7 @@ export default function Home() {
                   Whale & Toxic Flow Shield
                 </h3>
                 <p className="edge-card-desc">
-                  Your capital is protected against toxic arbitrage. Strict 80% utilization caps and quadratic slippage penalties on massive institutional order sizes shield vault LPs from flash dumps and toxic flow.
+                  Your capital is protected against toxic arbitrage. Strict <strong style={{ color: '#4BFF99' }}>80% utilization caps</strong> and quadratic slippage penalties on massive institutional order sizes shield vault LPs from flash dumps and toxic flow.
                 </p>
               </div>
 
