@@ -359,7 +359,7 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
         </button>
 
         <button 
-          onClick={() => { setOrderType('limit'); setIsProDropdownOpen(false); setPrice(''); setTriggerPrice(''); setDurationHours('1'); setDurationMins('0'); }}
+          onClick={() => { setOrderType('limit'); setIsProDropdownOpen(false); if (activeMarket?.price && activeMarket.price > 0) { const p = activeMarket.price; setPrice(p >= 1000 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(6)); } else { setPrice(''); } setTriggerPrice(''); setDurationHours('1'); setDurationMins('0'); }}
           style={{ background: 'none', border: 'none', color: orderType === 'limit' ? '#fff' : '#8e8e93', fontSize: '15px', fontWeight: orderType === 'limit' ? 600 : 500, cursor: 'pointer', padding: 0, position: 'relative' }}
         >
           Limit
@@ -441,10 +441,20 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       {orderType !== 'market' && (
         <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, marginBottom: 4, animationDuration: '200ms' }}>
           {orderType === 'limit' && (
-            <div style={{ display:'flex', alignItems:'center', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
-              <span style={{ fontSize:13, color:'#8e8e93', marginRight:8, whiteSpace:'nowrap' }}>Limit Price</span>
-              <input type="number" placeholder="0.00" value={price} onChange={e=>setPrice(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
-              <span style={{ fontSize:12, color:'#8e8e93', marginLeft: 8 }}>USD</span>
+            <div style={{ display:'flex', flexDirection:'column', background:'var(--color-bg0)', border:'1px solid var(--color-border)', borderRadius:8, padding:'6px 10px', transition:'border 0.2s' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize:11, color:'#8e8e93' }}>Limit Price</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <span onClick={() => { if (!activeMarket?.price) return; setPrice(activeMarket.price >= 1000 ? activeMarket.price.toFixed(1) : activeMarket.price >= 1 ? activeMarket.price.toFixed(2) : activeMarket.price.toFixed(6)); }} style={{ fontSize: 10, cursor: 'pointer', color: '#fbbf24', background: 'rgba(251, 191, 36, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 600, transition: 'background 0.2s' }}>Market</span>
+                  {(side === 'long' ? [-1, -2, -5] : [1, 2, 5]).map(p => (
+                    <span key={p} onClick={() => { if (!activeMarket?.price) return; const adj = activeMarket.price * (1 + p / 100); setPrice(adj >= 1000 ? adj.toFixed(1) : adj >= 1 ? adj.toFixed(2) : adj.toFixed(6)); }} style={{ fontSize: 10, cursor: 'pointer', color: p < 0 ? '#4BFF99' : '#ff4b4b', background: p < 0 ? 'rgba(75, 255, 153, 0.1)' : 'rgba(255, 75, 75, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 600, transition: 'background 0.2s' }}>{p > 0 ? '+' : ''}{p}%</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center' }}>
+                <input type="number" placeholder="0.00" value={price} onChange={e=>setPrice(e.target.value)} style={{ flex:1, background:'transparent', border:'none', color:'#fff', fontSize:14, outline:'none', minWidth:0, textAlign:'right', fontFamily: 'var(--font-mono)' }} />
+                <span style={{ fontSize:12, color:'#8e8e93', marginLeft: 8 }}>USD</span>
+              </div>
             </div>
           )}
 
