@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { gql } from 'graphql-request'
 import { gqlClient } from '../config/graphql'
 import { formatUnits } from 'viem'
@@ -110,66 +110,73 @@ export interface IndexerPosition {
 export function usePositions(userAddress?: string) {
   const [positions, setPositions] = useState<IndexerPosition[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const lastSuccessRef = useRef<IndexerPosition[]>([])
 
-  useEffect(() => {
-    async function fetchPositions(isPolling = false) {
-      try {
-        if (!isPolling) setIsLoading(true)
-        if (!userAddress) {
-          setPositions([])
-          return
-        }
-
-        const query = gql`
-          query GetUserPositions($user: Bytes!) {
-            positions(where: { trader: $user, isOpen: true }, orderBy: openedAt, orderDirection: desc) {
-              id
-              positionId
-              trader
-              pairId
-              isLong
-              sizeUsd
-              entryPrice
-              leverage
-              collateral
-              liquidationPrice
-              isOpen
-              openedAt
-              tpPrice
-              slPrice
-            }
-          }
-        `
-        
-        const data: any = await gqlClient.request(query, { user: userAddress.toLowerCase() })
-        
-        const formatted = data.positions.map((p: any) => ({
-          ...p,
-          positionId: Number(p.positionId),
-          sizeUsd: Number(formatUnits(BigInt(p.sizeUsd), 6)),
-          entryPrice: Number(formatUnits(BigInt(p.entryPrice), 18)),
-          leverage: Number(p.leverage),
-          collateral: Number(formatUnits(BigInt(p.collateral), 6)),
-          liquidationPrice: Number(formatUnits(BigInt(p.liquidationPrice), 18)),
-          openedAt: Number(p.openedAt) * 1000,
-          tpPrice: p.tpPrice ? Number(formatUnits(BigInt(p.tpPrice), 18)) : 0,
-          slPrice: p.slPrice ? Number(formatUnits(BigInt(p.slPrice), 18)) : 0
-        }))
-
-        setPositions(formatted)
-      } catch (e) {
-        console.error("Goldsky Fetch Positions Error:", e)
-      } finally {
-        setIsLoading(false)
+  const fetchPositions = useCallback(async (isPolling = false) => {
+    try {
+      if (!isPolling) setIsLoading(true)
+      if (!userAddress) {
+        setPositions([])
+        lastSuccessRef.current = []
+        return
       }
-    }
 
-    fetchPositions()
-    const interval = setInterval(() => fetchPositions(true), 5000) // Poll every 5s for fast trading updates
-    return () => clearInterval(interval)
+      const query = gql`
+        query GetUserPositions($user: Bytes!) {
+          positions(where: { trader: $user, isOpen: true }, orderBy: openedAt, orderDirection: desc) {
+            id
+            positionId
+            trader
+            pairId
+            isLong
+            sizeUsd
+            entryPrice
+            leverage
+            collateral
+            liquidationPrice
+            isOpen
+            openedAt
+            tpPrice
+            slPrice
+          }
+        }
+      `
+      
+      const data: any = await gqlClient.request(query, { user: userAddress.toLowerCase() })
+      
+      const formatted = data.positions.map((p: any) => ({
+        ...p,
+        positionId: Number(p.positionId),
+        sizeUsd: Number(formatUnits(BigInt(p.sizeUsd), 6)),
+        entryPrice: Number(formatUnits(BigInt(p.entryPrice), 18)),
+        leverage: Number(p.leverage),
+        collateral: Number(formatUnits(BigInt(p.collateral), 6)),
+        liquidationPrice: Number(formatUnits(BigInt(p.liquidationPrice), 18)),
+        openedAt: Number(p.openedAt) * 1000,
+        tpPrice: p.tpPrice ? Number(formatUnits(BigInt(p.tpPrice), 18)) : 0,
+        slPrice: p.slPrice ? Number(formatUnits(BigInt(p.slPrice), 18)) : 0
+      }))
+
+      setPositions(formatted)
+      lastSuccessRef.current = formatted
+    } catch (e) {
+      console.error("Goldsky Fetch Positions Error:", e)
+      // On error, preserve last successful data instead of showing empty
+      if (lastSuccessRef.current.length > 0) {
+        setPositions(lastSuccessRef.current)
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }, [userAddress])
 
-  return { positions, isLoading }
+  useEffect(() => {
+    fetchPositions()
+    const interval = setInterval(() => fetchPositions(true), 3000)
+    return () => clearInterval(interval)
+  }, [fetchPositions])
+
+  return { positions, isLoading, refetchPositions: () => fetchPositions(true) }
 }
 
 export function useClosedPositions(userAddress?: string) {
