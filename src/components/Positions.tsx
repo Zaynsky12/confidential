@@ -147,15 +147,16 @@ export default function Positions() {
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
                     
-                    const markPrice = matchedMarket ? matchedMarket.price : p.entryPrice
-                    const sizeBaseAsset = p.sizeUsd / p.entryPrice // Calculate approx base asset size to calculate exact PnL
+                    const markPrice = matchedMarket && matchedMarket.price > 0 ? matchedMarket.price : p.entryPrice
+                    const priceReady = matchedMarket && matchedMarket.price > 0
+                    const sizeBaseAsset = p.entryPrice > 0 ? p.sizeUsd / p.entryPrice : 0
                     
-                    // PnL Math
-                    const pnl = matchedMarket 
+                    // PnL Math — only calculate when live price is available and valid
+                    const pnl = priceReady && sizeBaseAsset > 0
                       ? (p.isLong ? (markPrice - p.entryPrice) * sizeBaseAsset : (p.entryPrice - markPrice) * sizeBaseAsset) 
                       : 0
                     
-                    const pnlPercent = p.collateral > 0 ? (pnl / p.collateral) * 100 : 0
+                    const pnlPercent = p.collateral > 0 && isFinite(pnl) ? (pnl / p.collateral) * 100 : 0
                     
                     const cp = contractPositions?.[i]?.result as any[] | undefined
                     const liveTp = cp && cp[10] ? Number(formatUnits(cp[10], 18)) : (p.tpPrice || 0)
