@@ -112,7 +112,7 @@ export default function Positions() {
                 </div>
                 <div className="pos-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr', minWidth: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img src="/usdc.png" alt="USDC" style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0 }} />
+                    <img src="/usdc-arc.png" alt="USDC" style={{ width: 30, height: 30, flexShrink: 0 }} />
                     <span style={{ fontWeight: 600 }}>USDC</span>
                   </div>
                   <span className="font-mono">{balance.toFixed(2)}</span>
