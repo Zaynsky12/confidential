@@ -34,10 +34,28 @@ export default function App() {
     <>
       <Toaster position="top-right" toastOptions={{
         style: {
-          background: '#1A1A1A',
+          background: 'rgba(26, 26, 26, 0.85)',
+          backdropFilter: 'blur(12px)',
           color: '#F2F2F2',
-          border: '1px solid #333',
-        }
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: '12px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+          fontSize: '13px',
+          fontWeight: 500,
+          padding: '12px 16px',
+        },
+        success: {
+          iconTheme: {
+            primary: '#00E599',
+            secondary: '#1A1A1A',
+          },
+        },
+        error: {
+          iconTheme: {
+            primary: '#FF4A4A',
+            secondary: '#1A1A1A',
+          },
+        },
       }} />
       <MarketVolumeLoader />
       {/* Only load Pyth prices on non-home pages to prevent trade state interference */}

@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { keccak256, toHex, formatUnits } from 'viem'
-import { useReadContracts } from 'wagmi'
-import { CONTRACTS, ABIS } from '../config/contracts'
+import { keccak256, toHex } from 'viem'
 import { useTradeStore } from '../store/useTradeStore'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
-import { useOrders } from '../hooks/usePositions'
-import { usePositions, useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
+import { usePositions, useOrders } from '../hooks/usePositions'
+import { useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
 
 import SharePnLModal, { type SharePositionData } from './SharePnLModal'
 import EditTpSlModal, { type EditTpSlData } from './EditTpSlModal'
@@ -40,33 +38,10 @@ export default function Positions() {
 
   // Use on-chain positions for open positions tab
   const openPositions = activePositions
-  const displayOrders = openOrders.filter(o => o.orderType === 0 || o.orderType === 1 || o.orderType === 4)
+  // Filter out temporary market requests (2=MarketOpen, 3=MarketClose, 6=PartialClose, 7=RemoveCol) from Orders tab
+  const displayOrders = openOrders.filter(o => o.orderType !== 2 && o.orderType !== 3 && o.orderType !== 6 && o.orderType !== 7)
 
-  // Read live TP/SL from contract since subgraph might miss them (not emitted in event)
-  const { data: contractPositions } = useReadContracts({
-    contracts: openPositions.map(p => ({
-      address: CONTRACTS.TRADING as any,
-      abi: ABIS.TRADING as any,
-      functionName: 'positions',
-      args: [BigInt(p.positionId)]
-    })),
-    query: {
-      refetchInterval: 5000
-    }
-  })
 
-  // Read live orders from contract to get TP/SL
-  const { data: contractOrders } = useReadContracts({
-    contracts: openOrders.map(o => ({
-      address: CONTRACTS.TRADING as any,
-      abi: ABIS.TRADING as any,
-      functionName: 'pendingOrders',
-      args: [BigInt(o.orderId)]
-    })),
-    query: {
-      refetchInterval: 5000
-    }
-  })
 
   const formatTime = (ts: number) => {
     const d = new Date(ts)
@@ -142,7 +117,7 @@ export default function Positions() {
                 {openPositions.length === 0 ? (
                   <div className="pos-empty">No open positions</div>
                 ) : (
-                  openPositions.map((p, i) => {
+                  openPositions.map((p) => {
                     // Match pairId (Hash) to actual market to get live price and pair name
                     const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === p.pairId)
                     const pairName = matchedMarket ? matchedMarket.pair : p.pairId.slice(0, 10) + '...'
@@ -158,9 +133,8 @@ export default function Positions() {
                     
                     const pnlPercent = p.collateral > 0 && isFinite(pnl) ? (pnl / p.collateral) * 100 : 0
                     
-                    const cp = contractPositions?.[i]?.result as any[] | undefined
-                    const liveTp = cp && cp[10] ? Number(formatUnits(cp[10], 18)) : (p.tpPrice || 0)
-                    const liveSl = cp && cp[11] ? Number(formatUnits(cp[11], 18)) : (p.slPrice || 0)
+                    const liveTp = p.tpPrice || 0
+                    const liveSl = p.slPrice || 0
                     
                     return (
                       <div key={p.id} className="pos-row" style={{ gridTemplateColumns: "100px 70px 80px 100px 100px 100px 80px 100px 280px", minWidth: "1010px" }}>
@@ -277,13 +251,11 @@ export default function Positions() {
                   <div className="pos-empty">No open orders</div>
                 ) : (
                   displayOrders.map((o) => {
-                      const origIndex = openOrders.findIndex(x => x.id === o.id)
                       const matchedMarket = markets.find(m => keccak256(toHex(m.pair)) === o.pairId)
                       const pairName = matchedMarket ? matchedMarket.pair : o.pairId.slice(0, 10) + '...'
                       
-                      const co = contractOrders?.[origIndex]?.result as any[] | undefined
-                    const tpPrice = co && co[13] ? Number(formatUnits(co[13], 18)) : 0
-                    const slPrice = co && co[14] ? Number(formatUnits(co[14], 18)) : 0
+                    const tpPrice = o.tpPrice || 0
+                    const slPrice = o.slPrice || 0
                     
                     return (
                     <div key={o.id} className="pos-row" style={{ gridTemplateColumns: '170px 80px 70px 80px 90px 110px 110px 90px 210px', minWidth: '1010px', width: '100%' }}>
@@ -296,7 +268,13 @@ export default function Positions() {
                         {o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Stop' : o.orderType === 4 ? 'TWAP' : 'Market'}
                       </span>
                       <span className="font-mono" style={{ textAlign: 'center' }}>{o.sizeUsd.toFixed(2)}</span>
-                      <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(o.triggerPrice)}</span>
+                      <span className="font-mono" style={{ textAlign: 'center' }}>
+                        {(o.orderType === 2 || o.orderType === 3 || o.orderType === 6) ? (
+                          matchedMarket ? `$${formatPrice(matchedMarket.price)} (Market)` : 'Market'
+                        ) : (
+                          `$${formatPrice(o.triggerPrice)}`
+                        )}
+                      </span>
                       <span className="font-mono" style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px', textAlign: 'center' }}>
                         <span style={{ color: tpPrice > 0 ? 'var(--color-green)' : 'var(--color-text3)' }}>{tpPrice > 0 ? `$${formatPrice(tpPrice)}` : '-'}</span>
                         <span style={{ color: slPrice > 0 ? 'var(--color-red)' : 'var(--color-text3)' }}>{slPrice > 0 ? `$${formatPrice(slPrice)}` : '-'}</span>

@@ -1,68 +1,67 @@
-import { useReadContracts } from 'wagmi'
+import { useReadContract, useReadContracts } from 'wagmi'
 import { CONTRACTS, ABIS } from '../config/contracts'
 import { formatUnits } from 'viem'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 
 export function usePositions(address?: string) {
-  // 1. Read indices 0..99 from userPositions(address, index)
-  const indexContracts = useMemo(() => {
-    if (!address) return []
-    return Array.from({ length: 100 }).map((_, index) => ({
-      address: CONTRACTS.TRADING as any,
-      abi: ABIS.TRADING as any,
-      functionName: 'userPositions',
-      args: [address, BigInt(index)],
-    }))
-  }, [address])
+  const lastSuccessRef = useRef<any[]>([])
 
-  const { data: idResults, refetch: refetchIds, isLoading: isIdsLoading } = useReadContracts({
-    contracts: indexContracts,
+  // 1. Get nextPositionId to know what position IDs exist
+  const { data: nextPosIdRaw, refetch: refetchNextId, isLoading: isNextIdLoading } = useReadContract({
+    address: CONTRACTS.TRADING as any,
+    abi: ABIS.TRADING as any,
+    functionName: 'nextPositionId',
     query: {
       enabled: !!address,
-      refetchInterval: 3000,
+      refetchInterval: 2000,
     }
   })
 
-  // 2. Extract successful position IDs
-  const positionIds = useMemo(() => {
-    if (!idResults) return []
-    return idResults
-      .filter((res: any) => res.status === 'success' && res.result !== undefined)
-      .map((res: any) => res.result as bigint)
-  }, [idResults])
-
-  // 3. Fetch position details for each ID
+  // 2. Query the latest 20 position IDs backwards from nextPositionId - 1
   const detailContracts = useMemo(() => {
-    return positionIds.map((id) => ({
+    if (!address || !nextPosIdRaw) return []
+    const nextId = Number(nextPosIdRaw)
+    const count = Math.min(nextId - 1, 20) // Check latest 20 positions
+    const ids: bigint[] = []
+    for (let i = nextId - 1; i >= nextId - count; i--) {
+      if (i >= 1) ids.push(BigInt(i))
+    }
+    return ids.map((id) => ({
       address: CONTRACTS.TRADING as any,
       abi: ABIS.TRADING as any,
       functionName: 'positions',
       args: [id],
     }))
-  }, [positionIds])
+  }, [address, nextPosIdRaw])
 
   const { data: positionsData, refetch: refetchDetails, isLoading: isDetailsLoading } = useReadContracts({
     contracts: detailContracts,
     query: {
-      enabled: positionIds.length > 0,
-      refetchInterval: 3000,
+      enabled: detailContracts.length > 0,
+      refetchInterval: 2000,
     }
   })
 
-  // 4. Parse position details
+  // 3. Parse position details with error preservation
   const positions = useMemo(() => {
-    if (!positionsData || positionIds.length === 0) return []
+    if (!positionsData || detailContracts.length === 0) {
+      return lastSuccessRef.current
+    }
     
-    return positionsData
+    const parsed = positionsData
       .map((res: any, index: number) => {
         if (res.status !== 'success' || !res.result) return null
         const pos: any = res.result
         const isOpen = pos[9] as boolean
         if (!isOpen) return null // Only show open positions
         
+        const trader = pos[1] as string
+        if (!address || trader.toLowerCase() !== address.toLowerCase()) return null
+        
+        const posId = detailContracts[index].args[0] as bigint
         return {
-          id: positionIds[index].toString(),
-          positionId: positionIds[index].toString(), // Include string ID
+          id: posId.toString(),
+          positionId: posId.toString(),
           pairId: pos[0],
           trader: pos[1],
           isLong: pos[2],
@@ -78,80 +77,86 @@ export function usePositions(address?: string) {
         }
       })
       .filter(Boolean) as any[]
-  }, [positionsData, positionIds])
+
+    const allSuccess = positionsData && positionsData.every((r: any) => r.status === 'success')
+    if (parsed.length > 0 || allSuccess) {
+      lastSuccessRef.current = parsed
+    }
+
+    return parsed.length > 0 ? parsed : lastSuccessRef.current
+  }, [positionsData, detailContracts, address])
 
   const refetchAll = () => {
-    refetchIds()
+    refetchNextId()
     refetchDetails()
   }
 
   return { 
     positions, 
-    isLoading: isIdsLoading || isDetailsLoading, 
+    isLoading: isNextIdLoading || isDetailsLoading, 
     refetchPositions: refetchAll 
   }
 }
 
 export function useOrders(address?: string) {
-  // 1. Read indices 0..99 from userOrders(address, index)
-  const indexContracts = useMemo(() => {
-    if (!address) return []
-    return Array.from({ length: 100 }).map((_, index) => ({
-      address: CONTRACTS.TRADING as any,
-      abi: ABIS.TRADING as any,
-      functionName: 'userOrders',
-      args: [address, BigInt(index)],
-    }))
-  }, [address])
+  const lastSuccessRef = useRef<any[]>([])
 
-  const { data: idResults, refetch: refetchIds, isLoading: isIdsLoading } = useReadContracts({
-    contracts: indexContracts,
+  // 1. Get nextOrderId to know what order IDs exist
+  const { data: nextOrderIdRaw, refetch: refetchNextId, isLoading: isNextIdLoading } = useReadContract({
+    address: CONTRACTS.TRADING as any,
+    abi: ABIS.TRADING as any,
+    functionName: 'nextOrderId',
     query: {
       enabled: !!address,
-      refetchInterval: 3000,
+      refetchInterval: 2000,
     }
   })
 
-  // 2. Extract successful order IDs
-  const orderIds = useMemo(() => {
-    if (!idResults) return []
-    return idResults
-      .filter((res: any) => res.status === 'success' && res.result !== undefined)
-      .map((res: any) => res.result as bigint)
-  }, [idResults])
-
-  // 3. Fetch order details for each ID
+  // 2. Query the latest 15 order IDs backwards from nextOrderId - 1
   const detailContracts = useMemo(() => {
-    return orderIds.map((id) => ({
+    if (!address || !nextOrderIdRaw) return []
+    const nextId = Number(nextOrderIdRaw)
+    const count = Math.min(nextId - 1, 15) // Check latest 15 orders
+    const ids: bigint[] = []
+    for (let i = nextId - 1; i >= nextId - count; i--) {
+      if (i >= 1) ids.push(BigInt(i))
+    }
+    return ids.map((id) => ({
       address: CONTRACTS.TRADING as any,
       abi: ABIS.TRADING as any,
       functionName: 'pendingOrders',
       args: [id],
     }))
-  }, [orderIds])
+  }, [address, nextOrderIdRaw])
 
   const { data: ordersData, refetch: refetchDetails, isLoading: isDetailsLoading } = useReadContracts({
     contracts: detailContracts,
     query: {
-      enabled: orderIds.length > 0,
-      refetchInterval: 3000,
+      enabled: detailContracts.length > 0,
+      refetchInterval: 2000,
     }
   })
 
-  // 4. Parse order details
+  // 3. Parse order details with error preservation
   const orders = useMemo(() => {
-    if (!ordersData || orderIds.length === 0) return []
+    if (!ordersData || detailContracts.length === 0) {
+      return lastSuccessRef.current
+    }
     
-    return ordersData
+    const parsed = ordersData
       .map((res: any, index: number) => {
         if (res.status !== 'success' || !res.result) return null
         const order: any = res.result
         const isActive = order[8] as boolean
         if (!isActive) return null // Only show active orders
         
+        const trader = order[1] as string
+        if (!address || trader.toLowerCase() !== address.toLowerCase()) return null
+        
+        const orderId = detailContracts[index].args[0] as bigint
         return {
-          id: orderIds[index].toString(),
-          orderId: Number(orderIds[index]),
+          id: orderId.toString(),
+          orderId: Number(orderId),
           pairId: order[0],
           trader: order[1],
           isLong: order[2],
@@ -170,16 +175,23 @@ export function useOrders(address?: string) {
         }
       })
       .filter(Boolean) as any[]
-  }, [ordersData, orderIds])
+
+    const allSuccess = ordersData && ordersData.every((r: any) => r.status === 'success')
+    if (parsed.length > 0 || allSuccess) {
+      lastSuccessRef.current = parsed
+    }
+
+    return parsed.length > 0 ? parsed : lastSuccessRef.current
+  }, [ordersData, detailContracts, address])
 
   const refetchAll = () => {
-    refetchIds()
+    refetchNextId()
     refetchDetails()
   }
 
   return { 
     orders, 
-    isLoading: isIdsLoading || isDetailsLoading, 
+    isLoading: isNextIdLoading || isDetailsLoading, 
     refetchOrders: refetchAll 
   }
 }

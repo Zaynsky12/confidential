@@ -1,7 +1,6 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits } from 'viem'
 import { CONTRACTS, ABIS } from '../config/contracts'
-import { useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useUSDCApproval } from './useUSDCApproval'
 import { useTradeStore } from '../store/useTradeStore'
@@ -9,7 +8,7 @@ import { useTradeStore } from '../store/useTradeStore'
 export function useConfidentialTrading() {
   const { writeContractAsync, data: hash, isPending } = useWriteContract()
   
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash,
   })
 
@@ -20,11 +19,6 @@ export function useConfidentialTrading() {
     isApproving 
   } = useUSDCApproval(CONTRACTS.TRADING)
 
-  useEffect(() => {
-    if (isSuccess) {
-      toast.success('Trading Transaction Successful!')
-    }
-  }, [isSuccess])
 
   const EXECUTION_FEE = parseUnits('0.013', 18) // 0.013 ARC for keeper gas
 
@@ -48,7 +42,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Opening Market Position...', { id: 'trade' })
+      toast.loading(`⚡ Submitting Market ${isLong ? 'Long' : 'Short'} (${pairName})...`, { id: 'trade' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
@@ -77,12 +71,10 @@ export function useConfidentialTrading() {
         value: EXECUTION_FEE,
       } as any)
 
-      toast.dismiss('trade')
-      toast.success('Market Position requested! Executing in ~2s...')
+      toast.success(`✨ Market ${isLong ? 'Long' : 'Short'} Placed (${pairName})`, { id: 'trade' })
       return tx
     } catch (error: any) {
-      toast.dismiss('trade')
-      toast.error(error.shortMessage || 'Failed to request position')
+      toast.error(error.shortMessage || 'Failed to request position', { id: 'trade' })
       throw error
     }
   }
@@ -90,7 +82,7 @@ export function useConfidentialTrading() {
   // Close Position
   const closePosition = async (positionId: bigint) => {
     try {
-      toast.loading('Submitting Close Request...', { id: 'close' })
+      toast.loading('⚡ Submitting Close Position (100%)...', { id: 'close' })
       
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
@@ -100,12 +92,10 @@ export function useConfidentialTrading() {
         value: EXECUTION_FEE,
       } as any)
       
-      toast.dismiss('close')
-      toast.success('Close request submitted!')
+      toast.success('✨ Position Close Request Placed (100%)', { id: 'close' })
       return tx
     } catch (error: any) {
-      toast.dismiss('close')
-      toast.error(error.shortMessage || 'Failed to request close')
+      toast.error(error.shortMessage || 'Failed to request close', { id: 'close' })
       throw error
     }
   }
@@ -131,7 +121,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Submitting Pending Order...', { id: 'order' })
+      toast.loading(`⚡ Placing ${orderType === 0 ? 'Limit' : 'Stop'} Order (${pairName})...`, { id: 'order' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
@@ -158,12 +148,10 @@ export function useConfidentialTrading() {
         value: EXECUTION_FEE,
       } as any)
 
-      toast.dismiss('order')
-      toast.success('Order request submitted!')
+      toast.success(`✨ ${orderType === 0 ? 'Limit' : 'Stop'} Order Placed (${pairName})`, { id: 'order' })
       return tx
     } catch (error: any) {
-      toast.dismiss('order')
-      toast.error(error.shortMessage || 'Failed to place order')
+      toast.error(error.shortMessage || 'Failed to place order', { id: 'order' })
       throw error
     }
   }
@@ -188,7 +176,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Submitting TWAP Order...', { id: 'twap' })
+      toast.loading(`⚡ Submitting TWAP Order (${pairName})...`, { id: 'twap' })
 
       const { keccak256, toHex } = await import('viem')
       const pairId = keccak256(toHex(pairName))
@@ -214,12 +202,10 @@ export function useConfidentialTrading() {
         value: EXECUTION_FEE,
       } as any)
 
-      toast.dismiss('twap')
-      toast.success('TWAP Order request submitted!')
+      toast.success(`✨ TWAP Order Placed (${pairName})`, { id: 'twap' })
       return tx
     } catch (error: any) {
-      toast.dismiss('twap')
-      toast.error(error.shortMessage || 'Failed to create TWAP order')
+      toast.error(error.shortMessage || 'Failed to create TWAP order', { id: 'twap' })
       throw error
     }
   }
@@ -227,7 +213,7 @@ export function useConfidentialTrading() {
   // Cancel Order
   const cancelOrder = async (orderId: bigint) => {
     try {
-      toast.loading('Cancelling Order...', { id: 'cancel' })
+      toast.loading('⚡ Cancelling Order...', { id: 'cancel' })
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
         abi: ABIS.TRADING as any,
@@ -235,12 +221,10 @@ export function useConfidentialTrading() {
         args: [orderId],
       } as any)
       
-      toast.dismiss('cancel')
-      toast.success('Order cancelled successfully!')
+      toast.success('✨ Order Cancelled', { id: 'cancel' })
       return tx
     } catch (error: any) {
-      toast.dismiss('cancel')
-      toast.error(error.shortMessage || 'Failed to cancel order')
+      toast.error(error.shortMessage || 'Failed to cancel order', { id: 'cancel' })
       throw error
     }
   }
@@ -248,7 +232,7 @@ export function useConfidentialTrading() {
   // Update TP/SL
   const updateTpSl = async (positionId: bigint, tpPriceUsd: number, slPriceUsd: number) => {
     try {
-      toast.loading('Updating TP/SL...', { id: 'updateTpSl' })
+      toast.loading('⚡ Updating TP / SL...', { id: 'updateTpSl' })
       const { parseUnits } = await import('viem')
       const tpUnits = tpPriceUsd > 0 ? parseUnits(tpPriceUsd.toFixed(18), 18) : 0n
       const slUnits = slPriceUsd > 0 ? parseUnits(slPriceUsd.toFixed(18), 18) : 0n
@@ -260,12 +244,10 @@ export function useConfidentialTrading() {
         args: [positionId, tpUnits, slUnits],
       } as any)
       
-      toast.dismiss('updateTpSl')
-      toast.success('TP/SL updated successfully!')
+      toast.success('✨ TP / SL Updated', { id: 'updateTpSl' })
       return tx
     } catch (error: any) {
-      toast.dismiss('updateTpSl')
-      toast.error(error.shortMessage || 'Failed to update TP/SL')
+      toast.error(error.shortMessage || 'Failed to update TP/SL', { id: 'updateTpSl' })
       throw error
     }
   }
@@ -278,7 +260,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Adding Collateral...', { id: 'addCol' })
+      toast.loading(`⚡ Adding Margin ($${amountUsd.toFixed(2)})...`, { id: 'addCol' })
       const { parseUnits } = await import('viem')
       const amountUnits = parseUnits(amountUsd.toFixed(6), 6)
 
@@ -289,12 +271,10 @@ export function useConfidentialTrading() {
         args: [positionId, amountUnits],
       } as any)
       
-      toast.dismiss('addCol')
-      toast.success('Collateral added successfully!')
+      toast.success(`✨ Margin Added ($${amountUsd.toFixed(2)})`, { id: 'addCol' })
       return tx
     } catch (error: any) {
-      toast.dismiss('addCol')
-      toast.error(error.shortMessage || 'Failed to add collateral')
+      toast.error(error.shortMessage || 'Failed to add collateral', { id: 'addCol' })
       throw error
     }
   }
@@ -302,7 +282,7 @@ export function useConfidentialTrading() {
   // Remove Collateral
   const removeCollateral = async (positionId: bigint, amountUsd: number) => {
     try {
-      toast.loading('Submitting Remove Collateral Request...', { id: 'rmCol' })
+      toast.loading(`⚡ Submitting Remove Margin ($${amountUsd.toFixed(2)})...`, { id: 'rmCol' })
       const { parseUnits } = await import('viem')
       const amountUnits = parseUnits(amountUsd.toFixed(6), 6)
 
@@ -314,12 +294,10 @@ export function useConfidentialTrading() {
         value: EXECUTION_FEE,
       } as any)
       
-      toast.dismiss('rmCol')
-      toast.success('Remove Collateral request submitted!')
+      toast.success(`✨ Remove Margin Placed ($${amountUsd.toFixed(2)})`, { id: 'rmCol' })
       return tx
     } catch (error: any) {
-      toast.dismiss('rmCol')
-      toast.error(error.shortMessage || 'Failed to remove collateral')
+      toast.error(error.shortMessage || 'Failed to remove collateral', { id: 'rmCol' })
       throw error
     }
   }
@@ -327,7 +305,7 @@ export function useConfidentialTrading() {
   // Close Position Partial
   const closePositionPartial = async (positionId: bigint, closePercentBps: number) => {
     try {
-      toast.loading('Submitting Partial Close Request...', { id: 'closePartial' })
+      toast.loading(`⚡ Submitting Partial Close (${closePercentBps / 100}%)...`, { id: 'closePartial' })
       
       const tx = await writeContractAsync({
         address: CONTRACTS.TRADING as any,
@@ -337,12 +315,10 @@ export function useConfidentialTrading() {
         value: EXECUTION_FEE,
       } as any)
       
-      toast.dismiss('closePartial')
-      toast.success('Partial close request submitted!')
+      toast.success(`✨ Partial Close Placed (${closePercentBps / 100}%)`, { id: 'closePartial' })
       return tx
     } catch (error: any) {
-      toast.dismiss('closePartial')
-      toast.error(error.shortMessage || 'Failed to request partial close')
+      toast.error(error.shortMessage || 'Failed to request partial close', { id: 'closePartial' })
       throw error
     }
   }
@@ -364,7 +340,7 @@ export function useConfidentialTrading() {
         await new Promise(res => setTimeout(res, 5000))
       }
 
-      toast.loading('Submitting Increase Request...', { id: 'increase' })
+      toast.loading(`⚡ Submitting Position Increase (+$${additionalSizeUsd.toFixed(2)})...`, { id: 'increase' })
       
       const { parseUnits } = await import('viem')
       const sizeUnits = parseUnits(additionalSizeUsd.toFixed(6), 6)
@@ -378,12 +354,10 @@ export function useConfidentialTrading() {
         value: EXECUTION_FEE,
       } as any)
       
-      toast.dismiss('increase')
-      toast.success('Increase request submitted!')
+      toast.success(`✨ Position Increase Placed (+$${additionalSizeUsd.toFixed(2)})`, { id: 'increase' })
       return tx
     } catch (error: any) {
-      toast.dismiss('increase')
-      toast.error(error.shortMessage || 'Failed to request increase position')
+      toast.error(error.shortMessage || 'Failed to request increase position', { id: 'increase' })
       throw error
     }
   }

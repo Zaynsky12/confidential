@@ -29,7 +29,6 @@ export function useUSDCApproval(spenderAddress: `0x${string}`) {
 
   useEffect(() => {
     if (isSuccess) {
-      toast.success('USDC Approval Successful!')
       refetch()
     }
   }, [isSuccess, refetch])
@@ -45,7 +44,7 @@ export function useUSDCApproval(spenderAddress: `0x${string}`) {
   // Request infinite approval
   const approveInfinite = async () => {
     try {
-      toast.loading('Approving USDC... Please sign in wallet', { id: 'approve' })
+      toast.loading('⚡ Approving USDC... Please sign in wallet', { id: 'approve' })
       const tx = await writeContractAsync({
         address: CONTRACTS.USDC as any,
         abi: ABIS.USDC as any,
@@ -53,17 +52,16 @@ export function useUSDCApproval(spenderAddress: `0x${string}`) {
         args: [spenderAddress, maxUint256],
       } as any)
       
-      toast.loading('Waiting for blockchain confirmation...', { id: 'approve' })
+      toast.loading('⏳ Waiting for blockchain confirmation...', { id: 'approve' })
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash: tx })
       }
       
-      toast.dismiss('approve')
+      toast.success('✨ USDC Approved Successfully', { id: 'approve' })
       refetch() // Fetch the updated allowance immediately
       return tx
     } catch (error) {
-      toast.dismiss('approve')
-      toast.error('Approval failed or rejected')
+      toast.error('❌ Approval failed or rejected', { id: 'approve' })
       console.error('Approval error:', error)
       throw error
     }

@@ -34,7 +34,6 @@ export function useConfidentialVault() {
 
   useEffect(() => {
     if (isSuccess) {
-      toast.success('Vault Transaction Successful!')
       refetchAll()
     }
   }, [isSuccess])
@@ -83,23 +82,22 @@ export function useConfidentialVault() {
   const deposit = async (amountUsdc: number, isDegen: boolean) => {
     try {
       if (!isApproved(amountUsdc)) await approveInfinite()
-      toast.loading(`Depositing to ${isDegen ? 'Degen' : 'Prime'} Vault...`, { id: 'deposit' })
+      toast.loading(`⚡ Depositing $${amountUsdc.toFixed(2)} to ${isDegen ? 'Degen' : 'Prime'} Vault...`, { id: 'deposit' })
       const tx = await writeContractAsync({
         address: CONTRACTS.VAULT as any, abi: vaultAbi as any, functionName: 'deposit',
         args: [parseUnits(amountUsdc.toString(), 6), isDegen],
       } as any)
-      toast.dismiss('deposit')
+      toast.success(`✨ Deposit Submitted ($${amountUsdc.toFixed(2)})`, { id: 'deposit' })
       return tx
     } catch (e: any) {
-      toast.dismiss('deposit')
-      toast.error(e.shortMessage || 'Failed to deposit')
+      toast.error(e.shortMessage || 'Failed to deposit', { id: 'deposit' })
       throw e
     }
   }
 
   const withdraw = async (amountShares: number, isDegen: boolean) => {
     try {
-      toast.loading(`Withdrawing from ${isDegen ? 'Degen' : 'Prime'} Vault...`, { id: 'withdraw' })
+      toast.loading(`⚡ Withdrawing from ${isDegen ? 'Degen' : 'Prime'} Vault...`, { id: 'withdraw' })
       
       const sharesData = isDegen ? userDegenShares : userPrimeShares
       if (!sharesData) throw new Error("Shares not loaded")
@@ -119,11 +117,10 @@ export function useConfidentialVault() {
         args: [shareAmount, isDegen, 0n],
       } as any)
       
-      toast.dismiss('withdraw')
+      toast.success(`✨ Withdraw Submitted (${isDegen ? 'Degen' : 'Prime'} Vault)`, { id: 'withdraw' })
       return tx
     } catch (e: any) {
-      toast.dismiss('withdraw')
-      toast.error(e.shortMessage || 'Failed to withdraw')
+      toast.error(e.shortMessage || 'Failed to withdraw', { id: 'withdraw' })
       throw e
     }
   }

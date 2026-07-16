@@ -1,78 +1,89 @@
-# 🤖 Unified Keeper Network
+# 🤖 Unified Keeper Network (feederBot V4)
 
-Execution, liquidations, and price precision at *Confidential DEX* do not rely on a centralized matching engine, but are fully supported by a decentralized army of **Unified Keeper Bots**.
+Execution, liquidations, and price precision at **Confidential DEX V1** do not rely on a centralized matching engine. Instead, they are fully powered and secured by a permissionless, decentralized army of **Unified Keeper Bots (`feederBot.cjs`)**.
 
-These bots continuously monitor the network (sweeping) every **2.5 seconds** (24/7) to capture user orders and match them with prices from the Oracle (Pyth).
+These bots monitor the network continuously (**every 4 seconds**) to capture user orders, fetch real-time Pyth Oracle VAA proofs, and match or liquidate positions instantly with **checks-effects-interactions (CEI)** and multi-call batch optimizations.
 
 ---
 
 ## Permissionless Nodes (Opportunities for Developers)
 
-Unlike exchanges that monopolize profits for internal parties, our Keeper network is **100% Permissionless**.
-- Anyone—including you as a developer—can run the Node Keeper script (`feederBot.cjs`) on your own personal server / VPS.
-- You have the right to compete with other Keepers on the network to execute *Limit Orders* belonging to retail traders on this platform, and claim the commission **(Execution Fee)**.
+Unlike traditional exchanges where internal teams monopolize liquidation and execution revenue, our Keeper Network is **100% Permissionless and Decentralized**:
+- Anyone—including developers, node operators, and traders—can run the Node Keeper script (`feederBot.cjs`) on a personal server or VPS.
+- Keepers compete freely on-chain to execute *Pending Orders* and *Liquidations*, earning direct ARC payouts (`Execution Fee` & `Liquidation Reward`) sent immediately to their wallet (`msg.sender`).
 
 ---
 
-## 💰 Keeper Economy Scheme
+## 💰 Keeper Economy & Fee Scheme
 
-The financial incentive system is structured to provide strong profit opportunities for *Bot Operators* through Order Sweeping and Liquidations. *(Note: Currently, executing TP/SL is uncompensated and requires the bot to cover gas & oracle fees. Keepers may choose to skip TP/SL execution, leaving it to official protocol fallback bots).*
+The financial incentive structure guarantees immediate on-chain settlement and positive cashflow for Node Operators:
 
 | Operation Cycle | Fee Scheme / Compensation | Borne By |
 | :--- | :--- | :--- |
-| **Market Scanning (Every 2.5 Sec)** | **0 Gas** (Purely read-only data) | None / Free |
-| **Pending Order Execution** | **100% Execution Fee (ARC Coin)** | Deposited by **Trader** upon opening an order |
-| **Liquidation Execution** | **1% of Trader's Effective Collateral** | Deducted from the liquidated trader's collateral |
-| **TP/SL Execution** | **Uncompensated (0 ARC)** | Gas & Oracle fees fronted by the **Keeper Bot** |
+| **Market Scanning (Every 4 Sec)** | **0 Gas** (Static RPC & Multicall3 read-only data) | None / Free |
+| **Pending Order Execution** | **100% Execution Fee (0.013 ARC)** | Deposited by **Trader** upfront upon placing an order |
+| **Liquidation Execution** | **1% of Trader's Effective Collateral** | Deducted automatically from the liquidated trader's collateral |
+| **TP/SL Execution** | **Uncompensated (0 ARC)** | Gas & Oracle fees fronted by Keeper / Protocol fallback bots |
 
-::: info Profitable Executions
-When your bot successfully becomes the first to execute a pending order or a liquidation, the smart contract instantly disburses the `Execution Fee` or the `1% Liquidation Reward` back into your bot's wallet (`msg.sender`). This generates a self-sustaining cash flow for anyone keeping this network alive!
+::: info Instant On-Chain Payouts
+Whenever your bot successfully executes a pending order (`placeOrder` -> `executeOrder`) or triggers a liquidation (`liquidate`), the contract immediately transfers the `Execution Fee` or `1% Liquidation Reward` directly to your Keeper Wallet (`msg.sender`).
 :::
 
 ---
 
-## ⚙️ Bot Operational Responsibilities
+## ⚡ Key Architectural Improvements in V4
 
-The bot cycle processes these 3 heavy workloads asynchronously:
-1. **Pending Order Sweep:** Executes a queue of *Limit*, *Stop Market*, *TWAP*, and *delayed Market Orders* when the actual price crosses the trigger price.
-2. **Take Profit (TP) / Stop Loss (SL):** Executes protective closures, locking in profits or limiting losses when an asset crosses a trader's predefined thresholds. *(Note: As per current smart contract logic, TP/SL execution does not distribute execution fees to Keepers).*
-3. **Liquidation Sweep:** Tracks margins and ruthlessly liquidates underwater traders who can no longer maintain their Maintenance Margin collateral requirements. The bot receives a **1% Liquidation Reward** from the trader's effective collateral for successfully triggering this.
+The latest `feederBot.cjs` (V4 Batch Mode) introduces enterprise-grade resilience and gas optimizations:
+
+### 1. Multi-Order & All-Type Coverage (Types 0 to 7)
+The Keeper V4 engine natively handles every order type supported by `ConfidentialTradingV1.sol`:
+- **Type 0 (Limit) & Type 1 (Stop):** Executes when oracle price crosses trigger thresholds.
+- **Type 2 (Market Open) & Type 3 (Market Close):** Settles instant market entries and exits with fresh Pyth prices.
+- **Type 4 (TWAP):** Executes large orders in timed slices (`twapSlices`). V4 accurately preserves the order in active status until all slices settle (`twapExecuted >= twapSlices`), distributing proportional execution fees per slice without premature deactivation.
+- **Type 5 (Increase Margin/Size):** Executes position additions (`_executeIncrease`) with exact weighted-average entry calculation.
+- **Type 6 (Partial Close):** Closes proportional shares (`closePercentBps`) and releases collateral seamlessly.
+- **Type 7 (Remove Collateral):** Settles margin withdrawal requests while enforcing strict anti-self-liquidation safety bounds (`marginRatio >= 2000`).
+
+### 2. High-Performance Multicall3 & JSON-RPC Batching
+To eliminate RPC network congestion and latency:
+- **Multicall3 Aggregation (`0xcA11bde0...`):** Queries up to **50 pending orders or positions in a single `aggregate3` call**, cutting RPC read overhead by 98%.
+- **Batched JSON-RPC Fallback:** If `Multicall3` is unavailable on a local or custom chain, V4 automatically downgrades to parallel HTTP `eth_call` batches (`jsonrpc: "2.0"`).
+
+### 3. Smart Arc Network Rate-Limit & Cooldown Protection
+High-frequency bots often get throttled (`HTTP 429` / `Too Many Requests`). V4 integrates:
+- **Adaptive Bucket Cool-downs:** Automatically pauses (`isRpcRateLimitError`) for 4s–6s when Arc Network RPC rate limits trigger, allowing tokens/buckets to replenish.
+- **Pre-Execution Simulation (`staticCall`):** Simulates every transaction before broadcasting. If an order reverts (`Limit not reached`, `TWAP: too early`), the bot skips gas expenditure.
+
+### 4. Gas & Nonce Caching
+- **Memory Gas Cache (`getCachedGasPrice`):** Refreshes network fee data once per minute (`25 Gwei` default) to prevent underpriced transactions during gas spikes.
+- **Incremental Nonce Tracking (`getNextNonce`):** Manages local nonces cleanly across rapid back-to-back executions, resetting only upon confirmed chain rejections.
 
 ---
 
-## 🚀 How to Run Your Own Keeper Bot
-
-Getting started as a Keeper is incredibly simple. Our bot script is written in Node.js and uses `ethers.js` to interact with the blockchain and the Pyth Network.
+## 🚀 How to Run Your Own Keeper Bot (V4)
 
 ### 1. Prerequisites & Server Specs
-To ensure high execution speed and avoid losing the race to other Keepers, we recommend running the bot on a VPS (Virtual Private Server) with low latency.
+We recommend deploying the bot on a dedicated Linux VPS with high connection stability to the Arc Testnet RPC:
+- **CPU:** 1 vCore (2+ vCores recommended for rapid Multicall parsing)
+- **RAM:** 1 GB–2 GB Minimum
+- **OS:** Ubuntu 22.04 LTS (or Debian/CentOS)
+- **Node.js:** v18.0.0 or higher (`node -v`)
 
-**Recommended VPS Specifications:**
-- **CPU:** 1 vCore (2+ vCores for faster RPC parsing)
-- **RAM:** 1 GB Minimum (2 GB recommended for Node.js stability)
-- **OS:** Ubuntu 22.04 LTS (or similar Linux distro)
-- **Network:** High-speed connection (Latency to Arc Network RPC is the most critical factor)
+### 2. Setup the Bot Script (`feederBot.cjs`)
 
-**Software Requirements:**
-- Node.js (v18 or higher) installed on your server.
-- PM2 (optional, but highly recommended for running the bot 24/7).
-- A Web3 Wallet (e.g., MetaMask) loaded with some **ARC testnet tokens** to pay for gas fees.
-
-### 2. Setup the Bot Script
-
-Create a new file named `feederBot.cjs` on your server and copy the entire script below into it.
+Create a file named `feederBot.cjs` inside your server directory (`contracts/`) and copy the complete production script below:
 
 <details>
-<summary>Click here to view and copy the full <b>feederBot.cjs</b> script</summary>
+<summary>Click here to view and copy the full <b>feederBot.cjs V4</b> script (645 lines)</summary>
 
 ```javascript
 const { ethers } = require("ethers");
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
-require("dotenv").config(); // fallback local
+require("dotenv").config();
 
-// Map of Pair Name to Pyth Price ID
+// ──────────── Pair Mapping ────────────
 const PAIR_PYTH_IDS = {
   'BTC/USDC': '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
   'ETH/USDC': '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',
@@ -99,59 +110,165 @@ const PAIR_PYTH_IDS = {
   'USDJPY/USDC': '0xef2c98c804ba503c6a707e38be4dfbb16683775f195b091252bf24693042fd52'
 };
 
-// Build pairId -> pythId mapping
 const PAIR_ID_TO_PYTH = {};
+const PAIR_ID_TO_NAME = {};
 for (const [name, pythId] of Object.entries(PAIR_PYTH_IDS)) {
   const pairId = ethers.keccak256(ethers.toUtf8Bytes(name));
   PAIR_ID_TO_PYTH[pairId] = pythId;
+  PAIR_ID_TO_NAME[pairId] = name;
 }
 
-// Fetch Pyth VAA update data from Hermes API
+const ORDER_TYPE_NAMES = {
+  0: 'Limit', 1: 'Stop', 2: 'MarketOpen', 3: 'MarketClose',
+  4: 'TWAP', 5: 'Increase', 6: 'PartialClose', 7: 'RemoveCol'
+};
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ──────────── Multicall3 ────────────
+const MULTICALL3_ADDR = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const MULTICALL3_ABI = [
+  "function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[])"
+];
+
+// ──────────── Batch RPC via JSON-RPC ────────────
+async function batchJsonRpc(rpcUrl, calls) {
+  const batch = calls.map((c, i) => ({
+    jsonrpc: "2.0",
+    id: i + 1,
+    method: "eth_call",
+    params: [{ to: c.to, data: c.data }, "latest"]
+  }));
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(batch),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const results = await res.json();
+    if (Array.isArray(results)) {
+      results.sort((a, b) => a.id - b.id);
+      return results.map(r => r.result || null);
+    }
+    return [results.result || null];
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
+// ──────────── Pyth VAA Fetch ────────────
 async function fetchPythVaa(pythPriceId) {
   try {
     const cleanId = pythPriceId.startsWith('0x') ? pythPriceId.slice(2) : pythPriceId;
     const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${cleanId}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return data.binary.data.map((hex) => `0x${hex}`);
   } catch (err) {
-    console.error(`[Pyth] Error fetching VAA for ${pythPriceId}:`, err.message);
+    console.error(`[Pyth] VAA error: ${err.message}`);
     return [];
   }
 }
 
+// ──────────── Error Helpers ────────────
+function extractRevertReason(err) {
+  if (err.reason) return err.reason;
+  if (err.shortMessage && !err.shortMessage.includes('missing revert data') && !err.shortMessage.includes('could not coalesce')) return err.shortMessage;
+  if (err.info?.error?.message) return err.info.error.message;
+  if (err.error?.message) return err.error.message;
+  return err.shortMessage || err.message || "Unknown";
+}
+
+const EXPECTED_REVERTS = ['Limit not reached', 'Stop not reached', 'TWAP: too early', 'Not liquidatable', 'TP not reached', 'SL not reached', 'Not active', 'Cooldown active'];
+function isExpected(reason) { return EXPECTED_REVERTS.some(r => reason.includes(r)); }
+
+function isRpcRateLimitError(reason) {
+  const r = reason.toLowerCase();
+  return r.includes('request limit') || r.includes('rate limit') || r.includes('429') || r.includes('missing revert data') || r.includes('could not coalesce') || r.includes('network error') || r.includes('timeout') || r.includes('bad response');
+}
+
+async function waitReceipt(provider, txHash, maxRetries = 15) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const receipt = await provider.getTransactionReceipt(txHash);
+      if (receipt) return receipt;
+    } catch (e) {
+      // If rate limited checking receipt, sleep and retry without throwing
+    }
+    await sleep(3000);
+  }
+  return null;
+}
+
+let cachedGasPrice = 25_000_000_000n; // default 25 gwei
+let lastGasPriceFetch = 0;
+async function getCachedGasPrice(provider) {
+  const now = Date.now();
+  if (now - lastGasPriceFetch > 60_000) {
+    try {
+      const fd = await provider.getFeeData();
+      if (fd && fd.gasPrice) {
+        cachedGasPrice = fd.gasPrice;
+        lastGasPriceFetch = now;
+      }
+    } catch {}
+  }
+  return cachedGasPrice;
+}
+
+let currentNonce = null;
+async function getNextNonce(wallet, provider) {
+  if (currentNonce === null) {
+    currentNonce = await provider.getTransactionCount(wallet.address, "pending");
+  }
+  return currentNonce++;
+}
+function resetNonce() {
+  currentNonce = null;
+}
+
+// ══════════════════════════════════════════════════════════
+//                          MAIN
+// ══════════════════════════════════════════════════════════
 async function main() {
-  console.log("🤖 Starting Confidential DEX Unified Keeper Bot...");
+  console.log("🤖 Starting Confidential DEX Keeper Bot v4 (Batch Mode)...");
   console.log("═══════════════════════════════════════════════════════");
 
   const rpcUrl = process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network";
-  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  const provider = new ethers.JsonRpcProvider(rpcUrl, 5042002, { staticNetwork: true });
   const pk = process.env.BOT_KEEPER_PRIVATE_KEY || process.env.PRIVATE_KEY;
-  
-  if (!pk) {
-    console.error("❌ ERROR: No BOT_KEEPER_PRIVATE_KEY or PRIVATE_KEY found!");
-    process.exit(1);
-  }
+
+  if (!pk) { console.error("❌ No private key found!"); process.exit(1); }
 
   const wallet = new ethers.Wallet(pk, provider);
-  console.log(`🔑 Keeper Wallet: ${wallet.address}`);
+  console.log(`🔑 Keeper: ${wallet.address}`);
 
-  // Load contract addresses
-  let TRADING_ADDRESS = "0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67"; // Dynamic P2P V1 address
   try {
-    const deployPath1 = path.join(__dirname, "latest_deploy.json");
-    const deployPath2 = path.join(__dirname, "scripts/latest_deploy.json");
-    const deployPath = fs.existsSync(deployPath1) ? deployPath1 : deployPath2;
-    if (fs.existsSync(deployPath)) {
-      const deployInfo = JSON.parse(fs.readFileSync(deployPath, "utf8"));
-      TRADING_ADDRESS = deployInfo.tradingAddress;
-    }
-  } catch (e) {
-    console.log("ℹ️ latest_deploy.json not found, using default V1 address.");
-  }
+    const bal = await provider.getBalance(wallet.address);
+    console.log(`💰 Balance: ${ethers.formatEther(bal)} ARC`);
+  } catch { }
 
-  console.log(`📈 Trading Contract: ${TRADING_ADDRESS}`);
+  let TRADING_ADDRESS = "0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67";
+  try {
+    const dp1 = path.join(__dirname, "latest_deploy.json");
+    const dp2 = path.join(__dirname, "scripts/latest_deploy.json");
+    const dp = fs.existsSync(dp1) ? dp1 : dp2;
+    if (fs.existsSync(dp)) {
+      TRADING_ADDRESS = JSON.parse(fs.readFileSync(dp, "utf8")).tradingAddress;
+    }
+  } catch { }
+  console.log(`📈 Trading: ${TRADING_ADDRESS}`);
 
   let tradingAbi = [
     "function nextOrderId() view returns (uint256)",
@@ -164,183 +281,439 @@ async function main() {
   ];
 
   try {
-    const artPath1 = path.join(__dirname, "artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
-    const artPath2 = path.join(__dirname, "../artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
-    const artPath = fs.existsSync(artPath1) ? artPath1 : artPath2;
-    if (fs.existsSync(artPath)) {
-      const tradingArtifact = JSON.parse(fs.readFileSync(artPath, "utf8"));
-      tradingAbi = tradingArtifact.abi;
+    const ap1 = path.join(__dirname, "artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
+    const ap2 = path.join(__dirname, "../artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
+    const ap = fs.existsSync(ap1) ? ap1 : ap2;
+    if (fs.existsSync(ap)) {
+      tradingAbi = JSON.parse(fs.readFileSync(ap, "utf8")).abi;
+      console.log("✅ Full ABI loaded");
     }
-  } catch (e) {
-    console.log("ℹ️ ABI file not found, using embedded minimal ABI.");
-  }
+  } catch { }
 
   const tradingContract = new ethers.Contract(TRADING_ADDRESS, tradingAbi, wallet);
+  const tradingIface = tradingContract.interface;
 
-  const PYTH_FEE = ethers.parseUnits("0.001", 18); // 0.001 ARC for oracle update
-
-  let isRunning = false;
-  let activeOrders = new Set();
-  let activePositions = new Set();
-  let lastScannedOrderId = 1;
-  let lastScannedPosId = 1;
-
-  async function syncState() {
-    try {
-      const nextOrderId = Number(await tradingContract.nextOrderId());
-      for (let i = lastScannedOrderId; i < nextOrderId; i++) {
-        activeOrders.add(i);
-      }
-      lastScannedOrderId = nextOrderId;
-
-      const nextPosId = Number(await tradingContract.nextPositionId());
-      for (let i = lastScannedPosId; i < nextPosId; i++) {
-        activePositions.add(i);
-      }
-      lastScannedPosId = nextPosId;
-    } catch (e) {
-      console.error("[Bot Sync Error]", e.message);
+  let useMulticall = false;
+  let multicall;
+  try {
+    const mc3Code = await provider.getCode(MULTICALL3_ADDR);
+    if (mc3Code && mc3Code !== '0x' && mc3Code.length > 10) {
+      multicall = new ethers.Contract(MULTICALL3_ADDR, MULTICALL3_ABI, provider);
+      useMulticall = true;
+      console.log("✅ Multicall3 available — batch reads enabled");
     }
+  } catch { }
+
+  if (!useMulticall) {
+    console.log("ℹ️  Multicall3 not found, using JSON-RPC batch fallback");
+  }
+
+  const PYTH_FEE = ethers.parseUnits("0.01", 18);
+
+  // ──────────── State ────────────
+  let lastKnownNextOrderId = 1;
+  let lastKnownNextPosId = 1;
+  let confirmedDone = new Set();
+  let confirmedClosed = new Set();
+  let failedOrders = new Map();
+  let loopCount = 0;
+  let isRunning = false;
+
+  async function batchReadOrders(orderIds) {
+    if (orderIds.length === 0) return new Map();
+
+    const fnData = orderIds.map(id => tradingIface.encodeFunctionData('pendingOrders', [id]));
+    let results;
+
+    if (useMulticall) {
+      const calls = fnData.map(data => ({
+        target: TRADING_ADDRESS,
+        allowFailure: true,
+        callData: data
+      }));
+      try {
+        const mcResults = await multicall.aggregate3.staticCall(calls);
+        results = mcResults.map(r => r.success ? r.returnData : null);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Multicall] Rate limited on orders, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Multicall] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    } else {
+      const calls = fnData.map(data => ({ to: TRADING_ADDRESS, data }));
+      try {
+        results = await batchJsonRpc(rpcUrl, calls);
+        await sleep(300);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Batch RPC] Rate limited on orders, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Batch RPC] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    }
+
+    const parsed = new Map();
+    for (let i = 0; i < orderIds.length; i++) {
+      const raw = results[i];
+      if (!raw) continue;
+      try {
+        const decoded = tradingIface.decodeFunctionResult('pendingOrders', raw);
+        parsed.set(orderIds[i], {
+          pairId: decoded[0],
+          trader: decoded[1],
+          isLong: decoded[2],
+          sizeUsd: decoded[3],
+          collateral: decoded[4],
+          leverage: decoded[5],
+          triggerPrice: decoded[6],
+          orderType: Number(decoded[7]),
+          isActive: decoded[8],
+          createdAt: Number(decoded[9]),
+        });
+      } catch { }
+    }
+    return parsed;
+  }
+
+  async function batchReadPositions(posIds) {
+    if (posIds.length === 0) return new Map();
+
+    const fnData = posIds.map(id => tradingIface.encodeFunctionData('positions', [id]));
+    let results;
+
+    if (useMulticall) {
+      const calls = fnData.map(data => ({
+        target: TRADING_ADDRESS,
+        allowFailure: true,
+        callData: data
+      }));
+      try {
+        const mcResults = await multicall.aggregate3.staticCall(calls);
+        results = mcResults.map(r => r.success ? r.returnData : null);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Multicall Positions] Rate limited, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Multicall] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    } else {
+      const calls = fnData.map(data => ({ to: TRADING_ADDRESS, data }));
+      try {
+        results = await batchJsonRpc(rpcUrl, calls);
+        await sleep(300);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Batch RPC Positions] Rate limited, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Batch RPC Positions] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    }
+
+    const parsed = new Map();
+    for (let i = 0; i < posIds.length; i++) {
+      const raw = results[i];
+      if (!raw) continue;
+      try {
+        const decoded = tradingIface.decodeFunctionResult('positions', raw);
+        parsed.set(posIds[i], {
+          pairId: decoded[0],
+          trader: decoded[1],
+          isLong: decoded[2],
+          sizeUsd: decoded[3],
+          collateral: decoded[4],
+          entryPrice: decoded[5],
+          leverage: decoded[6],
+          liquidationPrice: decoded[7],
+          openedAt: Number(decoded[8]),
+          isOpen: decoded[9],
+          tpPrice: decoded[10],
+          slPrice: decoded[11],
+          entryFundingIndex: decoded[12],
+          lastRolloverSettled: Number(decoded[13]),
+        });
+      } catch { }
+    }
+    return parsed;
   }
 
   async function scanAndExecute() {
     if (isRunning) return;
     isRunning = true;
+    loopCount++;
 
     try {
-      // ═══════════════════════════════════════════════════
-      // 1. SCAN PENDING ORDERS
-      // ═══════════════════════════════════════════════════
-      await syncState();
-
-      for (let i of activeOrders) {
-        try {
-          const order = await tradingContract.pendingOrders(i);
-          // order: [orderId, trader, isLong, sizeUsd, collateral, leverage, triggerPrice, orderType, isActive, ...]
-          const isActive = order[8];
-          if (!isActive) {
-            activeOrders.delete(i);
-            continue;
-          }
-
-          const orderId = i;
-          const pairId = order[0];
-          const orderType = Number(order[7]); // 0=Limit, 1=Stop, 2=MarketOpen, 3=MarketClose, 4=TWAP, 5=MarketIncrease, 6=PartialClose, 7=RemoveCollateral
-          const pythId = PAIR_ID_TO_PYTH[pairId];
-
-          if (!pythId) {
-            console.warn(`[Order #${orderId}] Unknown pairId: ${pairId}`);
-            continue;
-          }
-
-          console.log(`[Order #${orderId}] Active Order found! Type: ${orderType}. Fetching Pyth VAA...`);
-          const updateData = await fetchPythVaa(pythId);
-          if (updateData.length === 0) continue;
-
-          console.log(`[Order #${orderId}] Attempting execution...`);
-          const tx = await tradingContract.executeOrder(orderId, updateData, { value: PYTH_FEE });
-          console.log(`  🚀 Tx sent: ${tx.hash}`);
-          await tx.wait();
-          console.log(`  ✅ Order #${orderId} EXECUTED SUCCESSFULLY!`);
-        } catch (err) {
-          // Many orders might revert if condition not met (e.g. Limit not reached), which is normal
-          const msg = err.shortMessage || err.message || "";
-          if (!msg.includes("Limit not reached") && !msg.includes("Stop not reached") && !msg.includes("TWAP: too early")) {
-            console.error(`[Order #${i}] Execution error:`, msg.slice(0, 100));
-          }
+      let nextOrderId, nextPosId;
+      try {
+        nextOrderId = Number(await tradingContract.nextOrderId());
+        await sleep(500);
+        nextPosId = Number(await tradingContract.nextPositionId());
+      } catch (e) {
+        const reason = e.message || '';
+        if (isRpcRateLimitError(reason)) {
+          if (loopCount % 5 === 0) console.log(`[Cycle ${loopCount}] ⏳ RPC rate limited or busy, backing off 6s...`);
+          await sleep(6000);
+        } else {
+          console.error(`[Sync Error] ${reason.slice(0, 100)}`);
         }
+        isRunning = false;
+        return;
       }
 
-      // ═══════════════════════════════════════════════════
-      // 2. SCAN OPEN POSITIONS (FOR TP/SL & LIQUIDATION)
-      // ═══════════════════════════════════════════════════
-      for (let i of activePositions) {
-        try {
-          const pos = await tradingContract.positions(i);
-          // pos: [positionId, trader, isLong, sizeUsd, collateral, entryPrice, leverage, liquidationPrice, ..., isOpen, ...]
-          const isOpen = pos[9];
-          if (!isOpen) {
-            activePositions.delete(i);
-            continue;
-          }
+      if (nextOrderId > lastKnownNextOrderId) {
+        console.log(`[Sync] New orders: ${lastKnownNextOrderId} → ${nextOrderId - 1}`);
+        lastKnownNextOrderId = nextOrderId;
+      }
+      if (nextPosId > lastKnownNextPosId) {
+        console.log(`[Sync] New positions: ${lastKnownNextPosId} → ${nextPosId - 1}`);
+        lastKnownNextPosId = nextPosId;
+      }
 
-          const posId = i;
-          const pairId = pos[0]; // pairId is index 0 in Position struct
-          const tpPrice = pos[10];
-          const slPrice = pos[11];
-          const pythId = PAIR_ID_TO_PYTH[pairId];
+      const orderIdsToCheck = [];
+      for (let i = 1; i < nextOrderId; i++) {
+        if (!confirmedDone.has(i)) orderIdsToCheck.push(i);
+      }
 
-          if (!pythId) continue;
+      if (orderIdsToCheck.length > 0) {
+        await sleep(500);
 
-          // Check Liquidation or TP/SL
-          const updateData = await fetchPythVaa(pythId);
-          if (updateData.length === 0) continue;
+        const CHUNK_SIZE = useMulticall ? 50 : 4;
+        for (let chunk = 0; chunk < orderIdsToCheck.length; chunk += CHUNK_SIZE) {
+          const chunkIds = orderIdsToCheck.slice(chunk, chunk + CHUNK_SIZE);
+          const ordersMap = await batchReadOrders(chunkIds);
 
-          // Try Liquidation first
-          try {
-            const tx = await tradingContract.liquidate(posId, updateData, { value: PYTH_FEE });
-            console.log(`[Position #${posId}] 💥 LIQUIDATION tx sent: ${tx.hash}`);
-            await tx.wait();
-            console.log(`[Position #${posId}] ✅ LIQUIDATED SUCCESSFULLY!`);
-            continue;
-          } catch (liqErr) {
-            // Not liquidatable, check TP/SL
-          }
-
-          // Try TP/SL if set
-          if (tpPrice > 0n || slPrice > 0n) {
-            try {
-              const tx = await tradingContract.executeTPSL(posId, updateData, { value: PYTH_FEE });
-              console.log(`[Position #${posId}] 🎯 TP/SL tx sent: ${tx.hash}`);
-              await tx.wait();
-              console.log(`[Position #${posId}] ✅ TP/SL EXECUTED SUCCESSFULLY!`);
-            } catch (tpslErr) {
-              // TP/SL not triggered
+          const activeOrders = [];
+          for (const [orderId, order] of ordersMap) {
+            if (!order.isActive) {
+              confirmedDone.add(orderId);
+              failedOrders.delete(orderId);
+              continue;
             }
+            activeOrders.push({ orderId, ...order });
           }
-        } catch (err) {
-          // Ignore
+
+          if (loopCount % 5 === 1) {
+            console.log(`[Cycle ${loopCount}] Orders checked: ${chunkIds.length}, Active: ${activeOrders.length}, Done total: ${confirmedDone.size}`);
+          }
+
+          if (activeOrders.length > 0) {
+            await sleep(1000);
+          }
+
+          for (const order of activeOrders) {
+            const failCount = failedOrders.get(order.orderId) || 0;
+            if (failCount >= 5 && loopCount % 30 !== 0) continue;
+
+            const typeName = ORDER_TYPE_NAMES[order.orderType] || `T${order.orderType}`;
+            const pythId = PAIR_ID_TO_PYTH[order.pairId];
+            const pairName = PAIR_ID_TO_NAME[order.pairId] || '???';
+            if (!pythId) continue;
+
+            const updateData = await fetchPythVaa(pythId);
+            if (updateData.length === 0) continue;
+
+            try {
+              await tradingContract.executeOrder.staticCall(order.orderId, updateData, { value: PYTH_FEE });
+            } catch (simErr) {
+              const reason = extractRevertReason(simErr);
+              if (isRpcRateLimitError(reason)) {
+                console.log(`[Rate Limit] Hit during sim of Order #${order.orderId} (${reason.slice(0, 40)}). Cooldown 4s...`);
+                await sleep(4000);
+                continue;
+              }
+              failedOrders.set(order.orderId, failCount + 1);
+              if (reason.includes('Not active')) { confirmedDone.add(order.orderId); continue; }
+              if (isExpected(reason)) continue;
+              if (failCount === 0) console.error(`[Order #${order.orderId}] ${typeName} ${pairName} sim: ${reason}`);
+              continue;
+            }
+
+            console.log(`[Order #${order.orderId}] ✅ ${typeName} ${pairName} — executing...`);
+            await sleep(1500);
+
+            try {
+              const gp = await getCachedGasPrice(provider);
+              const nonce = await getNextNonce(wallet, provider);
+              const txReq = await tradingContract.executeOrder.populateTransaction(order.orderId, updateData, {
+                value: PYTH_FEE,
+                gasLimit: 1_000_000n,
+                gasPrice: gp,
+                nonce: nonce,
+                chainId: 5042002
+              });
+
+              const signedTx = await wallet.signTransaction(txReq);
+              const txHash = await provider.send('eth_sendRawTransaction', [signedTx]);
+              console.log(`  🚀 Tx: ${txHash}`);
+              const receipt = await waitReceipt(provider, txHash);
+              if (receipt && receipt.status === 1) {
+                console.log(`  ✅ Order #${order.orderId} EXECUTED! Gas: ${receipt.gasUsed}`);
+                if (order.orderType !== 4) {
+                  confirmedDone.add(order.orderId);
+                }
+                failedOrders.delete(order.orderId);
+              } else if (receipt && receipt.status === 0) {
+                console.error(`  ❌ Order #${order.orderId} tx reverted on-chain!`);
+                failedOrders.set(order.orderId, failCount + 1);
+              }
+            } catch (txErr) {
+              resetNonce();
+              const reason = extractRevertReason(txErr);
+              if (isRpcRateLimitError(reason)) {
+                console.log(`  ⏳ Tx rate limited (${reason.slice(0, 40)}). Cooldown 4s...`);
+                await sleep(4000);
+                continue;
+              }
+              failedOrders.set(order.orderId, failCount + 1);
+              console.error(`  ❌ Order #${order.orderId} tx failed: ${reason}`);
+            }
+
+            await sleep(500);
+          }
+
+          if (chunk + CHUNK_SIZE < orderIdsToCheck.length) await sleep(1000);
         }
       }
-    } catch (globalErr) {
-      console.error("[Bot Loop Error]", globalErr.message);
+
+      if (loopCount % 3 === 0) {
+        const posIdsToCheck = [];
+        for (let i = 1; i < nextPosId; i++) {
+          if (!confirmedClosed.has(i)) posIdsToCheck.push(i);
+        }
+
+        if (posIdsToCheck.length > 0) {
+          await sleep(500);
+
+          const CHUNK_SIZE = useMulticall ? 50 : 4;
+          for (let chunk = 0; chunk < posIdsToCheck.length; chunk += CHUNK_SIZE) {
+            const chunkIds = posIdsToCheck.slice(chunk, chunk + CHUNK_SIZE);
+            const posMap = await batchReadPositions(chunkIds);
+
+            for (const [posId, pos] of posMap) {
+              if (!pos.isOpen) {
+                confirmedClosed.add(posId);
+                continue;
+              }
+
+              const pythId = PAIR_ID_TO_PYTH[pos.pairId];
+              const pairName = PAIR_ID_TO_NAME[pos.pairId] || '???';
+              if (!pythId) continue;
+
+              const updateData = await fetchPythVaa(pythId);
+              if (updateData.length === 0) continue;
+
+              try {
+                await tradingContract.liquidate.staticCall(posId, updateData, { value: PYTH_FEE });
+                await sleep(1500);
+                const gp = await getCachedGasPrice(provider);
+                const nonce = await getNextNonce(wallet, provider);
+                const txReq = await tradingContract.liquidate.populateTransaction(posId, updateData, {
+                  value: PYTH_FEE, gasLimit: 1_000_000n, gasPrice: gp, nonce: nonce, chainId: 5042002
+                });
+                const signedTx = await wallet.signTransaction(txReq);
+                const txHash = await provider.send('eth_sendRawTransaction', [signedTx]);
+                console.log(`[Pos #${posId}] 💥 LIQ ${pairName} tx: ${txHash}`);
+                const receipt = await waitReceipt(provider, txHash);
+                if (receipt && receipt.status === 1) {
+                  console.log(`[Pos #${posId}] ✅ LIQUIDATED!`);
+                  confirmedClosed.add(posId);
+                  continue;
+                }
+              } catch { resetNonce(); }
+
+              if (pos.tpPrice > 0n || pos.slPrice > 0n) {
+                try {
+                  await tradingContract.executeTPSL.staticCall(posId, updateData, { value: PYTH_FEE });
+                  await sleep(1500);
+                  const gp = await getCachedGasPrice(provider);
+                  const nonce = await getNextNonce(wallet, provider);
+                  const txReq = await tradingContract.executeTPSL.populateTransaction(posId, updateData, {
+                    value: PYTH_FEE, gasLimit: 1_000_000n, gasPrice: gp, nonce: nonce, chainId: 5042002
+                  });
+                  const signedTx = await wallet.signTransaction(txReq);
+                  const txHash = await provider.send('eth_sendRawTransaction', [signedTx]);
+                  console.log(`[Pos #${posId}] 🎯 TP/SL ${pairName} tx: ${txHash}`);
+                  const receipt = await waitReceipt(provider, txHash);
+                  if (receipt && receipt.status === 1) {
+                    console.log(`[Pos #${posId}] ✅ TP/SL EXECUTED!`);
+                    confirmedClosed.add(posId);
+                  }
+                } catch { resetNonce(); }
+              }
+
+              await sleep(300);
+            }
+
+            if (chunk + CHUNK_SIZE < posIdsToCheck.length) await sleep(1000);
+          }
+        }
+      }
+
+      if (loopCount % 30 === 1) {
+        try {
+          await sleep(500);
+          const bal = await provider.getBalance(wallet.address);
+          console.log(`[Cycle ${loopCount}] 💰 Balance: ${Number(ethers.formatEther(bal)).toFixed(4)} ARC | Done: ${confirmedDone.size} orders, ${confirmedClosed.size} positions`);
+        } catch { }
+      }
+
+    } catch (err) {
+      console.error("[Loop Error]", err.message?.slice(0, 150));
     } finally {
       isRunning = false;
     }
   }
 
-  // Run loop every 2.5 seconds (industry standard for L2/EVM Keepers)
-  console.log("🟢 Bot running. Monitoring orders and positions every 2.5 seconds...\n");
-  setInterval(scanAndExecute, 2500);
-  scanAndExecute(); // Run immediately
+  const INTERVAL = 4000;
+  console.log(`🟢 Bot v4 running. Polling every ${INTERVAL / 1000}s...\n`);
+  setInterval(scanAndExecute, INTERVAL);
+  scanAndExecute();
 }
 
 main().catch(console.error);
-
 ```
 </details>
 
-### 3. Setup Configuration
-Inside the `contracts` directory, create a `.env` file and input your Keeper Wallet's private key:
+### 3. Environment & Configuration Setup
+
+Create a `.env` file inside your `contracts/` folder and insert your Keeper Wallet's private key along with the Arc Testnet RPC URL:
 
 ```bash
 # contracts/.env
 BOT_KEEPER_PRIVATE_KEY=your_private_key_here
 ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.network
 ```
-::: warning Private Key Security
-Never commit your `.env` file to GitHub or share your private key. Use a dedicated wallet exclusively for the Keeper bot, separate from your main personal funds.
+
+::: warning Private Key Security & Wallet Isolation
+Never commit your `.env` file to public repositories or share your private key. Always use a dedicated, isolated wallet specifically loaded with ARC testnet tokens solely for Keeper bot operations.
 :::
 
-### 3. Run the Bot
-Navigate to the `contracts` folder and install the dependencies if you haven't already:
+### 4. Install Dependencies & Launch
+
+Navigate into your `contracts` directory and install required Node.js libraries:
 
 ```bash
 cd contracts
 npm install ethers dotenv node-fetch
 ```
 
-Then, run the bot script:
+To run the bot directly in your terminal:
 
 ```bash
 node feederBot.cjs

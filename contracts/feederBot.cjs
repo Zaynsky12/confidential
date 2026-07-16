@@ -2,9 +2,9 @@ const { ethers } = require("ethers");
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
-require("dotenv").config(); // fallback local
+require("dotenv").config();
 
-// Map of Pair Name to Pyth Price ID
+// ──────────── Pair Mapping ────────────
 const PAIR_PYTH_IDS = {
   'BTC/USDC': '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
   'ETH/USDC': '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',
@@ -31,60 +31,172 @@ const PAIR_PYTH_IDS = {
   'USDJPY/USDC': '0xef2c98c804ba503c6a707e38be4dfbb16683775f195b091252bf24693042fd52'
 };
 
-// Build pairId -> pythId mapping
 const PAIR_ID_TO_PYTH = {};
+const PAIR_ID_TO_NAME = {};
 for (const [name, pythId] of Object.entries(PAIR_PYTH_IDS)) {
   const pairId = ethers.keccak256(ethers.toUtf8Bytes(name));
   PAIR_ID_TO_PYTH[pairId] = pythId;
+  PAIR_ID_TO_NAME[pairId] = name;
 }
 
-// Fetch Pyth VAA update data from Hermes API
+const ORDER_TYPE_NAMES = {
+  0: 'Limit', 1: 'Stop', 2: 'MarketOpen', 3: 'MarketClose',
+  4: 'TWAP', 5: 'Increase', 6: 'PartialClose', 7: 'RemoveCol'
+};
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ──────────── Multicall3 ────────────
+// Canonical address deployed on virtually every EVM chain
+const MULTICALL3_ADDR = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const MULTICALL3_ABI = [
+  "function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[])"
+];
+
+// ──────────── Batch RPC via JSON-RPC ────────────
+// Fallback if Multicall3 is not available
+async function batchJsonRpc(rpcUrl, calls) {
+  const batch = calls.map((c, i) => ({
+    jsonrpc: "2.0",
+    id: i + 1,
+    method: "eth_call",
+    params: [{ to: c.to, data: c.data }, "latest"]
+  }));
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(batch),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const results = await res.json();
+    // Sort by id since responses may arrive out of order
+    if (Array.isArray(results)) {
+      results.sort((a, b) => a.id - b.id);
+      return results.map(r => r.result || null);
+    }
+    // Single response (some RPCs don't support batch)
+    return [results.result || null];
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
+// ──────────── Pyth VAA Fetch ────────────
 async function fetchPythVaa(pythPriceId) {
   try {
     const cleanId = pythPriceId.startsWith('0x') ? pythPriceId.slice(2) : pythPriceId;
     const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${cleanId}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return data.binary.data.map((hex) => `0x${hex}`);
   } catch (err) {
-    console.error(`[Pyth] Error fetching VAA for ${pythPriceId}:`, err.message);
+    console.error(`[Pyth] VAA error: ${err.message}`);
     return [];
   }
 }
 
+// ──────────── Error Helpers ────────────
+function extractRevertReason(err) {
+  if (err.reason) return err.reason;
+  if (err.shortMessage && !err.shortMessage.includes('missing revert data') && !err.shortMessage.includes('could not coalesce')) return err.shortMessage;
+  if (err.info?.error?.message) return err.info.error.message;
+  if (err.error?.message) return err.error.message;
+  return err.shortMessage || err.message || "Unknown";
+}
+
+const EXPECTED_REVERTS = ['Limit not reached', 'Stop not reached', 'TWAP: too early', 'Not liquidatable', 'TP not reached', 'SL not reached', 'Not active', 'Cooldown active'];
+function isExpected(reason) { return EXPECTED_REVERTS.some(r => reason.includes(r)); }
+
+function isRpcRateLimitError(reason) {
+  const r = reason.toLowerCase();
+  return r.includes('request limit') || r.includes('rate limit') || r.includes('429') || r.includes('missing revert data') || r.includes('could not coalesce') || r.includes('network error') || r.includes('timeout') || r.includes('bad response');
+}
+
+async function waitReceipt(provider, txHash, maxRetries = 15) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const receipt = await provider.getTransactionReceipt(txHash);
+      if (receipt) return receipt;
+    } catch (e) {
+      // If rate limited checking receipt, sleep and retry without throwing
+    }
+    await sleep(3000);
+  }
+  return null;
+}
+
+let cachedGasPrice = 25_000_000_000n; // default 25 gwei
+let lastGasPriceFetch = 0;
+async function getCachedGasPrice(provider) {
+  const now = Date.now();
+  if (now - lastGasPriceFetch > 60_000) { // refresh at most once per minute
+    try {
+      const fd = await provider.getFeeData();
+      if (fd && fd.gasPrice) {
+        cachedGasPrice = fd.gasPrice;
+        lastGasPriceFetch = now;
+      }
+    } catch {}
+  }
+  return cachedGasPrice;
+}
+
+let currentNonce = null;
+async function getNextNonce(wallet, provider) {
+  if (currentNonce === null) {
+    currentNonce = await provider.getTransactionCount(wallet.address, "pending");
+  }
+  return currentNonce++;
+}
+function resetNonce() {
+  currentNonce = null;
+}
+
+// ══════════════════════════════════════════════════════════
+//                          MAIN
+// ══════════════════════════════════════════════════════════
 async function main() {
-  console.log("🤖 Starting Confidential DEX Unified Keeper Bot...");
+  console.log("🤖 Starting Confidential DEX Keeper Bot v4 (Batch Mode)...");
   console.log("═══════════════════════════════════════════════════════");
 
   const rpcUrl = process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network";
-  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  const provider = new ethers.JsonRpcProvider(rpcUrl, 5042002, { staticNetwork: true });
   const pk = process.env.BOT_KEEPER_PRIVATE_KEY || process.env.PRIVATE_KEY;
-  
-  if (!pk) {
-    console.error("❌ ERROR: No BOT_KEEPER_PRIVATE_KEY or PRIVATE_KEY found!");
-    process.exit(1);
-  }
+
+  if (!pk) { console.error("❌ No private key found!"); process.exit(1); }
 
   const wallet = new ethers.Wallet(pk, provider);
-  console.log(`🔑 Keeper Wallet: ${wallet.address}`);
+  console.log(`🔑 Keeper: ${wallet.address}`);
 
-  // Load contract addresses
-  let TRADING_ADDRESS = "0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67"; // Dynamic P2P V1 address
   try {
-    const deployPath1 = path.join(__dirname, "latest_deploy.json");
-    const deployPath2 = path.join(__dirname, "scripts/latest_deploy.json");
-    const deployPath = fs.existsSync(deployPath1) ? deployPath1 : deployPath2;
-    if (fs.existsSync(deployPath)) {
-      const deployInfo = JSON.parse(fs.readFileSync(deployPath, "utf8"));
-      TRADING_ADDRESS = deployInfo.tradingAddress;
+    const bal = await provider.getBalance(wallet.address);
+    console.log(`💰 Balance: ${ethers.formatEther(bal)} ARC`);
+  } catch { }
+
+  // Load Trading address
+  let TRADING_ADDRESS = "0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67";
+  try {
+    const dp1 = path.join(__dirname, "latest_deploy.json");
+    const dp2 = path.join(__dirname, "scripts/latest_deploy.json");
+    const dp = fs.existsSync(dp1) ? dp1 : dp2;
+    if (fs.existsSync(dp)) {
+      TRADING_ADDRESS = JSON.parse(fs.readFileSync(dp, "utf8")).tradingAddress;
     }
-  } catch (e) {
-    console.log("ℹ️ latest_deploy.json not found, using default V1 address.");
-  }
+  } catch { }
+  console.log(`📈 Trading: ${TRADING_ADDRESS}`);
 
-  console.log(`📈 Trading Contract: ${TRADING_ADDRESS}`);
-
+  // Load ABI
   let tradingAbi = [
     "function nextOrderId() view returns (uint256)",
     "function pendingOrders(uint256) view returns (bytes32 pairId, address trader, bool isLong, uint256 sizeUsd, uint256 collateral, uint256 leverage, uint256 triggerPrice, uint8 orderType, bool isActive, uint256 createdAt, uint256 positionId, uint256 feePaid, uint256 executionFee, uint256 tpPrice, uint256 slPrice, uint256 twapSlices, uint256 twapInterval, uint256 twapExecuted, uint256 twapLastExec)",
@@ -96,155 +208,437 @@ async function main() {
   ];
 
   try {
-    const artPath1 = path.join(__dirname, "artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
-    const artPath2 = path.join(__dirname, "../artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
-    const artPath = fs.existsSync(artPath1) ? artPath1 : artPath2;
-    if (fs.existsSync(artPath)) {
-      const tradingArtifact = JSON.parse(fs.readFileSync(artPath, "utf8"));
-      tradingAbi = tradingArtifact.abi;
+    const ap1 = path.join(__dirname, "artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
+    const ap2 = path.join(__dirname, "../artifacts/src/ConfidentialTradingV1.sol/ConfidentialTradingV1.json");
+    const ap = fs.existsSync(ap1) ? ap1 : ap2;
+    if (fs.existsSync(ap)) {
+      tradingAbi = JSON.parse(fs.readFileSync(ap, "utf8")).abi;
+      console.log("✅ Full ABI loaded");
     }
-  } catch (e) {
-    console.log("ℹ️ ABI file not found, using embedded minimal ABI.");
-  }
+  } catch { }
 
   const tradingContract = new ethers.Contract(TRADING_ADDRESS, tradingAbi, wallet);
+  const tradingIface = tradingContract.interface;
 
-  const PYTH_FEE = ethers.parseUnits("0.001", 18); // 0.001 ARC for oracle update
-
-  let isRunning = false;
-  let activeOrders = new Set();
-  let activePositions = new Set();
-  let lastScannedOrderId = 1;
-  let lastScannedPosId = 1;
-
-  async function syncState() {
-    try {
-      const nextOrderId = Number(await tradingContract.nextOrderId());
-      for (let i = lastScannedOrderId; i < nextOrderId; i++) {
-        activeOrders.add(i);
-      }
-      lastScannedOrderId = nextOrderId;
-
-      const nextPosId = Number(await tradingContract.nextPositionId());
-      for (let i = lastScannedPosId; i < nextPosId; i++) {
-        activePositions.add(i);
-      }
-      lastScannedPosId = nextPosId;
-    } catch (e) {
-      console.error("[Bot Sync Error]", e.message);
+  // Check if Multicall3 is available
+  let useMulticall = false;
+  let multicall;
+  try {
+    const mc3Code = await provider.getCode(MULTICALL3_ADDR);
+    if (mc3Code && mc3Code !== '0x' && mc3Code.length > 10) {
+      multicall = new ethers.Contract(MULTICALL3_ADDR, MULTICALL3_ABI, provider);
+      useMulticall = true;
+      console.log("✅ Multicall3 available — batch reads enabled");
     }
+  } catch { }
+
+  if (!useMulticall) {
+    console.log("ℹ️  Multicall3 not found, using JSON-RPC batch fallback");
   }
 
+  const PYTH_FEE = ethers.parseUnits("0.01", 18);
+
+  // ──────────── State ────────────
+  let lastKnownNextOrderId = 1;
+  let lastKnownNextPosId = 1;
+  let confirmedDone = new Set();     // Order IDs confirmed inactive
+  let confirmedClosed = new Set();   // Position IDs confirmed closed
+  let failedOrders = new Map();      // orderId -> failCount
+  let loopCount = 0;
+  let isRunning = false;
+
+  // ──────────── Batch Read Orders via Multicall3 or JSON-RPC batch ────────────
+  // Returns: Map<orderId, { pairId, orderType, isActive, ... }>
+  async function batchReadOrders(orderIds) {
+    if (orderIds.length === 0) return new Map();
+
+    const fnData = orderIds.map(id => tradingIface.encodeFunctionData('pendingOrders', [id]));
+    let results;
+
+    if (useMulticall) {
+      // Multicall3: 1 single RPC call for all order reads
+      const calls = fnData.map(data => ({
+        target: TRADING_ADDRESS,
+        allowFailure: true,
+        callData: data
+      }));
+      try {
+        const mcResults = await multicall.aggregate3.staticCall(calls);
+        results = mcResults.map(r => r.success ? r.returnData : null);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Multicall] Rate limited on orders, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Multicall] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    } else {
+      // JSON-RPC batch fallback: 1 HTTP request for all
+      const calls = fnData.map(data => ({ to: TRADING_ADDRESS, data }));
+      try {
+        results = await batchJsonRpc(rpcUrl, calls);
+        await sleep(300);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Batch RPC] Rate limited on orders, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Batch RPC] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    }
+
+    const parsed = new Map();
+    for (let i = 0; i < orderIds.length; i++) {
+      const raw = results[i];
+      if (!raw) continue;
+      try {
+        const decoded = tradingIface.decodeFunctionResult('pendingOrders', raw);
+        parsed.set(orderIds[i], {
+          pairId: decoded[0],
+          trader: decoded[1],
+          isLong: decoded[2],
+          sizeUsd: decoded[3],
+          collateral: decoded[4],
+          leverage: decoded[5],
+          triggerPrice: decoded[6],
+          orderType: Number(decoded[7]),
+          isActive: decoded[8],
+          createdAt: Number(decoded[9]),
+        });
+      } catch { }
+    }
+    return parsed;
+  }
+
+  // ──────────── Batch Read Positions via Multicall3 or JSON-RPC batch ────────────
+  async function batchReadPositions(posIds) {
+    if (posIds.length === 0) return new Map();
+
+    const fnData = posIds.map(id => tradingIface.encodeFunctionData('positions', [id]));
+    let results;
+
+    if (useMulticall) {
+      const calls = fnData.map(data => ({
+        target: TRADING_ADDRESS,
+        allowFailure: true,
+        callData: data
+      }));
+      try {
+        const mcResults = await multicall.aggregate3.staticCall(calls);
+        results = mcResults.map(r => r.success ? r.returnData : null);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Multicall Positions] Rate limited, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Multicall] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    } else {
+      const calls = fnData.map(data => ({ to: TRADING_ADDRESS, data }));
+      try {
+        results = await batchJsonRpc(rpcUrl, calls);
+        await sleep(300);
+      } catch (e) {
+        const msg = e.message || '';
+        if (isRpcRateLimitError(msg)) {
+          console.log("[Batch RPC Positions] Rate limited, cooldown 6s...");
+          await sleep(6000);
+        } else {
+          console.error("[Batch RPC Positions] Error:", msg.slice(0, 80));
+        }
+        return new Map();
+      }
+    }
+
+    const parsed = new Map();
+    for (let i = 0; i < posIds.length; i++) {
+      const raw = results[i];
+      if (!raw) continue;
+      try {
+        const decoded = tradingIface.decodeFunctionResult('positions', raw);
+        parsed.set(posIds[i], {
+          pairId: decoded[0],
+          trader: decoded[1],
+          isLong: decoded[2],
+          sizeUsd: decoded[3],
+          collateral: decoded[4],
+          entryPrice: decoded[5],
+          leverage: decoded[6],
+          liquidationPrice: decoded[7],
+          openedAt: Number(decoded[8]),
+          isOpen: decoded[9],
+          tpPrice: decoded[10],
+          slPrice: decoded[11],
+          entryFundingIndex: decoded[12],
+          lastRolloverSettled: Number(decoded[13]),
+        });
+      } catch { }
+    }
+    return parsed;
+  }
+
+  // ──────────── Main Loop ────────────
   async function scanAndExecute() {
     if (isRunning) return;
     isRunning = true;
+    loopCount++;
 
     try {
-      // ═══════════════════════════════════════════════════
-      // 1. SCAN PENDING ORDERS
-      // ═══════════════════════════════════════════════════
-      await syncState();
-
-      for (let i of activeOrders) {
-        try {
-          const order = await tradingContract.pendingOrders(i);
-          // order: [orderId, trader, isLong, sizeUsd, collateral, leverage, triggerPrice, orderType, isActive, ...]
-          const isActive = order[8];
-          if (!isActive) {
-            activeOrders.delete(i);
-            continue;
-          }
-
-          const orderId = i;
-          const pairId = order[0];
-          const orderType = Number(order[7]); // 0=Limit, 1=Stop, 2=MarketOpen, 3=MarketClose, 4=TWAP, 5=MarketIncrease, 6=PartialClose, 7=RemoveCollateral
-          const pythId = PAIR_ID_TO_PYTH[pairId];
-
-          if (!pythId) {
-            console.warn(`[Order #${orderId}] Unknown pairId: ${pairId}`);
-            continue;
-          }
-
-          console.log(`[Order #${orderId}] Active Order found! Type: ${orderType}. Fetching Pyth VAA...`);
-          const updateData = await fetchPythVaa(pythId);
-          if (updateData.length === 0) continue;
-
-          console.log(`[Order #${orderId}] Attempting execution...`);
-          const tx = await tradingContract.executeOrder(orderId, updateData, { value: PYTH_FEE });
-          console.log(`  🚀 Tx sent: ${tx.hash}`);
-          await tx.wait();
-          console.log(`  ✅ Order #${orderId} EXECUTED SUCCESSFULLY!`);
-        } catch (err) {
-          // Many orders might revert if condition not met (e.g. Limit not reached), which is normal
-          const msg = err.shortMessage || err.message || "";
-          if (!msg.includes("Limit not reached") && !msg.includes("Stop not reached") && !msg.includes("TWAP: too early")) {
-            console.error(`[Order #${i}] Execution error:`, msg.slice(0, 100));
-          }
+      // ═══════════════════════════════
+      // STEP 1: Sync next IDs (2 RPC calls)
+      // ═══════════════════════════════
+      let nextOrderId, nextPosId;
+      try {
+        nextOrderId = Number(await tradingContract.nextOrderId());
+        await sleep(500);
+        nextPosId = Number(await tradingContract.nextPositionId());
+      } catch (e) {
+        const reason = e.message || '';
+        if (isRpcRateLimitError(reason)) {
+          if (loopCount % 5 === 0) console.log(`[Cycle ${loopCount}] ⏳ RPC rate limited or busy, backing off 6s...`);
+          await sleep(6000);
+        } else {
+          console.error(`[Sync Error] ${reason.slice(0, 100)}`);
         }
+        isRunning = false;
+        return;
       }
 
-      // ═══════════════════════════════════════════════════
-      // 2. SCAN OPEN POSITIONS (FOR TP/SL & LIQUIDATION)
-      // ═══════════════════════════════════════════════════
-      for (let i of activePositions) {
-        try {
-          const pos = await tradingContract.positions(i);
-          // pos: [positionId, trader, isLong, sizeUsd, collateral, entryPrice, leverage, liquidationPrice, ..., isOpen, ...]
-          const isOpen = pos[9];
-          if (!isOpen) {
-            activePositions.delete(i);
-            continue;
-          }
+      if (nextOrderId > lastKnownNextOrderId) {
+        console.log(`[Sync] New orders: ${lastKnownNextOrderId} → ${nextOrderId - 1}`);
+        lastKnownNextOrderId = nextOrderId;
+      }
+      if (nextPosId > lastKnownNextPosId) {
+        console.log(`[Sync] New positions: ${lastKnownNextPosId} → ${nextPosId - 1}`);
+        lastKnownNextPosId = nextPosId;
+      }
 
-          const posId = i;
-          const pairId = pos[0]; // pairId is index 0 in Position struct
-          const tpPrice = pos[10];
-          const slPrice = pos[11];
-          const pythId = PAIR_ID_TO_PYTH[pairId];
+      // ═══════════════════════════════
+      // STEP 2: Batch-read ALL orders in 1 call
+      // ═══════════════════════════════
+      // Build list of order IDs to check (skip confirmed done)
+      const orderIdsToCheck = [];
+      for (let i = 1; i < nextOrderId; i++) {
+        if (!confirmedDone.has(i)) orderIdsToCheck.push(i);
+      }
 
-          if (!pythId) continue;
+      if (orderIdsToCheck.length > 0) {
+        await sleep(500); // Breathing room for RPC
 
-          // Check Liquidation or TP/SL
-          const updateData = await fetchPythVaa(pythId);
-          if (updateData.length === 0) continue;
+        // Split into chunks (use 4 for JSON-RPC fallback to avoid rate limit, 50 for Multicall3)
+        const CHUNK_SIZE = useMulticall ? 50 : 4;
+        for (let chunk = 0; chunk < orderIdsToCheck.length; chunk += CHUNK_SIZE) {
+          const chunkIds = orderIdsToCheck.slice(chunk, chunk + CHUNK_SIZE);
+          const ordersMap = await batchReadOrders(chunkIds);
 
-          // Try Liquidation first
-          try {
-            const tx = await tradingContract.liquidate(posId, updateData, { value: PYTH_FEE });
-            console.log(`[Position #${posId}] 💥 LIQUIDATION tx sent: ${tx.hash}`);
-            await tx.wait();
-            console.log(`[Position #${posId}] ✅ LIQUIDATED SUCCESSFULLY!`);
-            continue;
-          } catch (liqErr) {
-            // Not liquidatable, check TP/SL
-          }
-
-          // Try TP/SL if set
-          if (tpPrice > 0n || slPrice > 0n) {
-            try {
-              const tx = await tradingContract.executeTPSL(posId, updateData, { value: PYTH_FEE });
-              console.log(`[Position #${posId}] 🎯 TP/SL tx sent: ${tx.hash}`);
-              await tx.wait();
-              console.log(`[Position #${posId}] ✅ TP/SL EXECUTED SUCCESSFULLY!`);
-            } catch (tpslErr) {
-              // TP/SL not triggered
+          // Process results
+          const activeOrders = [];
+          for (const [orderId, order] of ordersMap) {
+            if (!order.isActive) {
+              confirmedDone.add(orderId);
+              failedOrders.delete(orderId);
+              continue;
             }
+            activeOrders.push({ orderId, ...order });
           }
-        } catch (err) {
-          // Ignore
+
+          if (loopCount % 5 === 1) {
+            console.log(`[Cycle ${loopCount}] Orders checked: ${chunkIds.length}, Active: ${activeOrders.length}, Done total: ${confirmedDone.size}`);
+          }
+
+          if (activeOrders.length > 0) {
+            await sleep(1000); // Give Arc RPC time to reset bucket after batch read
+          }
+
+          // Execute active orders one by one (these need Pyth + tx, so sequential)
+          for (const order of activeOrders) {
+            const failCount = failedOrders.get(order.orderId) || 0;
+            if (failCount >= 5 && loopCount % 30 !== 0) continue;
+
+            const typeName = ORDER_TYPE_NAMES[order.orderType] || `T${order.orderType}`;
+            const pythId = PAIR_ID_TO_PYTH[order.pairId];
+            const pairName = PAIR_ID_TO_NAME[order.pairId] || '???';
+            if (!pythId) continue;
+
+            // Fetch Pyth VAA (external API, no RPC)
+            const updateData = await fetchPythVaa(pythId);
+            if (updateData.length === 0) continue;
+
+            // Simulate tx
+            try {
+              await tradingContract.executeOrder.staticCall(order.orderId, updateData, { value: PYTH_FEE });
+            } catch (simErr) {
+              const reason = extractRevertReason(simErr);
+              if (isRpcRateLimitError(reason)) {
+                console.log(`[Rate Limit] Hit during sim of Order #${order.orderId} (${reason.slice(0, 40)}). Cooldown 4s...`);
+                await sleep(4000);
+                continue;
+              }
+              failedOrders.set(order.orderId, failCount + 1);
+              if (reason.includes('Not active')) { confirmedDone.add(order.orderId); continue; }
+              if (isExpected(reason)) continue;
+              if (failCount === 0) console.error(`[Order #${order.orderId}] ${typeName} ${pairName} sim: ${reason}`);
+              continue;
+            }
+
+            // Simulation passed → send tx
+            console.log(`[Order #${order.orderId}] ✅ ${typeName} ${pairName} — executing...`);
+            await sleep(1500); // 1.5s cooldown so Arc RPC rate limit bucket resets before sending tx
+
+            try {
+              const gp = await getCachedGasPrice(provider);
+              const nonce = await getNextNonce(wallet, provider);
+              const txReq = await tradingContract.executeOrder.populateTransaction(order.orderId, updateData, {
+                value: PYTH_FEE,
+                gasLimit: 1_000_000n,
+                gasPrice: gp,
+                nonce: nonce,
+                chainId: 5042002
+              });
+
+              const signedTx = await wallet.signTransaction(txReq);
+              const txHash = await provider.send('eth_sendRawTransaction', [signedTx]);
+              console.log(`  🚀 Tx: ${txHash}`);
+              const receipt = await waitReceipt(provider, txHash);
+              if (receipt && receipt.status === 1) {
+                console.log(`  ✅ Order #${order.orderId} EXECUTED! Gas: ${receipt.gasUsed}`);
+                if (order.orderType !== 4) {
+                  confirmedDone.add(order.orderId);
+                }
+                failedOrders.delete(order.orderId);
+              } else if (receipt && receipt.status === 0) {
+                console.error(`  ❌ Order #${order.orderId} tx reverted on-chain!`);
+                failedOrders.set(order.orderId, failCount + 1);
+              }
+            } catch (txErr) {
+              resetNonce();
+              const reason = extractRevertReason(txErr);
+              if (isRpcRateLimitError(reason)) {
+                console.log(`  ⏳ Tx rate limited (${reason.slice(0, 40)}). Cooldown 4s...`);
+                await sleep(4000);
+                continue;
+              }
+              failedOrders.set(order.orderId, failCount + 1);
+              console.error(`  ❌ Order #${order.orderId} tx failed: ${reason}`);
+            }
+
+            await sleep(500); // Space between executions
+          }
+
+          if (chunk + CHUNK_SIZE < orderIdsToCheck.length) await sleep(1000);
         }
       }
-    } catch (globalErr) {
-      console.error("[Bot Loop Error]", globalErr.message);
+
+      // ═══════════════════════════════
+      // STEP 3: Batch-read positions (every 3rd cycle)
+      // ═══════════════════════════════
+      if (loopCount % 3 === 0) {
+        const posIdsToCheck = [];
+        for (let i = 1; i < nextPosId; i++) {
+          if (!confirmedClosed.has(i)) posIdsToCheck.push(i);
+        }
+
+        if (posIdsToCheck.length > 0) {
+          await sleep(500);
+
+          const CHUNK_SIZE = useMulticall ? 50 : 4;
+          for (let chunk = 0; chunk < posIdsToCheck.length; chunk += CHUNK_SIZE) {
+            const chunkIds = posIdsToCheck.slice(chunk, chunk + CHUNK_SIZE);
+            const posMap = await batchReadPositions(chunkIds);
+
+            for (const [posId, pos] of posMap) {
+              if (!pos.isOpen) {
+                confirmedClosed.add(posId);
+                continue;
+              }
+
+              const pythId = PAIR_ID_TO_PYTH[pos.pairId];
+              const pairName = PAIR_ID_TO_NAME[pos.pairId] || '???';
+              if (!pythId) continue;
+
+              // Only fetch Pyth if TP/SL is set (or always check liquidation)
+              const updateData = await fetchPythVaa(pythId);
+              if (updateData.length === 0) continue;
+
+              // Try Liquidation (simulate first)
+              try {
+                await tradingContract.liquidate.staticCall(posId, updateData, { value: PYTH_FEE });
+                await sleep(1500);
+                const gp = await getCachedGasPrice(provider);
+                const nonce = await getNextNonce(wallet, provider);
+                const txReq = await tradingContract.liquidate.populateTransaction(posId, updateData, {
+                  value: PYTH_FEE, gasLimit: 1_000_000n, gasPrice: gp, nonce: nonce, chainId: 5042002
+                });
+                const signedTx = await wallet.signTransaction(txReq);
+                const txHash = await provider.send('eth_sendRawTransaction', [signedTx]);
+                console.log(`[Pos #${posId}] 💥 LIQ ${pairName} tx: ${txHash}`);
+                const receipt = await waitReceipt(provider, txHash);
+                if (receipt && receipt.status === 1) {
+                  console.log(`[Pos #${posId}] ✅ LIQUIDATED!`);
+                  confirmedClosed.add(posId);
+                  continue;
+                }
+              } catch { resetNonce(); }
+
+              // Try TP/SL
+              if (pos.tpPrice > 0n || pos.slPrice > 0n) {
+                try {
+                  await tradingContract.executeTPSL.staticCall(posId, updateData, { value: PYTH_FEE });
+                  await sleep(1500);
+                  const gp = await getCachedGasPrice(provider);
+                  const nonce = await getNextNonce(wallet, provider);
+                  const txReq = await tradingContract.executeTPSL.populateTransaction(posId, updateData, {
+                    value: PYTH_FEE, gasLimit: 1_000_000n, gasPrice: gp, nonce: nonce, chainId: 5042002
+                  });
+                  const signedTx = await wallet.signTransaction(txReq);
+                  const txHash = await provider.send('eth_sendRawTransaction', [signedTx]);
+                  console.log(`[Pos #${posId}] 🎯 TP/SL ${pairName} tx: ${txHash}`);
+                  const receipt = await waitReceipt(provider, txHash);
+                  if (receipt && receipt.status === 1) {
+                    console.log(`[Pos #${posId}] ✅ TP/SL EXECUTED!`);
+                    confirmedClosed.add(posId);
+                  }
+                } catch { resetNonce(); }
+              }
+
+              await sleep(300);
+            }
+
+            if (chunk + CHUNK_SIZE < posIdsToCheck.length) await sleep(1000);
+          }
+        }
+      }
+
+      // Periodic balance check
+      if (loopCount % 30 === 1) {
+        try {
+          await sleep(500);
+          const bal = await provider.getBalance(wallet.address);
+          console.log(`[Cycle ${loopCount}] 💰 Balance: ${Number(ethers.formatEther(bal)).toFixed(4)} ARC | Done: ${confirmedDone.size} orders, ${confirmedClosed.size} positions`);
+        } catch { }
+      }
+
+    } catch (err) {
+      console.error("[Loop Error]", err.message?.slice(0, 150));
     } finally {
       isRunning = false;
     }
   }
 
-  // Run loop every 2.5 seconds (industry standard for L2/EVM Keepers)
-  console.log("🟢 Bot running. Monitoring orders and positions every 2.5 seconds...\n");
-  setInterval(scanAndExecute, 2500);
-  scanAndExecute(); // Run immediately
+  // Run every 4 seconds for faster order execution
+  const INTERVAL = 4000;
+  console.log(`🟢 Bot v4 running. Polling every ${INTERVAL / 1000}s...\n`);
+  setInterval(scanAndExecute, INTERVAL);
+  scanAndExecute();
 }
 
 main().catch(console.error);
