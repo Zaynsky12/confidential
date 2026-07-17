@@ -13,7 +13,7 @@ export function usePositions(address?: string) {
     functionName: 'nextPositionId',
     query: {
       enabled: !!address,
-      refetchInterval: 2000,
+      refetchInterval: 4000,
     }
   })
 
@@ -38,7 +38,7 @@ export function usePositions(address?: string) {
     contracts: detailContracts,
     query: {
       enabled: detailContracts.length > 0,
-      refetchInterval: 2000,
+      refetchInterval: 4000,
     }
   })
 
@@ -108,7 +108,7 @@ export function useOrders(address?: string) {
     functionName: 'nextOrderId',
     query: {
       enabled: !!address,
-      refetchInterval: 2000,
+      refetchInterval: 4000,
     }
   })
 
@@ -133,7 +133,7 @@ export function useOrders(address?: string) {
     contracts: detailContracts,
     query: {
       enabled: detailContracts.length > 0,
-      refetchInterval: 2000,
+      refetchInterval: 4000,
     }
   })
 
