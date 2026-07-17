@@ -1,18 +1,31 @@
 # 🏛️ System Architecture
 
-The architecture of *Confidential DEX* is built on a modular foundation (Tripartite System) that is fully centralized in terms of execution performance (*Keepers*), yet fully decentralized regarding asset security logic (*Smart Contracts*).
+The architecture of *Confidential DEX* is built on a modular foundation, revolving around a **Tripartite Core Contract System** that balances high-performance execution (*Keepers*) with decentralized asset security logic (*Smart Contracts*).
+
+While the repository contains **5 Solidity files** in total for implementation and utility purposes, the business logic and protocol state are strictly divided into **3 core smart contract pillars**.
 
 ---
 
-## The Tripartite Contracts
+## 🔗 The Core & Supporting Contracts
 
-The main logic of this protocol is split into three core *Smart Contract* pillars to minimize gas overhead, avoid complexity that leads to bugs, and secure user funds.
+Below is the breakdown of the 3 tripartite core pillars, followed by the supporting contracts that complete the on-chain architecture.
+
+### The Tripartite Pillars (Core Logic)
+
+These three core smart contract pillars minimize gas overhead, avoid code complexity, and secure user funds:
 
 | Contract Layer | Primary Role & Function |
 | :--- | :--- |
 | **1. ConfidentialCoreV1.sol** | **(Source of Truth)**<br>The brain of the system. Stores all critical states such as Open Interest (Max OI) limits, Leverage configurations, security caps (Vault Caps), and Circuit Breaker mechanisms. |
 | **2. ConfidentialTradingV1.sol** | **(Execution Engine)**<br>The primary interaction point for Traders. Handles order requests via a 2-step execution model (Request -> Keeper Execution), validates margin sufficiency, leverage, Pyth Oracle prices, and calculates Price Impact penalties before triggering logic within the Vault. |
 | **3. ConfidentialVaultV1.sol** | **(Liquidity Reserve)**<br>Acts like a bank vault. Entirely responsible for securing USDC funds deposited by Liquidity Providers. Processes LP deposits/withdrawals, pays out PnL to traders, and mints LP shares. |
+
+### Supporting Contracts (Integration & Utilities)
+
+To support the core engine, the protocol uses two additional contracts in its deployment scope:
+
+*   **`PythPriceOracle.sol` (Oracle Adapter):** A modular wrapper for the Pyth Network. It fetches, validates, and serves real-time price feeds to `ConfidentialTradingV1.sol`. By decoupling this from the core engine, the DEX can easily swap or upgrade price oracle providers in the future.
+*   **`ReentrancyGuard.sol` (Security Utility):** A lightweight utility inherited by the core contracts to prevent reentrancy attacks, enforcing the Checks-Effects-Interactions (CEI) design pattern.
 
 ---
 
