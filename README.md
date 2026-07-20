@@ -1,6 +1,6 @@
 # 🛡️ Confidential DEX (V1)
 
-[![Network: Arc Testnet](https://img.shields.io/badge/Network-Arc_Testnet-6E56CF?style=flat-square&logo=ethereum)](https://explorer.arc.network)
+[![Network: Arc Testnet](https://img.shields.io/badge/Network-Arc_Testnet-6E56CF?style=flat-square&logo=ethereum)](https://testnet.arcscan.app)
 [![Contracts: Solidity](https://img.shields.io/badge/Contracts-Solidity_%5E0.8.24-363636?style=flat-square&logo=solidity)](./contracts/src)
 [![Frontend: Vite + React](https://img.shields.io/badge/Frontend-Vite_+_React-646CFF?style=flat-square&logo=vite&logoColor=white)](./src)
 [![Indexer: Goldsky](https://img.shields.io/badge/Indexer-Goldsky_Subgraph-FF4D4D?style=flat-square&logo=graphql)](https://goldsky.com)
@@ -98,11 +98,11 @@ For an in-depth understanding of the platform's tier-1 circuit breakers, quadrat
 
 | Contract | Address | Explorer Link |
 | :--- | :--- | :--- |
-| **ConfidentialCoreV1** | `0xC3EB0406FF2601D452673710e859Fbf75A0B892d` | [View Explorer](https://explorer.arc.network/address/0xC3EB0406FF2601D452673710e859Fbf75A0B892d) |
-| **ConfidentialTradingV1** | `0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67` | [View Explorer](https://explorer.arc.network/address/0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67) |
-| **ConfidentialVaultV1** | `0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c` | [View Explorer](https://explorer.arc.network/address/0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c) |
-| **USDC Mock Token** | `0x3600000000000000000000000000000000000000` | [View Explorer](https://explorer.arc.network/address/0x3600000000000000000000000000000000000000) |
-| **Pyth Oracle** | `0x897b9947185079B42d94CbbF332192CEFd9ACCFA` | [View Explorer](https://explorer.arc.network/address/0x897b9947185079B42d94CbbF332192CEFd9ACCFA) |
+| **ConfidentialCoreV1** | `0xC3EB0406FF2601D452673710e859Fbf75A0B892d` | [View Explorer](https://testnet.arcscan.app/address/0xC3EB0406FF2601D452673710e859Fbf75A0B892d) |
+| **ConfidentialTradingV1** | `0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67` | [View Explorer](https://testnet.arcscan.app/address/0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67) |
+| **ConfidentialVaultV1** | `0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c` | [View Explorer](https://testnet.arcscan.app/address/0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c) |
+| **USDC Mock Token** | `0x3600000000000000000000000000000000000000` | [View Explorer](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
+| **Pyth Oracle** | `0x897b9947185079B42d94CbbF332192CEFd9ACCFA` | [View Explorer](https://testnet.arcscan.app/address/0x897b9947185079B42d94CbbF332192CEFd9ACCFA) |
 
 ---
 

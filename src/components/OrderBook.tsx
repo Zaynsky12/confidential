@@ -1,5 +1,6 @@
 import { useTradeStore } from '../store/useTradeStore'
 import { useTradeRecords } from '../hooks/useGoldsky'
+import { BLOCK_EXPLORER_URL } from '../config/chain'
 
 
 interface OrderBookProps {
@@ -64,7 +65,7 @@ export default function OrderBook({ hideTabs }: OrderBookProps = {}) {
               <span className="font-mono" style={{ color: 'var(--color-text1)' }}>{(t.sizeUsd / t.price).toFixed(4)}</span>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', zIndex: 1 }}>
                 <span className="font-mono" style={{ color: 'var(--color-text3)' }}>{formatTime(t.timestamp)}</span>
-                <a href={`https://explorer.arc.network/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
+                <a href={`${BLOCK_EXPLORER_URL}/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                     <polyline points="15 3 21 3 21 9"></polyline>

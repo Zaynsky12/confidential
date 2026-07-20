@@ -5,6 +5,7 @@ import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialTrading } from '../hooks/useConfidentialTrading'
 import { usePositions, useOrders } from '../hooks/usePositions'
 import { useClosedPositions, useTradeRecords } from '../hooks/useGoldsky'
+import { BLOCK_EXPLORER_URL } from '../config/chain'
 
 import SharePnLModal, { type SharePositionData } from './SharePnLModal'
 import EditTpSlModal, { type EditTpSlData } from './EditTpSlModal'
@@ -376,7 +377,7 @@ export default function Positions() {
                       <span className="font-mono" style={{ textAlign: 'center' }}>${formatPrice(t.price)}</span>
                       <span className="font-mono" style={{ textAlign: 'center', color: pnlColor, fontWeight: 600 }}>{pnlDisplay}</span>
                       <span className="font-mono text-accent" style={{ textAlign: 'center' }}>
-                        <a href={`https://explorer.arc.network/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
+                        <a href={`${BLOCK_EXPLORER_URL}/tx/${t.txHash}`} target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none'}}>View Tx</a>
                       </span>
                     </div>
                   )})

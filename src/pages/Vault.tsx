@@ -4,6 +4,7 @@ import type { IChartApi, Time } from 'lightweight-charts'
 import { useArcWallet } from '../hooks/useArcWallet'
 import { useConfidentialVault } from '../hooks/useConfidentialVault'
 import { useVaultHistory } from '../hooks/useGoldsky'
+import { BLOCK_EXPLORER_URL } from '../config/chain'
 
 export default function Vault() {
   const { isConnected, balance, connect, isWrongNetwork, address } = useArcWallet()
@@ -182,7 +183,7 @@ export default function Vault() {
                 <div>
                   <h2>Degen Vault</h2>
                 </div>
-                <div className="badge badge-green">3x Profit Share</div>
+                <div className="badge badge-orange">3x Profit Share</div>
               </div>
               <div className="tc-stats">
                 <div className="tc-stat">
@@ -258,7 +259,7 @@ export default function Vault() {
           <div className="detail-header-card panel">
             <div className="dh-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <h2 style={{ margin: 0 }}>{activeTab} Vault</h2>
-              <span className="badge badge-green" style={{ whiteSpace: 'nowrap' }}>
+              <span className={`badge ${activeTab === 'Degen' ? 'badge-orange' : 'badge-green'}`} style={{ whiteSpace: 'nowrap' }}>
                 {activeTab === 'Degen' ? '3x Profit Share' : 'Capital Protected'}
               </span>
             </div>
@@ -302,7 +303,7 @@ export default function Vault() {
                           <>
                             {'Available: ' + (activeTab === 'Degen' ? userDegenShares : userPrimeShares).toFixed(2) + ' cUSDC'}
                             {activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0 && (
-                              <span style={{ color: 'var(--color-red)', marginLeft: 8, fontWeight: 'bold' }}>(Locked)</span>
+                              <span style={{ color: '#F59E0B', marginLeft: 8, fontSize: 12, fontWeight: 600 }}>🔒 Lockup Active</span>
                             )}
                           </>
                         )
@@ -327,8 +328,9 @@ export default function Vault() {
                 </div>
 
                 {activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0 && (
-                  <div className="panel-inner" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--color-red)', padding: '10px 12px', fontSize: 12, borderRadius: 8, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    ⚠️ Withdrawal Lock Active. Lockup period not expired.
+                  <div className="panel-inner" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#FCD34D', padding: '12px 14px', fontSize: 13, borderRadius: 8, marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🔒</span>
+                    <span>Withdrawal in lockup period ({activeTab === 'Degen' ? '2 days' : '5 days'}). Your shares remain safe & earning yield.</span>
                   </div>
                 )}
 
@@ -341,9 +343,10 @@ export default function Vault() {
                   } 
                   onClick={handleAction}
                   style={{
-                    background: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? '#3b1c1c' : undefined,
-                    color: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? 'var(--color-red)' : undefined,
-                    borderColor: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? 'rgba(239, 68, 68, 0.3)' : undefined
+                    background: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? 'rgba(245, 158, 11, 0.08)' : undefined,
+                    color: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? '#FCD34D' : undefined,
+                    borderColor: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? 'rgba(245, 158, 11, 0.25)' : undefined,
+                    cursor: (activeAction === 'Withdraw' && !(activeTab === 'Degen' ? canWithdrawDegen : canWithdrawPrime) && (activeTab === 'Degen' ? userDegenShares : userPrimeShares) > 0) ? 'not-allowed' : undefined
                   }}
                 >
                   {isPending 
@@ -355,7 +358,7 @@ export default function Vault() {
                     : (activeAction === 'Withdraw' && (activeTab === 'Degen' ? userDegenShares <= 0 : userPrimeShares <= 0))
                     ? 'No Shares to Withdraw'
                     : (activeAction === 'Withdraw' && (activeTab === 'Degen' ? !canWithdrawDegen : !canWithdrawPrime))
-                    ? 'Withdrawal Locked'
+                    ? '🔒 Lockup Period Active'
                     : activeAction
                   }
                 </button>
@@ -402,7 +405,7 @@ export default function Vault() {
                       <tr key={d.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <td style={{ padding: '12px 8px', color: d.action === 'deposit' ? 'var(--color-green)' : 'var(--color-red)', textTransform: 'capitalize' }}>{d.action}</td>
                         <td style={{ padding: '12px 8px' }}>
-                          <span className={`badge ${d.isDegen ? 'badge-green' : ''}`} style={{ fontSize: 11, padding: '2px 6px' }}>
+                          <span className={`badge ${d.isDegen ? 'badge-orange' : 'badge-green'}`} style={{ fontSize: 11, padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
                             {d.isDegen ? 'Degen' : 'Prime'}
                           </span>
                         </td>
@@ -414,7 +417,7 @@ export default function Vault() {
                         </td>
                         <td style={{ padding: '12px 8px', color: 'var(--color-text2)' }}>{new Date(d.timestamp).toLocaleString()}</td>
                         <td style={{ padding: '12px 8px' }}>
-                          <a href={`https://explorer.testnet.arc.network/tx/${d.txHash}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+                          <a href={`${BLOCK_EXPLORER_URL}/tx/${d.txHash}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
                             {d.txHash.slice(0, 6)}...{d.txHash.slice(-4)}
                           </a>
                         </td>
@@ -473,12 +476,14 @@ export default function Vault() {
         .border-green { border-color: rgba(46, 189, 133, 0.3); box-shadow: 0 0 30px rgba(46,189,133,0.05); }
         
         .text-green { color: #2ebd85; }
-        .badge-green { background-color: rgba(46, 189, 133, 0.12); color: #2ebd85; }
+        .text-orange { color: #f97316; }
+        .badge-green { background-color: rgba(46, 189, 133, 0.12); color: #2ebd85; border: 1px solid rgba(46, 189, 133, 0.25); }
+        .badge-orange { background-color: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.28); }
         .btn-green { background-color: #2ebd85; color: #fff; }
         .btn-green:hover { background-color: #27a675; }
         
-        .action-tabs { display: flex; padding: 16px 16px 0; gap: 8px; }
-        .at-btn { flex: 1; padding: 12px 0; background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: var(--radius-lg); color: var(--color-text2); font-weight: 600; font-size: 14px; cursor: pointer; }
+        .action-tabs { display: flex; padding: 14px 16px 0; gap: 8px; }
+        .at-btn { flex: 1; padding: 8px 0; background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: var(--radius-lg); color: var(--color-text2); font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.15s; }
         .at-btn.active { background: var(--color-bg3); color: var(--color-text1); border-color: var(--color-text3); }
         
         .action-body { padding: 24px; }
@@ -491,7 +496,7 @@ export default function Vault() {
         .receive-box { display: flex; justify-content: space-between; align-items: center; padding: 16px; margin-bottom: 24px; font-size: 13px; color: var(--color-text2); flex-wrap: wrap; gap: 8px; }
         .receive-box .font-mono { word-break: break-all; font-size: 16px !important; }
         
-        .submit-btn { width: 100%; padding: 16px 0; font-size: 15px; }
+        .submit-btn { width: 100%; padding: 11px 0; font-size: 14px; font-weight: 600; }
         
         .chart-panel { padding: 24px; display: flex; flex-direction: column; }
         .cp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }

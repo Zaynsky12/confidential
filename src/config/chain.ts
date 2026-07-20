@@ -26,3 +26,5 @@ export const arcTestnet = defineChain({
   },
   testnet: true,
 })
+
+export const BLOCK_EXPLORER_URL = import.meta.env.VITE_ARC_EXPLORER || arcTestnet.blockExplorers.default.url
