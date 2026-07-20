@@ -1517,7 +1517,6 @@ export default function Home() {
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="https://x.com/Confidentialdex" target="_blank" rel="noreferrer">X</a>
               <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="https://github.com/Zaynsky12/confidential" target="_blank" rel="noreferrer">GitHub</a>
-              <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="https://t.me/confidentialdex" target="_blank" rel="noreferrer">Telegram</a>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               <a className="t-label-mono home-footer-link" style={{ color: '#bacbbb', textTransform: 'uppercase', opacity: 0.8, textDecoration: 'none', transition: 'all 0.3s' }} href="/docs/legal/privacy-policy">Privacy Policy</a>
