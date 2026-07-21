@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTradeStore } from '../store/useTradeStore';
-import { useReadContract } from 'wagmi';
-import { CONTRACTS, ABIS } from '../config/contracts';
 import { useGlobalVolume } from '../hooks/useGoldsky';
+import { useConfidentialVault } from '../hooks/useConfidentialVault';
+
+const formatAbbreviatedFloor = (val: number): string => {
+  if (val <= 0) return "$0";
+  if (val >= 1_000_000_000) {
+    const num = Math.floor((val / 1_000_000_000) * 10) / 10;
+    return `$${num}B`;
+  } else if (val >= 1_000_000) {
+    const num = Math.floor((val / 1_000_000) * 10) / 10;
+    return `$${num}M`;
+  } else if (val >= 1_000) {
+    const num = Math.floor((val / 1_000) * 10) / 10;
+    return `$${num}K`;
+  } else {
+    return `$${Math.floor(val)}`;
+  }
+};
 
 const getAssetLogo = (pair: string) => {
   const base = pair.split('/')[0].toLowerCase()
@@ -47,38 +62,19 @@ export default function Home() {
     }, 4500);
     return () => clearInterval(timer);
   }, []);
-  
-  // Fetch live stats from the smart contract
-  const { data: nextPositionId } = useReadContract({
-    address: CONTRACTS.TRADING as `0x${string}`,
-    abi: ABIS.TRADING,
-    functionName: 'nextPositionId',
-    query: {
-      refetchInterval: 10000, // refresh every 10s
-    }
-  });
 
-  const activeTraders = nextPositionId ? Number(nextPositionId) - 1 : 0;
-  const displayTraders = activeTraders > 0 ? activeTraders.toLocaleString() : '...';
-  
+  // Fetch live Total Vault TVL
+  const { degenTvlUsd, primeTvlUsd } = useConfidentialVault();
+  const totalVaultTvl = degenTvlUsd + primeTvlUsd;
+  const displayVaultTvl = formatAbbreviatedFloor(totalVaultTvl);
+
   // Fetch cumulative all-time Global Volume across all historical days from subgraph
   const indexedGlobalVolume = useGlobalVolume();
   const sum24hVolume = markets.reduce((acc, curr) => acc + (curr.volume24h || 0), 0);
   const totalVolume = Math.max(indexedGlobalVolume, sum24hVolume);
-  
-  // Format the total volume without decimals (e.g., "$1M", "$32B", "$124K")
-  let formattedVolume = "$0";
-  if (totalVolume > 0) {
-    if (totalVolume >= 1_000_000_000) {
-      formattedVolume = `$${(totalVolume / 1_000_000_000).toFixed(0)}B`;
-    } else if (totalVolume >= 1_000_000) {
-      formattedVolume = `$${(totalVolume / 1_000_000).toFixed(0)}M`;
-    } else if (totalVolume >= 1_000) {
-      formattedVolume = `$${(totalVolume / 1_000).toFixed(0)}K`;
-    } else {
-      formattedVolume = `$${totalVolume.toFixed(0)}`;
-    }
-  }
+
+  // Format the total volume
+  const formattedVolume = formatAbbreviatedFloor(totalVolume);
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ backgroundColor: '#131313', color: '#e5e2e1', fontFamily: "'Geist', sans-serif" }}>
@@ -371,7 +367,7 @@ export default function Home() {
           margin-bottom: 88px;
         }
         .stats-bar-responsive {
-          max-width: 1024px;
+          max-width: 760px;
           margin: 0 auto;
           display: flex;
           flex-direction: row;
@@ -925,37 +921,37 @@ export default function Home() {
           {/* Baris Pertama: Gerak ke Kiri */}
           <div className="market-marquee marquee-left">
             {[...markets, ...markets].map((m, idx) => (
-              <Link 
-                to="/trade" 
-                key={`left-${m.id}-${idx}`} 
-                className="market-item" 
+              <Link
+                to="/trade"
+                key={`left-${m.id}-${idx}`}
+                className="market-item"
                 onClick={() => useTradeStore.getState().setActiveMarket(m.id)}
               >
-                <img 
-                  src={getAssetLogo(m.pair)} 
-                  alt={m.pair} 
-                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
-                  onError={(e) => e.currentTarget.style.display = 'none'} 
+                <img
+                  src={getAssetLogo(m.pair)}
+                  alt={m.pair}
+                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }}
+                  onError={(e) => e.currentTarget.style.display = 'none'}
                 />
                 <span>{m.pair}</span>
               </Link>
             ))}
           </div>
-          
+
           {/* Baris Kedua: Gerak ke Kanan */}
           <div className="market-marquee marquee-right">
             {[...markets].reverse().concat([...markets].reverse()).map((m, idx) => (
-              <Link 
-                to="/trade" 
-                key={`right-${m.id}-${idx}`} 
-                className="market-item" 
+              <Link
+                to="/trade"
+                key={`right-${m.id}-${idx}`}
+                className="market-item"
                 onClick={() => useTradeStore.getState().setActiveMarket(m.id)}
               >
-                <img 
-                  src={getAssetLogo(m.pair)} 
-                  alt={m.pair} 
-                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }} 
-                  onError={(e) => e.currentTarget.style.display = 'none'} 
+                <img
+                  src={getAssetLogo(m.pair)}
+                  alt={m.pair}
+                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: m.category === 'crypto' ? 'transparent' : '#fff', padding: m.category === 'rwa' ? '2px' : '0' }}
+                  onError={(e) => e.currentTarget.style.display = 'none'}
                 />
                 <span>{m.pair}</span>
               </Link>
@@ -968,22 +964,22 @@ export default function Home() {
       <section className="stats-bar-section">
         <div className="glass-surface stats-bar-responsive">
           <div className="stats-item-responsive">
-            <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Total Trades</span>
-            <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{displayTraders}</span>
+            <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Vault TVL</span>
+            <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{displayVaultTvl}</span>
           </div>
-          
+
           <div className="stats-divider-responsive"></div>
-          
-          <div className="stats-item-responsive">
-            <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Global Volume</span>
-            <span className="stats-number stats-num-responsive" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{formattedVolume}</span>
-          </div>
-          
-          <div className="stats-divider-responsive"></div>
-          
+
           <div className="stats-item-responsive">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Markets</span>
-            <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{markets.length}</span>
+            <span className="stats-number stats-num-responsive" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{markets.length}</span>
+          </div>
+
+          <div className="stats-divider-responsive"></div>
+
+          <div className="stats-item-responsive">
+            <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Global Volume</span>
+            <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{formattedVolume}</span>
           </div>
         </div>
       </section>
@@ -1005,20 +1001,20 @@ export default function Home() {
           <div className="glass-surface strategy-card-glow integrated-showcase-card" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
             {/* Docked Institutional Laptop Mockup */}
             <div style={{ position: 'relative', width: '100%', maxWidth: 840, margin: '0 auto 24px auto', zIndex: 20 }}>
-              <img 
-                src="/app-preview.png" 
-                alt="Confidential Trading Platform" 
+              <img
+                src="/app-preview.png"
+                alt="Confidential Trading Platform"
                 className="home-mockup-float"
-                style={{ 
+                style={{
                   position: 'relative',
                   zIndex: 1,
-                  width: '100%', 
+                  width: '100%',
                   borderRadius: 16,
                   mixBlendMode: 'screen',
                   filter: 'drop-shadow(0 20px 40px rgba(75, 255, 153, 0.12))',
                   pointerEvents: 'none',
                   userSelect: 'none',
-                }} 
+                }}
               />
             </div>
 
@@ -1215,7 +1211,7 @@ export default function Home() {
       {/* ═══ THE CONFIDENTIAL EDGE ("Scalable Leverage for Everyone") ═══ */}
       <section className="home-section-pad edge-section-wrapper" style={{ backgroundColor: '#070707', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)', width: 400, height: 250, background: '#4BFF99', filter: 'blur(160px)', opacity: 0.08, pointerEvents: 'none' }} />
-        
+
         <div style={{ maxWidth: 1280, margin: '0 auto', position: 'relative', zIndex: 10 }}>
           <div className="edge-header-container" style={{ textAlign: 'center' }}>
             <span className="t-label-mono edge-label" style={{ color: '#4BFF99', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block' }}>
@@ -1372,7 +1368,7 @@ export default function Home() {
       {/* ═══ DUAL VAULT LIQUIDITY & YIELD CTA ═══ */}
       <section className="home-section-pad" style={{ padding: '64px 16px', backgroundColor: '#070707', borderTop: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: '-10%', bottom: '-10%', width: 350, height: 350, background: '#4BFF99', borderRadius: '50%', filter: 'blur(160px)', opacity: 0.08, pointerEvents: 'none' }} />
-        
+
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <span className="t-label-mono" style={{ color: '#4BFF99', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 16 }}>
@@ -1478,10 +1474,10 @@ export default function Home() {
                 a: 'Simply connect your Web3 wallet. There is no KYC, no mandatory account sign-ups, and no deposit delays. Trade directly from your wallet with zero friction on the Arc Network.'
               },
             ].map((faq, idx) => (
-              <div 
-                key={idx} 
-                className="glass-surface home-faq-item" 
-                style={{ padding: '20px 24px', borderRadius: 12, cursor: 'pointer', transition: 'all 0.3s', border: activeFaq === idx ? '1px solid #4BFF99' : '1px solid rgba(255, 255, 255, 0.05)' }} 
+              <div
+                key={idx}
+                className="glass-surface home-faq-item"
+                style={{ padding: '20px 24px', borderRadius: 12, cursor: 'pointer', transition: 'all 0.3s', border: activeFaq === idx ? '1px solid #4BFF99' : '1px solid rgba(255, 255, 255, 0.05)' }}
                 onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
