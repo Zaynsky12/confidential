@@ -1,4 +1,4 @@
-# 🤖 Unified Keeper Network (feederBot V4)
+# 🤖 Unified Keeper Network (feederBot V1)
 
 Execution, liquidations, and price precision at **Confidential DEX V1** do not rely on a centralized matching engine. Instead, they are fully powered and secured by a permissionless, decentralized army of **Unified Keeper Bots (`feederBot.cjs`)**.
 
@@ -31,15 +31,15 @@ Whenever your bot successfully executes a pending order (`placeOrder` -> `execut
 
 ---
 
-## ⚡ Key Architectural Improvements in V4
+## ⚡ Key Architectural Improvements in V1
 
-The latest `feederBot.cjs` (V4 Batch Mode) introduces enterprise-grade resilience and gas optimizations:
+The latest `feederBot.cjs` (V1 Batch Mode) introduces enterprise-grade resilience and gas optimizations:
 
 ### 1. Multi-Order & All-Type Coverage (Types 0 to 7)
-The Keeper V4 engine natively handles every order type supported by `ConfidentialTradingV1.sol`:
+The Keeper V1 engine natively handles every order type supported by `ConfidentialTradingV1.sol`:
 - **Type 0 (Limit) & Type 1 (Stop):** Executes when oracle price crosses trigger thresholds.
 - **Type 2 (Market Open) & Type 3 (Market Close):** Settles instant market entries and exits with fresh Pyth prices.
-- **Type 4 (TWAP):** Executes large orders in timed slices (`twapSlices`). V4 accurately preserves the order in active status until all slices settle (`twapExecuted >= twapSlices`), distributing proportional execution fees per slice without premature deactivation.
+- **Type 4 (TWAP):** Executes large orders in timed slices (`twapSlices`). V1 accurately preserves the order in active status until all slices settle (`twapExecuted >= twapSlices`), distributing proportional execution fees per slice without premature deactivation.
 - **Type 5 (Increase Margin/Size):** Executes position additions (`_executeIncrease`) with exact weighted-average entry calculation.
 - **Type 6 (Partial Close):** Closes proportional shares (`closePercentBps`) and releases collateral seamlessly.
 - **Type 7 (Remove Collateral):** Settles margin withdrawal requests while enforcing strict anti-self-liquidation safety bounds (`marginRatio >= 2000`).
@@ -47,10 +47,10 @@ The Keeper V4 engine natively handles every order type supported by `Confidentia
 ### 2. High-Performance Multicall3 & JSON-RPC Batching
 To eliminate RPC network congestion and latency:
 - **Multicall3 Aggregation (`0xcA11bde0...`):** Queries up to **50 pending orders or positions in a single `aggregate3` call**, cutting RPC read overhead by 98%.
-- **Batched JSON-RPC Fallback:** If `Multicall3` is unavailable on a local or custom chain, V4 automatically downgrades to parallel HTTP `eth_call` batches (`jsonrpc: "2.0"`).
+- **Batched JSON-RPC Fallback:** If `Multicall3` is unavailable on a local or custom chain, V1 automatically downgrades to parallel HTTP `eth_call` batches (`jsonrpc: "2.0"`).
 
 ### 3. Smart Arc Network Rate-Limit & Cooldown Protection
-High-frequency bots often get throttled (`HTTP 429` / `Too Many Requests`). V4 integrates:
+High-frequency bots often get throttled (`HTTP 429` / `Too Many Requests`). V1 integrates:
 - **Adaptive Bucket Cool-downs:** Automatically pauses (`isRpcRateLimitError`) for 4s–6s when Arc Network RPC rate limits trigger, allowing tokens/buckets to replenish.
 - **Pre-Execution Simulation (`staticCall`):** Simulates every transaction before broadcasting. If an order reverts (`Limit not reached`, `TWAP: too early`), the bot skips gas expenditure.
 
@@ -60,7 +60,7 @@ High-frequency bots often get throttled (`HTTP 429` / `Too Many Requests`). V4 i
 
 ---
 
-## 🚀 How to Run Your Own Keeper Bot (V4)
+## 🚀 How to Run Your Own Keeper Bot (V1)
 
 ### 1. Prerequisites & Server Specs
 We recommend deploying the bot on a dedicated Linux VPS with high connection stability to the Arc Testnet RPC:
@@ -74,7 +74,7 @@ We recommend deploying the bot on a dedicated Linux VPS with high connection sta
 Create a file named `feederBot.cjs` inside your server directory (`contracts/`) and copy the complete production script below:
 
 <details>
-<summary>Click here to view and copy the full <b>feederBot.cjs V4</b> script (645 lines)</summary>
+<summary>Click here to view and copy the full <b>feederBot.cjs V1</b> script (645 lines)</summary>
 
 ```javascript
 const { ethers } = require("ethers");
@@ -242,7 +242,7 @@ function resetNonce() {
 //                          MAIN
 // ══════════════════════════════════════════════════════════
 async function main() {
-  console.log("🤖 Starting Confidential DEX Keeper Bot v4 (Batch Mode)...");
+  console.log("🤖 Starting Confidential DEX Keeper Bot v1 (Batch Mode)...");
   console.log("═══════════════════════════════════════════════════════");
 
   const rpcUrl = process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network";
@@ -259,7 +259,7 @@ async function main() {
     console.log(`💰 Balance: ${ethers.formatEther(bal)} ARC`);
   } catch { }
 
-  let TRADING_ADDRESS = "0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67";
+  let TRADING_ADDRESS = "0x266C76800b5bdEd90c246AC60319831078fA28A4";
   try {
     const dp1 = path.join(__dirname, "latest_deploy.json");
     const dp2 = path.join(__dirname, "scripts/latest_deploy.json");
@@ -681,7 +681,7 @@ async function main() {
   }
 
   const INTERVAL = 4000;
-  console.log(`🟢 Bot v4 running. Polling every ${INTERVAL / 1000}s...\n`);
+  console.log(`🟢 Bot v1 running. Polling every ${INTERVAL / 1000}s...\n`);
   setInterval(scanAndExecute, INTERVAL);
   scanAndExecute();
 }

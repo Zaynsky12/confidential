@@ -54,14 +54,14 @@ During extreme market volatility (such as wars or economic crises), Oracle data 
 ### 5. Admin Fat-Finger Protection
 The system does not allow direct, unilateral transfer of administrative rights (Ownership). This process uses a **2-Step Ownership Transfer** mechanism (`transferOwnership` followed by `acceptOwnership` from the new wallet), preventing the permanent loss of contract control due to a typo in the wallet address (Fat-Finger Error).
 
-### 6. Keeper Bot V4 (Batch Mode) & VPS Integration
+### 6. Keeper Bot V1 (Batch Mode) & VPS Integration
 
-To operate the decentralized execution layer, Node Operators run the **feederBot V4 (`feederBot.cjs`)** script on a VPS using PM2. V4 features built-in **Multicall3 batch reading**, **Arc Network rate-limit cooldown protection**, and support for all 8 order types (Limit, Stop, Market Open/Close, TWAP, Increase, Partial Close, Remove Collateral) plus liquidations and TP/SL sweeps.
+To operate the decentralized execution layer, Node Operators run the **feederBot V1 (`feederBot.cjs`)** script on a VPS using PM2. V1 features built-in **Multicall3 batch reading**, **Arc Network rate-limit cooldown protection**, and support for all 8 order types (Limit, Stop, Market Open/Close, TWAP, Increase, Partial Close, Remove Collateral) plus liquidations and TP/SL sweeps.
 
 Ensure you have installed dependencies inside your `contracts/` directory (`npm install`) and configured your `.env` private key.
 
 ```bash
-# Start or restart your V4 bot in PM2 Daemon mode
+# Start or restart your V1 bot in PM2 Daemon mode
 pm2 start feederBot.cjs --name "KeeperBot"
 pm2 logs KeeperBot
 ```

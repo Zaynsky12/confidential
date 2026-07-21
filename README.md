@@ -99,7 +99,7 @@ For an in-depth understanding of the platform's tier-1 circuit breakers, quadrat
 | Contract | Address | Explorer Link |
 | :--- | :--- | :--- |
 | **ConfidentialCoreV1** | `0xC3EB0406FF2601D452673710e859Fbf75A0B892d` | [View Explorer](https://testnet.arcscan.app/address/0xC3EB0406FF2601D452673710e859Fbf75A0B892d) |
-| **ConfidentialTradingV1** | `0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67` | [View Explorer](https://testnet.arcscan.app/address/0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67) |
+| **ConfidentialTradingV1** | `0x266C76800b5bdEd90c246AC60319831078fA28A4` | [View Explorer](https://testnet.arcscan.app/address/0x266C76800b5bdEd90c246AC60319831078fA28A4) |
 | **ConfidentialVaultV1** | `0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c` | [View Explorer](https://testnet.arcscan.app/address/0x5F4d94b9E92Bb09B647a2D044C488F1947427f4c) |
 | **USDC Mock Token** | `0x3600000000000000000000000000000000000000` | [View Explorer](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
 | **Pyth Oracle** | `0x897b9947185079B42d94CbbF332192CEFd9ACCFA` | [View Explorer](https://testnet.arcscan.app/address/0x897b9947185079B42d94CbbF332192CEFd9ACCFA) |

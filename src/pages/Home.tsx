@@ -390,6 +390,11 @@ export default function Home() {
           width: auto;
           padding: 6px 4px;
         }
+        .stats-item-middle {
+          flex: 0 1 auto !important;
+          min-width: 100px;
+          padding: 6px 12px !important;
+        }
         .stats-divider-responsive {
           width: 1px;
           height: 40px;
@@ -414,6 +419,10 @@ export default function Home() {
           }
           .stats-item-responsive {
             padding: 6px 0;
+          }
+          .stats-item-middle {
+            min-width: 130px;
+            padding: 6px 24px !important;
           }
           .stats-divider-responsive {
             height: 48px;
@@ -970,7 +979,7 @@ export default function Home() {
 
           <div className="stats-divider-responsive"></div>
 
-          <div className="stats-item-responsive">
+          <div className="stats-item-responsive stats-item-middle">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Markets</span>
             <span className="stats-number stats-num-responsive" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{markets.length}</span>
           </div>

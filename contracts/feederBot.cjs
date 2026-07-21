@@ -167,7 +167,7 @@ function resetNonce() {
 //                          MAIN
 // ══════════════════════════════════════════════════════════
 async function main() {
-  console.log("🤖 Starting Confidential DEX Keeper Bot v4 (Batch Mode)...");
+  console.log("🤖 Starting Confidential DEX Keeper Bot v1 (Batch Mode)...");
   console.log("═══════════════════════════════════════════════════════");
 
   const rpcUrl = process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network";
@@ -185,7 +185,7 @@ async function main() {
   } catch { }
 
   // Load Trading address
-  let TRADING_ADDRESS = "0xF0B85870e6CD14E9f9f0d5428ABaF94B51F69A67";
+  let TRADING_ADDRESS = "0x266C76800b5bdEd90c246AC60319831078fA28A4";
   try {
     const dp1 = path.join(__dirname, "latest_deploy.json");
     const dp2 = path.join(__dirname, "scripts/latest_deploy.json");
@@ -636,7 +636,7 @@ async function main() {
 
   // Run every 4 seconds for faster order execution
   const INTERVAL = 4000;
-  console.log(`🟢 Bot v4 running. Polling every ${INTERVAL / 1000}s...\n`);
+  console.log(`🟢 Bot v1 running. Polling every ${INTERVAL / 1000}s...\n`);
   setInterval(scanAndExecute, INTERVAL);
   scanAndExecute();
 }

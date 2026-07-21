@@ -504,8 +504,8 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         // 4. Settle with Vault — one clean call
         vault.settlePosition(pos.trader, pos.collateral, netPnl);
 
-        // 5. Distribute closing fee — skip if loss consumed all collateral
-        if (closingFee > 0 && netPnl > -int256(pos.collateral)) {
+        // 5. Distribute closing fee — always distribute (fee already deducted from netPnl)
+        if (closingFee > 0) {
             vault.distributeClosingFee(closingFee);
         }
 
@@ -585,7 +585,7 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
 
         require(isLiquidatable, "Not liquidatable");
 
-        // FIX CRITICAL-1: Account for accrued fees before distributing collateral
+        // FIX CRITICAL-1 & REVENUE LEAK: Account for accrued fees + closing fee before distributing collateral
         uint256 rolloverFee = _calcRolloverFee(pos);
         core.updateFunding(pos.pairId);
         int256 fundingFee = _calcFundingFee(pos);
@@ -593,8 +593,17 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         uint256 totalAccruedFees = rolloverFee;
         if (fundingFee > 0) totalAccruedFees += uint256(fundingFee);
 
-        uint256 settledFees = totalAccruedFees > pos.collateral ? pos.collateral : totalAccruedFees;
-        uint256 effectiveCollateral = pos.collateral - settledFees;
+        uint256 closingFee = core.calculateFee(pos.sizeUsd, false); // taker fee 0.04%
+        uint256 totalFeesToSettle = totalAccruedFees + closingFee;
+
+        // Cap total fees by collateral
+        uint256 settledTotal = totalFeesToSettle > pos.collateral ? pos.collateral : totalFeesToSettle;
+        
+        // Prioritize accrued fees first, then closing fee from remainder
+        uint256 settledAccrued = totalAccruedFees > settledTotal ? settledTotal : totalAccruedFees;
+        uint256 settledClosing = settledTotal - settledAccrued;
+        
+        uint256 effectiveCollateral = pos.collateral - settledTotal;
 
         // Calculate liquidation reward from effective collateral
         uint256 reward = (effectiveCollateral * liquidationRewardBps) / 10000;
@@ -603,12 +612,18 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
         pos.isOpen = false;
         core.decreaseOI(pos.pairId, pos.trader, pos.isLong, pos.sizeUsd);
 
-        // Settle accrued fees first (fees become LP profit)
-        if (settledFees > 0) {
-            vault.settleAccruedFees(settledFees);
+        // Settle all fees (accrued + closing) into Vault first
+        // This releases exact `settledTotal` from totalBacking and credits profit to Vault
+        if (settledTotal > 0) {
+            vault.settleAccruedFees(settledTotal);
+        }
+        
+        // Distribute closing fee (sends 30% to Treasury, leaves 70% in Vault)
+        if (settledClosing > 0) {
+            vault.distributeClosingFee(settledClosing);
         }
 
-        // Settle liquidation with effective collateral
+        // Settle remaining collateral & reward
         vault.settleLiquidation(pos.trader, msg.sender, effectiveCollateral, reward);
 
         emit PositionLiquidated(positionId, pos.trader, currentPrice, msg.sender, reward);
@@ -976,7 +991,7 @@ contract ConfidentialTradingV1 is ReentrancyGuard {
 
         vault.settlePosition(pos.trader, closeCollateral, netPnl);
 
-        if (closingFee > 0 && netPnl > -int256(closeCollateral)) {
+        if (closingFee > 0) {
             vault.distributeClosingFee(closingFee);
         }
 
