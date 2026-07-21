@@ -59,7 +59,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/Zaynsky12/arctrade' }
+      { icon: 'github', link: 'https://github.com/confidentialdex/confidential' }
     ],
 
     footer: {

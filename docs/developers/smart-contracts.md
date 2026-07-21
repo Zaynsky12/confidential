@@ -33,4 +33,4 @@ Use these addresses if you wish to build an *analytics dashboard*, quantitative 
 
 ---
 
-> Contact our team at the official repository [Zaynsky12/confidential](https://github.com/Zaynsky12/confidential) if you detect a potential bug or wish to perform a deep integration!
+> Contact our team at the official repository [confidentialdex/confidential](https://github.com/confidentialdex/confidential) if you detect a potential bug or wish to perform a deep integration!
