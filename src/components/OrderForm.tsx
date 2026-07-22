@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { keccak256, toHex, formatUnits } from 'viem'
 import { useReadContracts } from 'wagmi'
 import { CONTRACTS, ABIS } from '../config/contracts'
@@ -55,29 +55,36 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'shortOI', args: [pairId] },
       { address: CONTRACTS.CORE as `0x${string}`, abi: ABIS.CORE, functionName: 'getOIInfo', args: [pairId] }
     ],
-    query: { refetchInterval: 10000 }
+    query: { refetchInterval: 3000 }
   })
 
   const isMajorPair = pairIdStr === 'BTC/USDC' || pairIdStr === 'ETH/USDC'
   const defaultMaxOI = isMajorPair ? 10000000 : 5000000
-  let longOIVal = 0
-  let shortOIVal = 0
-  let maxLongOIVal = defaultMaxOI
-  let maxShortOIVal = defaultMaxOI
+  
+  const oiRef = useRef({ long: 0, short: 0, maxLong: defaultMaxOI, maxShort: defaultMaxOI })
+
   if (oiInfo && oiInfo[0] && oiInfo[1]) {
-    const longOI = oiInfo[0].status === 'success' ? oiInfo[0].result as bigint : 0n
-    const shortOI = oiInfo[1].status === 'success' ? oiInfo[1].result as bigint : 0n
-    longOIVal = Number(formatUnits(longOI, 6))
-    shortOIVal = Number(formatUnits(shortOI, 6))
+    if (oiInfo[0].status === 'success' && oiInfo[0].result !== undefined) {
+      oiRef.current.long = Number(formatUnits(oiInfo[0].result as bigint, 6))
+    }
+    if (oiInfo[1].status === 'success' && oiInfo[1].result !== undefined) {
+      oiRef.current.short = Number(formatUnits(oiInfo[1].result as bigint, 6))
+    }
   }
+
   // Read real maxOI from getOIInfo (returns [longOI, shortOI, maxLongOI, maxShortOI])
-  if (oiInfo && oiInfo[2] && oiInfo[2].status === 'success') {
+  if (oiInfo && oiInfo[2] && oiInfo[2].status === 'success' && oiInfo[2].result) {
     const oiResult = oiInfo[2].result as [bigint, bigint, bigint, bigint]
     const onChainMaxLong = Number(formatUnits(oiResult[2], 6))
     const onChainMaxShort = Number(formatUnits(oiResult[3], 6))
-    maxLongOIVal = (onChainMaxLong === 10000000 && !isMajorPair) ? 5000000 : onChainMaxLong
-    maxShortOIVal = (onChainMaxShort === 10000000 && !isMajorPair) ? 5000000 : onChainMaxShort
+    oiRef.current.maxLong = (onChainMaxLong === 10000000 && !isMajorPair) ? 5000000 : onChainMaxLong
+    oiRef.current.maxShort = (onChainMaxShort === 10000000 && !isMajorPair) ? 5000000 : onChainMaxShort
   }
+
+  const longOIVal = oiRef.current.long
+  const shortOIVal = oiRef.current.short
+  const maxLongOIVal = oiRef.current.maxLong
+  const maxShortOIVal = oiRef.current.maxShort
   const maxOISide = side === 'long' ? maxLongOIVal : maxShortOIVal
   const availableLiquidity = side === 'long' ? Math.max(0, maxLongOIVal - longOIVal) : Math.max(0, maxShortOIVal - shortOIVal)
 
@@ -168,6 +175,19 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
       totalRequired: collateral + fees
     }
   }, [effectivePrice, sizeNum, leverage, side, usdSize])
+
+  const handleSideChange = (newSide: OrderSide) => {
+    if (newSide === side) return;
+    setSide(newSide);
+    if (activeMarket) {
+      setLeverage(leveragePresets[leveragePresets.length - 1]);
+    }
+    setSize('');
+    setSizePercent(0);
+    setTakeProfit('');
+    setStopLoss('');
+    setShowTpSl(false);
+  }
 
   const handleSizePercentChange = (percent: number) => {
     setSizePercent(percent)
@@ -344,8 +364,8 @@ export default function OrderForm({ initialSide = 'long', onClose }: OrderFormPr
 
       {/* Long / Short */}
       <div style={{ display:'flex', background:'var(--color-bg2)', border:'1px solid var(--color-border)', borderRadius:8, padding:2, marginTop: 4 }}>
-        <button onClick={()=>setSide('long')} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'none', background:side==='long'?'var(--color-green)':'transparent', color:side==='long'?'#000':'#8e8e93', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>Long</button>
-        <button onClick={()=>setSide('short')} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'none', background:side==='short'?'#e55f48':'transparent', color:side==='short'?'#fff':'#8e8e93', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>Short</button>
+        <button onClick={()=>handleSideChange('long')} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'none', background:side==='long'?'var(--color-green)':'transparent', color:side==='long'?'#000':'#8e8e93', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>Long</button>
+        <button onClick={()=>handleSideChange('short')} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'none', background:side==='short'?'#e55f48':'transparent', color:side==='short'?'#fff':'#8e8e93', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>Short</button>
       </div>
 
       {/* Order Type Tabs */}

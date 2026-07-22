@@ -79,7 +79,7 @@ export default function Trade() {
     abi: ABIS.CORE,
     functionName: 'getOIInfo',
     args: [pairId],
-    query: { refetchInterval: 10000 }
+    query: { refetchInterval: 3000 }
   })
 
   if (activePairOiResult) {
@@ -101,7 +101,7 @@ export default function Trade() {
     abi: ABIS.CORE,
     functionName: 'getProjectedFundingRate',
     args: [pairId],
-    query: { refetchInterval: 10000 }
+    query: { refetchInterval: 3000 }
   })
 
   // Convert 1hr projected rate (int256, 1e18 scale) to percentage
