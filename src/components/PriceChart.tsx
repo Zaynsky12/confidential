@@ -44,8 +44,10 @@ export default function PriceChart() {
 
     const tvSymbol = getTVSymbol(activeMarket.pythSymbol)
     setShowFullscreenBtn(false);
+    let cancelled = false;
 
     const createWidget = () => {
+      if (cancelled) return;
       // Clear container before recreating
       if (chartContainerRef.current) {
         chartContainerRef.current.innerHTML = '';
@@ -112,9 +114,21 @@ export default function PriceChart() {
     }
 
     tvScriptLoadingPromise.then(() => {
-      createWidget()
-      setTimeout(() => setShowFullscreenBtn(true), 3500)
+      if (!cancelled) {
+        createWidget()
+        setTimeout(() => {
+          if (!cancelled) setShowFullscreenBtn(true)
+        }, 3500)
+      }
     });
+
+    // Cleanup: prevent stale widget creation during HMR
+    return () => {
+      cancelled = true;
+      if (chartContainerRef.current) {
+        chartContainerRef.current.innerHTML = '';
+      }
+    };
 
   }, [activeMarket?.pythSymbol, isMobile]);
 
