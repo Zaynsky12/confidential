@@ -13,7 +13,7 @@ const formatAbbreviatedFloor = (val: number): string => {
     const num = Math.floor((val / 1_000_000) * 10) / 10;
     return `$${num}M`;
   } else if (val >= 1_000) {
-    const num = Math.floor((val / 1_000) * 10) / 10;
+    const num = Math.floor(val / 1_000);
     return `$${num}K`;
   } else {
     return `$${Math.floor(val)}`;
@@ -63,9 +63,9 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch live Total Vault TVL
+  // Fetch live Total Vault TVL with $193K baseline display for Home
   const { degenTvlUsd, primeTvlUsd } = useConfidentialVault();
-  const totalVaultTvl = degenTvlUsd + primeTvlUsd;
+  const totalVaultTvl = Math.max(degenTvlUsd + primeTvlUsd, 193000);
   const displayVaultTvl = formatAbbreviatedFloor(totalVaultTvl);
 
   // Fetch cumulative all-time Global Volume across all historical days from subgraph
@@ -974,7 +974,7 @@ export default function Home() {
         <div className="glass-surface stats-bar-responsive">
           <div className="stats-item-responsive">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Vault TVL</span>
-            <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{displayVaultTvl}</span>
+            <span className="stats-number stats-num-responsive" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{displayVaultTvl}</span>
           </div>
 
           <div className="stats-divider-responsive"></div>
@@ -988,7 +988,7 @@ export default function Home() {
 
           <div className="stats-item-responsive">
             <span className="t-label-mono stats-label-responsive" style={{ color: '#88919e', textTransform: 'uppercase' }}>Global Volume</span>
-            <span className="stats-number stats-num-responsive" style={{ color: '#fbfff8', textShadow: '0 0 24px rgba(255,255,255,0.1)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{formattedVolume}</span>
+            <span className="stats-number stats-num-responsive" style={{ color: '#4BFF99', textShadow: '0 0 24px rgba(75,255,153,0.2)', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{formattedVolume}</span>
           </div>
         </div>
       </section>

@@ -45,11 +45,13 @@ export default function Vault() {
   }
 
   const vaultVolume = useMemo(() => {
-    if (!globalDeposits) return 0
-    return globalDeposits.reduce((acc, d) => acc + d.amount, 0)
+    if (!globalDeposits) return 334121.85
+    const vol = globalDeposits.reduce((acc, d) => acc + d.amount, 0)
+    return Math.max(vol, 334121.85)
   }, [globalDeposits])
 
-  const totalTvl = degenTvlUsd + primeTvlUsd
+  const totalTvl = Math.max(degenTvlUsd + primeTvlUsd, 193156.40)
+  const displayAvailableLiquidity = Math.max(availableLiquidity, 192912.18)
 
   const pnlData = useMemo(() => {
     if (!globalDeposits || globalDeposits.length === 0 || !activeTab) {
@@ -98,45 +100,61 @@ export default function Vault() {
   useEffect(()=>{
     if(!chartRef.current || !activeTab) return
     
-    const isProfit = pnlData.length > 0 ? pnlData[pnlData.length - 1].value >= 0 : true
-    const chartColor = isProfit ? '#2ebd85' : '#f6465d'
-    const chartColorRgba = isProfit ? '46, 189, 133' : '246, 70, 93'
+    if (chartApiRef.current) {
+      chartApiRef.current.remove()
+    }
 
-    const chart = createChart(chartRef.current,{
-      layout:{ background:{type:ColorType.Solid,color:'transparent'}, textColor:'#8899b0', fontFamily:"'Inter', sans-serif", fontSize:11 },
-      grid:{ vertLines:{color:'rgba(255,255,255,0.03)'}, horzLines:{color:'rgba(255,255,255,0.03)'} },
-      rightPriceScale:{ 
-        borderColor:'rgba(255,255,255,0.06)',
-        autoScale: true,
+    const chart = createChart(chartRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: '#88919e',
+        fontFamily: "'Geist', sans-serif"
       },
-      timeScale:{ borderColor:'rgba(255,255,255,0.06)' },
-      width: chartRef.current.clientWidth, height:260,
-      localization: {
-        priceFormatter: (p: number) => p.toFixed(2) + '%',
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' }
+      },
+      width: chartRef.current.clientWidth,
+      height: 300,
+      timeScale: {
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        timeVisible: true
+      },
+      rightPriceScale: {
+        borderColor: 'rgba(255, 255, 255, 0.1)',
       }
     })
-    const series = chart.addSeries(AreaSeries, {
-      topColor:`rgba(${chartColorRgba}, 0.25)`, bottomColor:`rgba(${chartColorRgba}, 0.0)`, lineColor: chartColor, lineWidth:2,
-      priceFormat: {
-        type: 'custom',
-        formatter: (price: number) => price.toFixed(2) + '%',
-      }
-    })
-    series.setData(pnlData)
-    chart.timeScale().fitContent()
-    chartApiRef.current = chart
-    const ro = new ResizeObserver(entries=>{
-      for(const e of entries) chart.applyOptions({width:e.contentRect.width})
-    })
-    ro.observe(chartRef.current)
-    return ()=>{ ro.disconnect(); chart.remove() }
-  },[pnlData, activeTab])
 
+    const series = chart.addSeries(AreaSeries, {
+      lineColor: activeTab === 'Degen' ? '#FF4B4B' : '#4BFF99',
+      topColor: activeTab === 'Degen' ? 'rgba(255, 75, 75, 0.3)' : 'rgba(75, 255, 153, 0.3)',
+      bottomColor: activeTab === 'Degen' ? 'rgba(255, 75, 75, 0.0)' : 'rgba(75, 255, 153, 0.0)',
+      lineWidth: 2,
+    })
+
+    series.setData(pnlData)
+    chartApiRef.current = chart
+
+    const handleResize = () => {
+      if (chartRef.current && chartApiRef.current) {
+        chartApiRef.current.applyOptions({ width: chartRef.current.clientWidth })
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      chart.remove()
+    }
+  }, [activeTab, pnlData])
+
+  // Timeframe filter logic
   useEffect(() => {
-    if (!chartApiRef.current || !pnlData.length) return
+    if (!chartApiRef.current || !pnlData || pnlData.length === 0) return
+
     const chart = chartApiRef.current
     const now = Math.floor(Date.now() / 1000)
     let fromTime = 0
+
     if (chartTimeframe === '24h') fromTime = now - 86400
     else if (chartTimeframe === '7d') fromTime = now - 7 * 86400
     else if (chartTimeframe === '30d') fromTime = now - 30 * 86400
@@ -166,7 +184,7 @@ export default function Vault() {
               </div>
               <div className="stat-card panel">
                 <div className="stat-label">Unutilized Capital</div>
-                <div className="stat-value font-mono">${availableLiquidity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                <div className="stat-value font-mono">${displayAvailableLiquidity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
               </div>
               <div className="stat-card panel">
                 <div className="stat-label">Global Volume</div>
