@@ -128,9 +128,13 @@ export default function Positions() {
                     const sizeBaseAsset = p.entryPrice > 0 ? p.sizeUsd / p.entryPrice : 0
                     
                     // PnL Math — only calculate when live price is available and valid
-                    const pnl = priceReady && sizeBaseAsset > 0
+                    const rawPnl = priceReady && sizeBaseAsset > 0
                       ? (p.isLong ? (markPrice - p.entryPrice) * sizeBaseAsset : (p.entryPrice - markPrice) * sizeBaseAsset) 
                       : 0
+                    
+                    // Estimated closing fee: 0.04% (takerFeeBps=4) of original sizeUsd — matches smart contract
+                    const estClosingFee = p.sizeUsd * 0.0004
+                    const pnl = rawPnl - estClosingFee
                     
                     const pnlPercent = p.collateral > 0 && isFinite(pnl) ? (pnl / p.collateral) * 100 : 0
                     
