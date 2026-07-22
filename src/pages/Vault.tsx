@@ -102,6 +102,7 @@ export default function Vault() {
     
     if (chartApiRef.current) {
       chartApiRef.current.remove()
+      chartApiRef.current = null
     }
 
     const chart = createChart(chartRef.current, {
@@ -116,6 +117,9 @@ export default function Vault() {
       },
       width: chartRef.current.clientWidth,
       height: 300,
+      localization: {
+        priceFormatter: (price: number) => `${price >= 0 ? '+' : ''}${price.toFixed(2)}%`,
+      },
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.1)',
         timeVisible: true
@@ -126,10 +130,14 @@ export default function Vault() {
     })
 
     const series = chart.addSeries(AreaSeries, {
-      lineColor: activeTab === 'Degen' ? '#FF4B4B' : '#4BFF99',
-      topColor: activeTab === 'Degen' ? 'rgba(255, 75, 75, 0.3)' : 'rgba(75, 255, 153, 0.3)',
-      bottomColor: activeTab === 'Degen' ? 'rgba(255, 75, 75, 0.0)' : 'rgba(75, 255, 153, 0.0)',
+      lineColor: '#4BFF99',
+      topColor: 'rgba(75, 255, 153, 0.3)',
+      bottomColor: 'rgba(75, 255, 153, 0.0)',
       lineWidth: 2,
+      priceFormat: {
+        type: 'custom',
+        formatter: (price: number) => `${price >= 0 ? '+' : ''}${price.toFixed(2)}%`,
+      },
     })
 
     series.setData(pnlData)
@@ -143,7 +151,10 @@ export default function Vault() {
     window.addEventListener('resize', handleResize)
     return () => {
       window.removeEventListener('resize', handleResize)
-      chart.remove()
+      if (chartApiRef.current === chart) {
+        chart.remove()
+        chartApiRef.current = null
+      }
     }
   }, [activeTab, pnlData])
 
@@ -199,9 +210,9 @@ export default function Vault() {
             <div className="tranche-card degen-card" onClick={() => setActiveTab('Degen')}>
               <div className="tc-header">
                 <div>
-                  <h2>Degen Vault</h2>
+                  <h2><span className="text-orange">Degen</span> Vault</h2>
                 </div>
-                <div className="badge badge-orange">3x Profit Share</div>
+                <div className="badge badge-green">3x Profit Share</div>
               </div>
               <div className="tc-stats">
                 <div className="tc-stat">
@@ -234,7 +245,7 @@ export default function Vault() {
             <div className="tranche-card prime-card" onClick={() => setActiveTab('Prime')}>
               <div className="tc-header">
                 <div>
-                  <h2>Prime Vault</h2>
+                  <h2><span className="text-blue">Prime</span> Vault</h2>
                 </div>
                 <div className="badge badge-green">60% Protected Floor</div>
               </div>
@@ -276,8 +287,10 @@ export default function Vault() {
 
           <div className="detail-header-card panel">
             <div className="dh-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h2 style={{ margin: 0 }}>{activeTab} Vault</h2>
-              <span className={`badge ${activeTab === 'Degen' ? 'badge-orange' : 'badge-green'}`} style={{ whiteSpace: 'nowrap' }}>
+              <h2 style={{ margin: 0 }}>
+                <span className={activeTab === 'Degen' ? 'text-orange' : 'text-blue'}>{activeTab}</span> Vault
+              </h2>
+              <span className="badge badge-green" style={{ whiteSpace: 'nowrap' }}>
                 {activeTab === 'Degen' ? '3x Profit Share' : 'Capital Protected'}
               </span>
             </div>
@@ -423,7 +436,7 @@ export default function Vault() {
                       <tr key={d.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <td style={{ padding: '12px 8px', color: d.action === 'deposit' ? 'var(--color-green)' : 'var(--color-red)', textTransform: 'capitalize' }}>{d.action}</td>
                         <td style={{ padding: '12px 8px' }}>
-                          <span className={`badge ${d.isDegen ? 'badge-orange' : 'badge-green'}`} style={{ fontSize: 11, padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                          <span className={`badge ${d.isDegen ? 'badge-orange' : 'badge-blue'}`} style={{ fontSize: 11, padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
                             {d.isDegen ? 'Degen' : 'Prime'}
                           </span>
                         </td>
@@ -495,8 +508,10 @@ export default function Vault() {
         
         .text-green { color: #2ebd85; }
         .text-orange { color: #f97316; }
+        .text-blue { color: #60a5fa; }
         .badge-green { background-color: rgba(46, 189, 133, 0.12); color: #2ebd85; border: 1px solid rgba(46, 189, 133, 0.25); }
         .badge-orange { background-color: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.28); }
+        .badge-blue { background-color: rgba(96, 165, 250, 0.15); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.28); }
         .btn-green { background-color: #2ebd85; color: #fff; }
         .btn-green:hover { background-color: #27a675; }
         

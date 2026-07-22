@@ -1394,7 +1394,7 @@ export default function Home() {
           <div className="vaults-responsive-grid">
             <div className={`glass-surface vault-card-inner ${activeVaultSlide === 'degen' ? 'hide-on-mobile' : 'vault-slide-animated'}`} style={{ border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="vault-header-row" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-                <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}>Prime Vault</span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}><span style={{ color: '#60a5fa' }}>Prime</span> Vault</span>
               </div>
               <p className="vault-desc-p" style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
                 Designed for capital preservation. Prime LPs share trader liabilities proportionally with Degen LPs and enjoy a 60% hard capital protection floor against drawdowns (5-day lockup).
@@ -1407,7 +1407,7 @@ export default function Home() {
 
             <div className={`glass-surface vault-card-inner ${activeVaultSlide === 'prime' ? 'hide-on-mobile' : 'vault-slide-animated'}`} style={{ border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="vault-header-row" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-                <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}>Degen Vault</span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: '#fbfff8', fontFamily: "'JetBrains Mono', monospace" }}><span style={{ color: '#f97316' }}>Degen</span> Vault</span>
               </div>
               <p className="vault-desc-p" style={{ color: '#bacbbb', fontSize: 14, lineHeight: '22px', margin: 0 }}>
                 Designed for maximum yield hunters. Earn a 3x higher profit multiplier from protocol trading fees and liquidation bonuses while sharing liabilities proportionally (2-day lockup).
